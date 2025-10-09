@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36127.28
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TubeMailGorilla", "TubeMailGorilla\TubeMailGorilla.csproj", "{14BF3853-9F4E-4C96-8E6D-9286B251192F}"
+EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "TubeMail.Python", "TubeMail.Python\TubeMail.Python.pyproj", "{330D5F99-8428-4321-BB51-A6CE70C163F4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{14BF3853-9F4E-4C96-8E6D-9286B251192F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14BF3853-9F4E-4C96-8E6D-9286B251192F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14BF3853-9F4E-4C96-8E6D-9286B251192F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14BF3853-9F4E-4C96-8E6D-9286B251192F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{330D5F99-8428-4321-BB51-A6CE70C163F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{330D5F99-8428-4321-BB51-A6CE70C163F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A8880783-262E-45EB-9D60-72CA3F533187}
+	EndGlobalSection
+EndGlobal
