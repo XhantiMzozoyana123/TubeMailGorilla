@@ -174,29 +174,36 @@ namespace TubeMailGorilla.Forms
                 var isEmailer = cboSource.Text == source[0];
 
                 var confirm = MessageBox.Show(
-                    "Are you sure you want to delete ALL records? This cannot be undone.",
+                    "Are you sure you want to DELETE ALL records? This cannot be undone.",
                     "Confirm Deletion", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
                 if (confirm != DialogResult.Yes) return;
 
                 int deleted = 0;
 
-                if (isEmailer)
+                // Always wrap in a transaction for safety
+                using (var transaction = context.Database.BeginTransaction())
                 {
-                    context.Emailers.RemoveRange(context.Emailers);
-                    context.Captions.RemoveRange(context.Captions);
-                    context.Icebreakers.RemoveRange(context.Icebreakers);
-                    deleted = context.SaveChanges();
-                }
-                else
-                {
-                    context.Commentors.RemoveRange(context.Commentors);
-                    deleted = context.SaveChanges();
+                    if (isEmailer)
+                    {
+                        context.Database.ExecuteSqlRaw("TRUNCATE TABLE Emailers");
+                        context.Database.ExecuteSqlRaw("TRUNCATE TABLE Captions");
+                        context.Database.ExecuteSqlRaw("TRUNCATE TABLE Icebreakers");
+                        deleted = 1; // just an indicator that truncation succeeded
+                    }
+                    else
+                    {
+                        context.Database.ExecuteSqlRaw("TRUNCATE TABLE Commentors");
+                        deleted = 1;
+                    }
+
+                    transaction.Commit();
                 }
 
+                // Refresh grid (will now be empty)
                 dgvEmailer.DataSource = isEmailer ? context.Emailers.ToList() : context.Commentors.ToList();
 
-                MessageBox.Show($"{deleted} records deleted successfully.",
+                MessageBox.Show("All records deleted successfully.",
                     "Deletion Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)

@@ -111,5 +111,22 @@ namespace TubeMailGorilla.Forms
                 MessageBox.Show(ex.Message);
             }
         }
+
+        private void Templates_Load(object sender, EventArgs e)
+        {
+            try
+            {
+                var query = appDbContext.Templates.ToList();
+
+                foreach (var item in query)
+                {
+                    cboTemplate.Items.Add(item.Name);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
     }
 }

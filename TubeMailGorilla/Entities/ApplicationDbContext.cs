@@ -13,7 +13,7 @@ namespace TubeMailGorilla.Entities
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("workstation id=tmgonline.mssql.somee.com;packet size=4096;user id=xm7cj1dvo2_SQLLogin_1;pwd=y7vyxtrvdt;data source=tmgonline.mssql.somee.com;persist security info=False;initial catalog=tmgonline;TrustServerCertificate=True");
+                optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=YourDatabaseName;Trusted_Connection=True;TrustServerCertificate=True;");
             }
         }
 

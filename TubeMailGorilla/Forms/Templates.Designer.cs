@@ -191,6 +191,7 @@
             Controls.Add(btnDelete);
             Name = "Templates";
             Text = "Templates";
+            Load += Templates_Load;
             ResumeLayout(false);
             PerformLayout();
         }

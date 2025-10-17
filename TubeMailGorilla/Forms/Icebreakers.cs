@@ -144,10 +144,18 @@ namespace TubeMailGorilla.Forms
 
         private void cboEmail_SelectedIndexChanged(object sender, EventArgs e)
         {
-            var emailer = _context.Emailers.FirstOrDefault(x => x.Email == cboEmail.Text);
-            var icebreaker = _context.Icebreakers.FirstOrDefault(x => x.EmailerId == emailer.Id);
+            try
+            {
+                var emailer = _context.Emailers.FirstOrDefault(x => x.Email == cboEmail.Text);
+                var icebreaker = _context.Icebreakers.FirstOrDefault(x => x.EmailerId == emailer.Id);
 
-            rtxtMessage.Text = icebreaker.Text;
+                rtxtMessage.Text = icebreaker.Text;
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show($"Error loading icebreaker:\n{ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

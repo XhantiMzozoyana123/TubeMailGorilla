@@ -118,26 +118,21 @@ namespace TubeMailGorilla.Forms
                 // Add user prompt to chat history
                 _chatHistory.Add(("user", prompt));
 
-                // Trim history to stay within context
+                // Trim history if needed
                 TrimChatHistory();
 
                 var apiKey = _context.Settings.FirstOrDefault()?.GoogleAiApiKey;
                 if (string.IsNullOrWhiteSpace(apiKey))
                     return "Error: Missing Google AI API Key.";
 
-                string model = "gemini-1.5-flash"; // or gemini-1.5-pro
-                string url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+                string model = "gemini-2.0-flash";
+                string url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent";
 
-                // Gemini payload
-                var contents = new List<object>();
-                foreach (var msg in _chatHistory)
+                // Build contents payload
+                var contents = _chatHistory.Select(msg => new
                 {
-                    contents.Add(new
-                    {
-                        role = msg.Role,
-                        parts = new[] { new { text = msg.Content } }
-                    });
-                }
+                    parts = new[] { new { text = msg.Content } }
+                }).ToList();
 
                 var payload = new { contents };
 
@@ -148,27 +143,38 @@ namespace TubeMailGorilla.Forms
                 };
 
                 var json = JsonSerializer.Serialize(payload, options);
-
                 using var stringContent = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // Add API key in header
+                _httpClient.DefaultRequestHeaders.Remove("X-goog-api-key");
+                _httpClient.DefaultRequestHeaders.Add("X-goog-api-key", apiKey);
+
                 var response = await _httpClient.PostAsync(url, stringContent);
 
                 if (!response.IsSuccessStatusCode)
-                    return $"Error: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}";
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    return $"Error: {response.StatusCode} - {errorContent}";
+                }
 
                 var responseJson = await response.Content.ReadAsStringAsync();
                 using var doc = JsonDocument.Parse(responseJson);
 
-                var text = doc.RootElement
-                    .GetProperty("candidates")[0]
-                    .GetProperty("content")
-                    .GetProperty("parts")[0]
-                    .GetProperty("text")
-                    .GetString();
+                // Safely extract text
+                if (doc.RootElement.TryGetProperty("candidates", out var candidates) &&
+                    candidates.GetArrayLength() > 0 &&
+                    candidates[0].TryGetProperty("content", out var content) &&
+                    content.TryGetProperty("parts", out var parts) &&
+                    parts.GetArrayLength() > 0 &&
+                    parts[0].TryGetProperty("text", out var textProp))
+                {
+                    var text = textProp.GetString();
+                    if (!string.IsNullOrEmpty(text))
+                        _chatHistory.Add(("assistant", text));
+                    return text ?? "No response";
+                }
 
-                if (!string.IsNullOrEmpty(text))
-                    _chatHistory.Add(("assistant", text));
-
-                return text ?? "No response";
+                return "No response found in API output";
             }
             catch (Exception ex)
             {

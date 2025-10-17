@@ -124,8 +124,8 @@ namespace TubeMailGorilla.Forms
                 Text = string.Empty,
                 CreatedAt = DateTime.Now
             };
-            appDbContext.Icebreakers.Add(icebreaker);
-            appDbContext.SaveChanges();
+            await appDbContext.Icebreakers.AddAsync(icebreaker);
+            await appDbContext.SaveChangesAsync();
         }
 
         private async Task MaxResultExtraction(SearchDto searchDto)
@@ -727,8 +727,8 @@ namespace TubeMailGorilla.Forms
                                                 emailers.CreatedAt = DateTime.Now;
                                                 emailers.UpdatedAt = DateTime.Now;
 
-                                                appDbContext.Emailers.Add(emailers);
-                                                appDbContext.SaveChanges();
+                                                await appDbContext.Emailers.AddAsync(emailers);
+                                                await appDbContext.SaveChangesAsync();
 
                                                 await SaveVideoCaptions(emailers);
                                                 await AddIceBreakers(emailers);
