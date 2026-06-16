@@ -4,6 +4,7 @@ namespace TubeMailGorillaDomain.Interfaces
 {
     public interface IEmailerRepository
     {
+        //
         IQueryable<Emailer> GetAll();
         Task<List<Emailer>> GetAllAsync();
         Task<Emailer?> GetByIdAsync(int id);
