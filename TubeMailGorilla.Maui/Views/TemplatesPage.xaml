@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TubeMailGorilla.Maui.Views.TemplatesPage"
+             Title="Templates">
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+            <Label Text="Email Templates" FontSize="24" FontAttributes="Bold" HorizontalOptions="Center" />
+            
+            <Frame Padding="10" BackgroundColor="#16213e">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Add New Template" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                    <Entry Placeholder="Template Name" x:Name="TemplateNameEntry" />
+                    <Editor Placeholder="Template Content" x:Name="TemplateContentEditor" HeightRequest="150" />
+                    <Button Text="Save Template" BackgroundColor="#e94560" TextColor="White" Clicked="OnSaveTemplateClicked" />
+                </VerticalStackLayout>
+            </Frame>
+            
+            <Frame Padding="10" BackgroundColor="#1a1a2e">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Existing Templates" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                    <ListView ItemsSource="{Binding Templates}" HeightRequest="300" />
+                </VerticalStackLayout>
+            </Frame>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

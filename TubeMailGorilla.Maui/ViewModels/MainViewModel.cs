@@ -76,7 +76,7 @@ public class MainViewModel : BaseViewModel
             EmailReplies = inboxers.Count().ToString();
 
             EmailAddresses.Clear();
-            foreach (var item in await _unitOfWork.Credientals.GetAllAsync())
+            foreach (var item in await _unitOfWork.Credentials.GetAllAsync())
                 EmailAddresses.Add(item.Email);
 
             Templates.Clear();

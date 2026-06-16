@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TubeMailGorilla.Maui.Views.SettingsPage"
+             Title="Settings">
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+            <Label Text="Settings" FontSize="24" FontAttributes="Bold" HorizontalOptions="Center" />
+            
+            <Frame Padding="10" BackgroundColor="#16213e">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Email Configuration" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                    <Entry Placeholder="SMTP Server" />
+                    <Entry Placeholder="SMTP Port" />
+                    <Entry Placeholder="Email Address" />
+                    <Entry Placeholder="Password" IsPassword="True" />
+                    <Button Text="Save Settings" BackgroundColor="#e94560" TextColor="White" />
+                </VerticalStackLayout>
+            </Frame>
+            
+            <Frame Padding="10" BackgroundColor="#1a1a2e">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Application Settings" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                    <Switch IsToggled="True" />
+                    <Label Text="Enable Auto-Forwarding" TextColor="White" />
+                    <Button Text="Clear Database" BackgroundColor="#533483" TextColor="White" />
+                </VerticalStackLayout>
+            </Frame>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
