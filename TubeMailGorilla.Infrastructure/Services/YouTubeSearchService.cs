@@ -17,16 +17,19 @@ namespace TubeMailGorillaInfrastructure.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmailService _emailService;
         private readonly ICaptionService _captionService;
+        private readonly IAIExtractorService _aiExtractorService;
         private static readonly HttpClient _httpClient = new HttpClient();
 
         public YouTubeSearchService(
             IUnitOfWork unitOfWork,
             IEmailService emailService,
-            ICaptionService captionService)
+            ICaptionService captionService,
+            IAIExtractorService aiExtractorService)
         {
             _unitOfWork = unitOfWork;
             _emailService = emailService;
             _captionService = captionService;
+            _aiExtractorService = aiExtractorService;
         }
 
         public async Task MaxResultExtractionAsync(SearchDto searchDto, Action<string> onLog, Action<int> onProgress, CancellationToken cancellationToken = default)
@@ -217,6 +220,7 @@ namespace TubeMailGorillaInfrastructure.Services
                             string descrData = await GetYouTubeVideoDescription(videoUrl);
                             string emailFound = _emailService.ExtractEmails(descrData);
                             string phoneFound = _emailService.ExtractPhoneNumbers(descrData);
+                            string subtitles = await _captionService.ExtractCaptionsAsync(videoUrl);
 
                             onLog($"Extracting data from video ({i + 1}): {videoUrl}");
 
@@ -240,6 +244,12 @@ namespace TubeMailGorillaInfrastructure.Services
 
                                     Emailer emailers = new Emailer
                                     {
+                                        FirstName = await _aiExtractorService.GetFirstNameAsync(descrData, subtitles),
+                                        LastName = await _aiExtractorService.GetLastNameAsync(descrData, subtitles),
+                                        JobTitle = await _aiExtractorService.GetJobTitleAsync(descrData, subtitles),    
+                                        Company = await _aiExtractorService.GetCompanyAsync(descrData, subtitles),
+                                        Location = await _aiExtractorService.GetLocationAsync(descrData, subtitles),
+                                        Industry = await _aiExtractorService.GetIndustryAsync(descrData, subtitles),
                                         Author = recipientUserName,
                                         Email = emailFound,
                                         Phone = phoneFound,

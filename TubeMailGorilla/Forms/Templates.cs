@@ -8,14 +8,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using TubeMailGorilla.Entities;
 
 namespace TubeMailGorilla.Forms
 {
     public partial class Templates : Form
     {
-        private ApplicationDbContext appDbContext = new ApplicationDbContext();
-
         public Templates()
         {
             InitializeComponent();
