@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="TubeMailGorilla.Application/TubeMailGorilla.Application.csproj" />
+  <Project Path="TubeMailGorilla.Domain/TubeMailGorilla.Domain.csproj" />
+  <Project Path="TubeMailGorilla.Infrastructure/TubeMailGorilla.Infrastructure.csproj" />
+  <Project Path="TubeMailGorilla/TubeMailGorilla.csproj" />
+</Solution>

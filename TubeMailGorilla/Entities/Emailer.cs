@@ -9,6 +9,7 @@ namespace TubeMailGorilla.Entities
     public class Emailer : BaseEntity
     {
         public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty; 
         public string Author { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;

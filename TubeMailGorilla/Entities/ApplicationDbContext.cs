@@ -13,7 +13,7 @@ namespace TubeMailGorilla.Entities
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=YourDatabaseName;Trusted_Connection=True;TrustServerCertificate=True;");
+                optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=TubeMailGorilla;Trusted_Connection=True;TrustServerCertificate=True;");
             }
         }
 

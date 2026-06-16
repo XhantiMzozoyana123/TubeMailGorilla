@@ -12,8 +12,8 @@ using TubeMailGorilla.Entities;
 namespace TubeMailGorilla.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251009144045_m2")]
-    partial class m2
+    [Migration("20260610194900_tubemail")]
+    partial class tubemail
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -195,6 +195,10 @@ namespace TubeMailGorilla.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Keyword")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

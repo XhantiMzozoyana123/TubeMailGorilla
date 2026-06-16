@@ -3,20 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using TubeMailGorilla.Entities;
+using TubeMailGorillaInfrastructure.Data;
 
 #nullable disable
 
-namespace TubeMailGorilla.Migrations
+namespace TubeMailGorillaInfrastructure.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250914183817_tubemailGorillaM")]
-    partial class tubemailGorillaM
+    [DbContext(typeof(InfrastructureDbContext))]
+    partial class InfrastructureDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -25,7 +22,7 @@ namespace TubeMailGorilla.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("TubeMailGorilla.Entities.Blocker", b =>
+            modelBuilder.Entity("TubeMailGorillaDomain.Entities.Blocker", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -38,17 +35,19 @@ namespace TubeMailGorilla.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Email");
+
                     b.ToTable("Blockers");
                 });
 
-            modelBuilder.Entity("TubeMailGorilla.Entities.Captions", b =>
+            modelBuilder.Entity("TubeMailGorillaDomain.Entities.Captions", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -75,10 +74,12 @@ namespace TubeMailGorilla.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EmailerId");
+
                     b.ToTable("Captions");
                 });
 
-            modelBuilder.Entity("TubeMailGorilla.Entities.Commentor", b =>
+            modelBuilder.Entity("TubeMailGorillaDomain.Entities.Commentor", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -121,7 +122,7 @@ namespace TubeMailGorilla.Migrations
                     b.ToTable("Commentors");
                 });
 
-            modelBuilder.Entity("TubeMailGorilla.Entities.Credientals", b =>
+            modelBuilder.Entity("TubeMailGorillaDomain.Entities.Credientals", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -168,7 +169,7 @@ namespace TubeMailGorilla.Migrations
                     b.ToTable("Credientals");
                 });
 
-            modelBuilder.Entity("TubeMailGorilla.Entities.Emailer", b =>
+            modelBuilder.Entity("TubeMailGorillaDomain.Entities.Emailer", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -183,6 +184,10 @@ namespace TubeMailGorilla.Migrations
                     b.Property<bool>("Checked")
                         .HasColumnType("bit");
 
+                    b.Property<string>("Company")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -192,9 +197,33 @@ namespace TubeMailGorilla.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Industry")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("JobTitle")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Keyword")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -211,10 +240,12 @@ namespace TubeMailGorilla.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Email");
+
                     b.ToTable("Emailers");
                 });
 
-            modelBuilder.Entity("TubeMailGorilla.Entities.Icebreaker", b =>
+            modelBuilder.Entity("TubeMailGorillaDomain.Entities.Icebreaker", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -237,10 +268,12 @@ namespace TubeMailGorilla.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EmailerId");
+
                     b.ToTable("Icebreakers");
                 });
 
-            modelBuilder.Entity("TubeMailGorilla.Entities.Inboxers", b =>
+            modelBuilder.Entity("TubeMailGorillaDomain.Entities.Inboxers", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -278,7 +311,7 @@ namespace TubeMailGorilla.Migrations
                     b.ToTable("Inboxers");
                 });
 
-            modelBuilder.Entity("TubeMailGorilla.Entities.Proxies", b =>
+            modelBuilder.Entity("TubeMailGorillaDomain.Entities.Proxies", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -301,7 +334,7 @@ namespace TubeMailGorilla.Migrations
                     b.ToTable("Proxies");
                 });
 
-            modelBuilder.Entity("TubeMailGorilla.Entities.Settings", b =>
+            modelBuilder.Entity("TubeMailGorillaDomain.Entities.Settings", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -336,7 +369,7 @@ namespace TubeMailGorilla.Migrations
                     b.ToTable("Settings");
                 });
 
-            modelBuilder.Entity("TubeMailGorilla.Entities.Templates", b =>
+            modelBuilder.Entity("TubeMailGorillaDomain.Entities.Templates", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TubeMailGorilla.Maui.Views.MainPage"
+             Title="TubeMail Gorilla">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+            <Label Text="Dashboard" FontSize="24" FontAttributes="Bold" HorizontalOptions="Center" />
+
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                <Frame Grid.Column="0" BackgroundColor="#1a1a2e" Padding="10">
+                    <VerticalStackLayout>
+                        <Label Text="{Binding UniqueEmailsFound}" FontSize="22" FontAttributes="Bold" TextColor="#e94560" HorizontalOptions="Center"/>
+                        <Label Text="Unique Emails" FontSize="10" TextColor="#aaa" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Frame>
+                <Frame Grid.Column="1" BackgroundColor="#1a1a2e" Padding="10">
+                    <VerticalStackLayout>
+                        <Label Text="{Binding EmailsForwarded}" FontSize="22" FontAttributes="Bold" TextColor="#0f3460" HorizontalOptions="Center"/>
+                        <Label Text="Forwarded" FontSize="10" TextColor="#aaa" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Frame>
+                <Frame Grid.Column="2" BackgroundColor="#1a1a2e" Padding="10">
+                    <VerticalStackLayout>
+                        <Label Text="{Binding EmailReplies}" FontSize="22" FontAttributes="Bold" TextColor="#16213e" HorizontalOptions="Center"/>
+                        <Label Text="Replies" FontSize="10" TextColor="#aaa" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Frame>
+            </Grid>
+
+            <Frame Padding="10" BackgroundColor="#16213e">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="YouTube Search" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                    <Entry Placeholder="Keywords" Text="{Binding Keyword}" />
+                    <Button Text="Search" Command="{Binding SearchCommand}" BackgroundColor="#e94560" TextColor="White" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame Padding="10" BackgroundColor="#1a1a2e">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Results" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                    <ListView ItemsSource="{Binding Results}" HeightRequest="200" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame Padding="10" BackgroundColor="#16213e">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Compose Email" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                    <Picker ItemsSource="{Binding Templates}" Title="Template" SelectedItem="{Binding SelectedTemplate}" />
+                    <Picker ItemsSource="{Binding EmailAddresses}" Title="Email" SelectedItem="{Binding SelectedEmail}" />
+                    <Entry Placeholder="Subject" Text="{Binding Subject}" />
+                    <Editor Placeholder="Body" Text="{Binding Body}" HeightRequest="100" />
+                    <Button Text="Send Emails" Command="{Binding SendEmailCommand}" BackgroundColor="#533483" TextColor="White" />
+                </VerticalStackLayout>
+            </Frame>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

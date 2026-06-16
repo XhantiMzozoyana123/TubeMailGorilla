@@ -760,7 +760,7 @@
             // 
             // btnDataControls
             // 
-            btnDataControls.Location = new Point(10, 760);
+            btnDataControls.Location = new Point(12, 759);
             btnDataControls.Margin = new Padding(3, 2, 3, 2);
             btnDataControls.Name = "btnDataControls";
             btnDataControls.Size = new Size(123, 50);
