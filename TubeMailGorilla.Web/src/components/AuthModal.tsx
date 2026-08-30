@@ -83,7 +83,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {/* Header */}
           <div className="text-center mb-6">
                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#ff003b] via-[#cc002f] to-[#800014] flex items-center justify-center text-2xl mx-auto mb-3 shadow-[0_0_20px_rgba(255,0,59,0.4)] border border-[#ff4d73]/40">
-                            <img src="/src/images/tubemailgorilla-icon.svg" alt="TubeMail Gorilla" className="w-8 h-8 object-contain" />
+                            <img src="/tubemailgorilla-icon.svg" alt="TubeMail Gorilla" className="w-8 h-8 object-contain" />
             </div>
             <h3 className="text-2xl font-extrabold text-white font-['Rajdhani',sans-serif] uppercase tracking-wider">
               {mode === 'login' ? 'Account Login' : 'Register New Account'}

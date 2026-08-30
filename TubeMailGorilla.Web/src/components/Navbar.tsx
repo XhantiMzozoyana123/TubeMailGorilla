@@ -29,7 +29,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onOpenAuth, onOpenAccount 
         {/* Brand */}
         <a href="#" className="flex items-center gap-3" id="nav-brand-logo">
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center text-xl border border-[#ff3366]/40">
-                        <img src="/src/images/tubemailgorilla-icon.svg" alt="TubeMail Gorilla" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,0,59,0.4)]" />
+                        <img src="/tubemailgorilla-icon.svg" alt="TubeMail Gorilla" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,0,59,0.4)]" />
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1 font-['Rajdhani',sans-serif] font-extrabold text-xl tracking-wide text-white uppercase">

@@ -65,7 +65,7 @@ export const FinalCta: React.FC<FinalCtaProps> = ({ onOpenTrial }) => {
       <section className="py-28 relative bg-gradient-to-b from-[#08090d] via-[#050608] to-[#000000] border-t border-slate-800" id="final-cta">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <div className="inline-block p-4 rounded-2xl bg-[#1b0e14] border border-[#ff003b]/40 text-5xl mb-8 shadow-[0_0_30px_rgba(255,0,59,0.25)] animate-pulse">
-                        <img src="/src/images/tubemailgorilla-icon.svg" alt="TubeMail Gorilla" className="w-10 h-10 object-contain" />
+                        <img src="/tubemailgorilla-icon.svg" alt="TubeMail Gorilla" className="w-10 h-10 object-contain" />
           </div>
 
           <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white font-['Outfit',sans-serif] tracking-tight mb-8 leading-tight">
@@ -92,7 +92,7 @@ export const FinalCta: React.FC<FinalCtaProps> = ({ onOpenTrial }) => {
 
           <div className="mb-10">
                         <h3 className="text-3xl sm:text-4xl font-extrabold text-white font-['Outfit',sans-serif] mb-2 flex items-center justify-center gap-3">
-                          <img src="/src/images/tubemailgorilla-icon.svg" alt="TubeMail Gorilla" className="w-8 h-8 object-contain" />
+                          <img src="/tubemailgorilla-icon.svg" alt="TubeMail Gorilla" className="w-8 h-8 object-contain" />
               <span>TubeMail Gorilla</span>
             </h3>
             <p className="text-[#ff003b] font-bold text-lg font-mono tracking-wider">YOUR CLIENT-FINDING MACHINE.</p>

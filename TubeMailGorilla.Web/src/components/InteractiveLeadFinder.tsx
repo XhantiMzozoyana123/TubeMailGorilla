@@ -296,7 +296,7 @@ export const InteractiveLeadFinder: React.FC<InteractiveLeadFinderProps> = ({
           <div className="p-4 bg-gradient-to-r from-[#0d0f17] via-[#1b0e14] to-[#0d0f17] border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-[#ff003b]/20 border border-[#ff003b]/40 flex items-center justify-center text-[#ff003b]">
-                                <img src="/src/images/tubemailgorilla-icon.svg" alt="TubeMail Gorilla" className="w-full h-full object-contain filter drop-shadow-[0_0_6px_rgba(255,0,59,0.5)]" />
+                                <img src="/tubemailgorilla-icon.svg" alt="TubeMail Gorilla" className="w-full h-full object-contain filter drop-shadow-[0_0_6px_rgba(255,0,59,0.5)]" />
               </div>
               <p className="text-xs sm:text-sm text-slate-300 text-center sm:text-left">
                 <strong>Showing 8 of 500,000+ extracted creators.</strong> Start your free trial to unlock unlimited searches across any YouTube niche.

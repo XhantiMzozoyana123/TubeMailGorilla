@@ -226,7 +226,7 @@ export default function App() {
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#12151f] border border-[#ff003b]/60 text-white px-4 py-3 rounded-xl shadow-[0_0_25px_rgba(255,0,59,0.3)] flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300">
-                              <span className="text-lg"><img src="/src/images/tubemailgorilla-icon.svg" alt="TubeMail Gorilla" className="w-6 h-6 object-contain" /></span>
+                              <span className="text-lg"><img src="/tubemailgorilla-icon.svg" alt="TubeMail Gorilla" className="w-6 h-6 object-contain" /></span>
           <span className="text-sm font-semibold">{toastMessage}</span>
         </div>
       )}
