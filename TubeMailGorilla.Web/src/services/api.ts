@@ -104,7 +104,7 @@ import { UserProfile } from '../types';
 // ---- Environment (Vite-style env vars, see .env.example) ----
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5076';
 export const SITE_URL = import.meta.env.VITE_SITE_URL ?? window.location.origin;
-export const PAYPAL_PLAN_ID = import.meta.env.VITE_PAYPAL_PLAN_ID ?? 'P-8TM76104GU523091N';
+export const PAYPAL_PLAN_ID = import.meta.env.VITE_PAYPAL_PLAN_ID ?? 'P-52B26258BH047653MNKKJTXY';
 
 /**
  * Real HTTP client for the TubeMailGorilla .NET API (same contract the
