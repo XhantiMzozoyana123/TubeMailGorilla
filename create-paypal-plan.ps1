@@ -12,16 +12,21 @@
         powershell -ExecutionPolicy Bypass -File create-paypal-plan.ps1
 #>
 
-$root     = Split-Path -Parent $PSScriptRoot
+# Script lives in the repo root; resolve appsettings.json from here.
+$root     = $PSScriptRoot
 $apiJson  = Join-Path $root 'TubeMailGorilla.Api\appsettings.json'
-$base     = 'https://api-m.sandbox.paypal.com'
 
 # Credentials + price read from appsettings so there is a single source of truth.
+# Uses the LIVE PayPal API when PayPalSettings:Mode is "live", sandbox otherwise.
 $cfg = Get-Content $apiJson -Raw | ConvertFrom-Json
 $clientId = $cfg.PayPalSettings.ClientId
 $secret   = $cfg.PayPalSettings.Secret
 $amount   = $cfg.Pricing.Amount
 $currency = $cfg.Pricing.Currency
+$mode     = $cfg.PayPalSettings.Mode
+
+$base = if ($mode -eq 'live') { 'https://api-m.paypal.com' } else { 'https://api-m.sandbox.paypal.com' }
+Write-Host "PayPal environment: $mode ($base)"
 
 if (-not $clientId -or -not $secret) { Write-Error 'ClientId/Secret missing in appsettings.json' ; exit 1 }
 
@@ -40,7 +45,7 @@ Write-Host "Access token OK (len $($token.Length))"
 
 # 1) Product (idempotent: reuse if it already exists).
 $productId = $null
-$prodPayload = @{ name='TubeMailGorilla Premium'; description='TubeMailGorilla Premium subscription'; type='SERVICE' } | ConvertTo-Json
+$prodPayload = @{ name='TubeMail Gorilla Pro'; description='TubeMail Gorilla Pro subscription - unlimited YouTube lead extraction, AI pitch generator, pipeline tracker'; type='SERVICE' } | ConvertTo-Json
 try {
     $pr = Post '/v1/catalogs/products' $prodPayload $token
     $productId = ($pr.Content | ConvertFrom-Json).id
@@ -49,7 +54,7 @@ try {
     # 422 => already exists; look it up (Catalog API, not billing).
     if ([int]$_.Exception.Response.StatusCode -eq 422) {
         $list = Invoke-RestMethod -Uri "$base/v1/catalogs/products?page_size=20" -Headers @{ Authorization = "Bearer $token" }
-        $productId = ($list.products | Where-Object { $_.name -eq 'TubeMailGorilla Premium' } | Select-Object -First 1).id
+        $productId = ($list.products | Where-Object { $_.name -eq 'TubeMail Gorilla Pro' } | Select-Object -First 1).id
         Write-Host "Reusing existing product: $productId"
     } else {
         Write-Host ("PayPal product step failed: " + $_.Exception.Message)
@@ -60,7 +65,8 @@ try {
 # 2) Monthly plan.
 $planPayload = @{
     product_id = $productId
-    name       = 'TubeMailGorilla Premium - Monthly'
+    name       = 'TubeMail Gorilla Pro - Monthly'
+    description = 'TubeMail Gorilla Pro - one flat monthly price, cancel anytime.'
     status     = 'ACTIVE'
     billing_cycles = @(@{
         frequency = @{ interval_unit='MONTH'; interval_count=1 }
