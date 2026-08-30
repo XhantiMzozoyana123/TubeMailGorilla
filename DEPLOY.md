@@ -21,7 +21,7 @@ This runs the ASP.NET Core API and a MySQL database as Docker containers on the 
 ## 1. Get the code onto the VPS
 
 ```bash
-git clone https://github.com/XhantiMzozoyana123/TubeMailGorillaOfficial.git
+git clone https://github.com/XhantiMzozoyana123/TubeMailGorilla.git
 cd TubeMailGorillaOfficial
 ```
 
