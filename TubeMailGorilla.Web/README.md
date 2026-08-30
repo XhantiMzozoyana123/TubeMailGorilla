@@ -18,8 +18,8 @@ npm run dev        # http://localhost:3000 (hot reload)
 
 | Variable | Purpose |
 |---|---|
-| `API_BASE_URL` | .NET API origin (default `http://localhost:5076`) |
-| `SITE_URL` | Public origin of this site, used to build PayPal return URLs (default `http://localhost:3000`) |
+| `API_BASE_URL` | .NET API origin (default `https://api.tubemailgorilla.xyz`) |
+| `SITE_URL` | Public origin of this site, used to build PayPal return URLs |
 
 ## How it works
 
