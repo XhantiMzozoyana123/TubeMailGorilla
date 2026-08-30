@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .bg-msi-dark {
+    background-color: #08090d;
+  }
+  .bg-msi-card {
+    background-color: #0f1118;
+  }
+  .bg-msi-panel {
+    background-color: #151824;
+  }
+  .bg-msi-carbon {
+    background-color: #0b0d13;
+    background-image: radial-gradient(rgba(255, 0, 59, 0.08) 1px, transparent 0),
+                      radial-gradient(rgba(255, 255, 255, 0.03) 1px, #08090d 1px);
+    background-size: 24px 24px, 12px 12px;
+  }
+  .text-msi-red {
+    color: #ff003b;
+  }
+  .border-msi-red {
+    border-color: #ff003b;
+  }
+  .bg-msi-red {
+    background-color: #ff003b;
+  }
+  .shadow-msi-glow {
+    box-shadow: 0 0 25px -5px rgba(255, 0, 59, 0.45);
+  }
+  .shadow-msi-glow-sm {
+    box-shadow: 0 0 15px -3px rgba(255, 0, 59, 0.35);
+  }
+  .shadow-msi-badge {
+    box-shadow: 0 0 10px 0 rgba(255, 0, 59, 0.25);
+  }
+}
+
+/* MSI Tech Grid Background */
+.msi-grid-pattern {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 0, 59, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 0, 59, 0.05) 1px, transparent 1px);
+}
+
+/* Custom Cyber/MSI Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #08090d;
+}
+::-webkit-scrollbar-thumb {
+  background: #232738;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 0, 59, 0.3);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ff003b;
+}

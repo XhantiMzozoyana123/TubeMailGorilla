@@ -1,0 +1,63 @@
+# ---------------------------------------------------------------------------
+# TubeMailGorilla API + MySQL - for a Linux VPS.
+#
+#   docker compose up -d --build
+#
+# Secrets/configuration come from the .env file (see .env.example).
+# A reverse proxy (nginx/Caddy/Traefik) should terminate TLS and forward to
+# http://127.0.0.1:${API_PORT}:8080 on this host.
+# ---------------------------------------------------------------------------
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-TubeMailGorillaDB}
+      MYSQL_USER: ${MYSQL_USER:-tmg}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-8080}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+
+      # Database connection (Pomelo/EF Core, MySQL).
+      ConnectionStrings__DefaultConnection: "server=db;port=3306;database=${MYSQL_DATABASE:-TubeMailGorillaDB};user=${MYSQL_USER:-tmg};password=${MYSQL_PASSWORD};SslMode=none;AllowPublicKeyRetrieval=True"
+
+      # Auth
+      JwtSettings__Secret: ${JWT_SECRET}
+      JwtSettings__Issuer: ${JWT_ISSUER:-TubeMailGorillaAPI}
+      JwtSettings__Audience: ${JWT_AUDIENCE:-TubeMailGorillaClient}
+      JwtSettings__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-1440}
+
+      # PayPal
+      PayPalSettings__ClientId: ${PAYPAL_CLIENT_ID}
+      PayPalSettings__Secret: ${PAYPAL_SECRET}
+      PayPalSettings__Mode: ${PAYPAL_MODE:-sandbox}
+      PayPalSettings__PlanId: ${PAYPAL_PLAN_ID}
+
+      # CORS - origins allowed to call the API (e.g. your web app URL)
+      Cors__AllowedOrigins__0: ${CORS_ORIGIN_0:-http://localhost:3000}
+      Cors__AllowedOrigins__1: ${CORS_ORIGIN_1:-http://localhost:3000}
+
+volumes:
+  mysql_data:

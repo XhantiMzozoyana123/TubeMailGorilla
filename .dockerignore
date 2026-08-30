@@ -1,0 +1,33 @@
+# Build context is the repo root. Keep it small so `docker build` is fast.
+# The API project only needs: Api, Application, Domain, Infrastructure.
+
+# .NET build artifacts
+**/bin/
+**/obj/
+
+# IDE / tooling
+.vs/
+.idea/
+*.user
+*.suo
+
+# Node (Web app is NOT part of the API image)
+node_modules/
+**/node_modules/
+TubeMailGorilla.Web/
+
+# The MAUI desktop app is NOT needed to build the API image - this excludes the
+# ~2GB Llama model and bundled yt-dlp binaries from the docker build context.
+TubeMailGorilla.Maui/
+*.gguf
+
+# Secrets / local env
+.env
+*.log
+
+# Misc
+.DS_Store
+TestResults/
+create-paypal-plan.ps1
+verify-api.ps1
+verify-entitlement.ps1

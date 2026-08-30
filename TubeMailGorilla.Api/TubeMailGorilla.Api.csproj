@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>TubeMailGorilla.Api</RootNamespace>
+  </PropertyGroup>
+
+    <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.29" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TubeMailGorilla.Application\TubeMailGorilla.Application.csproj" />
+    <ProjectReference Include="..\TubeMailGorilla.Infrastructure\TubeMailGorilla.Infrastructure.csproj" />
+    <ProjectReference Include="..\TubeMailGorilla.Domain\TubeMailGorilla.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
