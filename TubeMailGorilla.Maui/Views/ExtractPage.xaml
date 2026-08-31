@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TubeMailGorilla.Maui.Views.ExtractPage"
+             Title="Extract">
+    <ScrollView Padding="24">
+        <VerticalStackLayout Spacing="16">
+
+            <!-- Header -->
+            <Label Text="EXTRACT LEADS" Style="{StaticResource SectionTitleStyle}" Margin="0" />
+
+            <!-- One unified card -->
+            <Frame Style="{StaticResource RoundedCardStyle}" Padding="20">
+                <VerticalStackLayout Spacing="14">
+
+                    <!-- Single search -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="KEYWORD" Style="{StaticResource CaptionStyle}" />
+                        <Entry x:Name="KeywordEntry"
+                               Placeholder="e.g. marketing, tech review, fitness coach"
+                               Margin="0" />
+
+                        <Label Text="PAGE LIMIT (MAX RESULTS)" Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" />
+                        <Entry x:Name="PageLimitEntry"
+                               Placeholder="e.g. 5"
+                               Keyboard="Numeric"
+                               Margin="0" />
+                    </VerticalStackLayout>
+
+                    <BoxView />
+
+                    <!-- Run -->
+                    <VerticalStackLayout Spacing="10">
+                        <HorizontalStackLayout Spacing="10">
+                            <Button x:Name="StartButton"
+                                    Text="Start Extraction"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Clicked="OnStartExtractionClicked"
+                                    HorizontalOptions="FillAndExpand" />
+                            <ActivityIndicator x:Name="ExtractionIndicator"
+                                               IsRunning="False"
+                                               IsVisible="False"
+                                               Color="{StaticResource Primary}"
+                                               VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Label x:Name="StatusLabel" Style="{StaticResource StatusStyle}" Margin="0" />
+                    </VerticalStackLayout>
+
+                    <BoxView />
+
+                    <!-- Bulk -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="BULK EXTRACT FROM CSV (OPTIONAL)" Style="{StaticResource CaptionStyle}" />
+                        <Label Text="Have a whole list of keywords? Upload one CSV and every search runs back-to-back — no typing, waiting, repeating."
+                               Style="{StaticResource SectionSubtitleStyle}" />
+
+                        <Button x:Name="DownloadTemplateButton"
+                                Text="Download CSV Bulk Extraction Template"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Clicked="OnDownloadTemplateClicked" />
+                        <Button x:Name="BulkButton"
+                                Text="Upload CSV &amp; Start Bulk Extracting"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Margin="0"
+                                Clicked="OnBulkExtractionClicked" />
+                        <Label x:Name="BulkStatusLabel" Style="{StaticResource StatusStyle}" Margin="0" />
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Results summary -->
+            <Frame Style="{StaticResource RoundedCardStyle}" Padding="20">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="RESULTS" Style="{StaticResource CaptionStyle}" />
+                    <Label x:Name="ResultsLabel"
+                           Text="Extracted contacts are saved and viewable on the Contacts page."
+                           Style="{StaticResource SectionSubtitleStyle}"
+                           Margin="0" />
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

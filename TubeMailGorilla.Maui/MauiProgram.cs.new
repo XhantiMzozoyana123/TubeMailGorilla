@@ -1,0 +1,64 @@
+﻿using Microsoft.Extensions.Logging;
+using TubeMailGorilla.Maui.Services;
+
+namespace TubeMailGorilla.Maui;
+
+public static class MauiProgram
+{
+    public static MauiApp CreateMauiApp()
+    {
+        var builder = MauiApp.CreateBuilder();
+        builder
+            .UseMauiApp<App>()
+            .ConfigureFonts(fonts =>
+            {
+                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+            });
+
+        builder.Services.AddSingleton<DatabaseService>();
+        builder.Services.AddSingleton<YouTubeSearchService>();
+        builder.Services.AddSingleton<YouTubeTranscriptService>();
+        builder.Services.AddSingleton<CaptionService>();
+        builder.Services.AddSingleton(sp =>
+        {
+            var settings = Preferences.Default.Get("GeminiApiKey", string.Empty);
+            return new LLMService(settings);
+        });
+        builder.Services.AddSingleton(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            var llm = sp.GetRequiredService<LLMService>();
+            return new AIService(llm);
+        });
+        builder.Services.AddSingleton(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new EmailService(db);
+        });
+        builder.Services.AddSingleton<ExtractService>();
+builder.Services.AddHttpClient();
+        builder.Services.AddSingleton<IConfiguration>(sp =>
+        {
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Path.GetDirectoryName(typeof(MauiProgram).Assembly.Location) ?? "")
+                .AddJsonFile("appsettings.json", optional: false)
+                .AddJsonFile("appsettings.Development.json", optional: true)
+                .Build();
+            return configuration;
+        });
+
+        builder.Services.AddScoped<ApiService>();
+        builder.Services.AddScoped<AuthService>();
+
+        builder.Services.AddSingleton(sp => new LLMService(sp.GetRequiredService<IConfiguration>().GetValue<string>("GeminiApiKey") ?? string.Empty));
+
+#if DEBUG
+        builder.Logging.AddDebug();
+#endif
+
+        var app = builder.Build();
+        ServiceHelper.Initialize(app.Services);
+        return app;
+    }
+}

@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TubeMailGorilla.Maui.Views.SendEmailsPage"
+             Title="Send Emails">
+    <ScrollView Padding="24">
+        <VerticalStackLayout Spacing="16">
+
+            <!-- Header -->
+            <HorizontalStackLayout Spacing="10">
+                <Label Text="SEND CAMPAIGN" Style="{StaticResource SectionTitleStyle}" VerticalOptions="Center" Margin="0" />
+                <Border BackgroundColor="{StaticResource SurfaceVariant}"
+                        Stroke="{StaticResource Primary}"
+                        StrokeThickness="1"
+                        Padding="10,4"
+                        VerticalOptions="Center">
+                    <Label x:Name="RecipientsValueLabel"
+                           Text="0 leads"
+                           FontFamily="Outfit"
+                           FontAttributes="Bold"
+                           FontSize="13"
+                           TextColor="{StaticResource Primary}" />
+                </Border>
+            </HorizontalStackLayout>
+
+            <!-- One unified card -->
+            <Frame Style="{StaticResource RoundedCardStyle}" Padding="20">
+                <VerticalStackLayout Spacing="14">
+
+                    <Label x:Name="EmptyContactsPrompt"
+                           Text="You have no leads yet. Extract some leads first, then come back."
+                           Style="{StaticResource EmptyStateStyle}"
+                           IsVisible="False" />
+
+                    <!-- Template -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="START FROM A TEMPLATE (OPTIONAL)" Style="{StaticResource CaptionStyle}" />
+                        <Picker x:Name="TemplatePicker"
+                                Title="Select a template..."
+                                SelectedIndexChanged="OnTemplateSelected" />
+                        <Label x:Name="TemplateStatusLabel"
+                               Style="{StaticResource StatusStyle}"
+                               Margin="0"
+                               Text="" />
+                    </VerticalStackLayout>
+
+                    <BoxView />
+
+                    <!-- Compose (hidden while message rotation is on) -->
+                    <VerticalStackLayout x:Name="ComposeSection" Spacing="6">
+                        <Label Text="SUBJECT" Style="{StaticResource CaptionStyle}" />
+                        <Entry x:Name="SubjectEntry" Placeholder="A quick idea for your next video" Margin="0" />
+
+                        <Label Text="MESSAGE" Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" />
+                        <Editor x:Name="BodyEditor"
+                                Placeholder="Hi [name], I loved your latest video on [channel]..."
+                                HeightRequest="170"
+                                AutoSize="TextChanges"
+                                Margin="0" />
+                        <Label Text="Tokens personalize every email:  [name]   [email]   [channel]   [icebreaker]"
+                               FontFamily="Monospace"
+                               FontSize="11"
+                               TextColor="{StaticResource TextSecondary}" />
+                    </VerticalStackLayout>
+
+                    <BoxView />
+
+                    <!-- Sending options -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="SENDING" Style="{StaticResource CaptionStyle}" />
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                            <Label Text="Rotate email accounts" VerticalOptions="Center" />
+                            <Switch x:Name="AccountRotationSwitch" Grid.Column="1" Toggled="OnAccountRotationToggled" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Rotate message variations" VerticalOptions="Center" />
+                            <Switch x:Name="MessageRotationSwitch" Grid.Column="1" Toggled="OnMessageRotationToggled" />
+                        </Grid>
+
+                        <!-- Message variations (visible while rotation is on) -->
+                        <VerticalStackLayout x:Name="VariationsSection" Spacing="6" IsVisible="False">
+                            <Label Text="Your messages take turns across the campaign. Tokens like [name] are personalized per recipient."
+                                   Style="{StaticResource SectionSubtitleStyle}"
+                                   Margin="0"
+                                   FontSize="12" />
+
+                            <ListView x:Name="VariationsList"
+                                      SelectionMode="Single"
+                                      ItemSelected="OnVariationSelected"
+                                      BackgroundColor="Transparent">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <ViewCell>
+                                            <Grid ColumnDefinitions="*,Auto" Padding="4,8">
+                                                <VerticalStackLayout Spacing="2">
+                                                    <Label Text="{Binding Subject}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" LineBreakMode="TailTruncation" />
+                                                    <Label Text="{Binding Preview}" FontSize="11" TextColor="{StaticResource TextTertiary}" LineBreakMode="TailTruncation" MaxLines="1" />
+                                                </VerticalStackLayout>
+                                                <Button Grid.Column="1"
+                                                        Text="Delete"
+                                                        Style="{StaticResource ToolbarButtonStyle}"
+                                                        Clicked="OnDeleteVariationClicked"
+                                                        CommandParameter="{Binding}"
+                                                        VerticalOptions="Center" />
+                                            </Grid>
+                                        </ViewCell>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+
+                            <Button x:Name="AddVariationButton"
+                                    Text="Add Variation"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Clicked="OnAddVariationClicked" />
+                            <Label x:Name="EmptyVariationsLabel"
+                                   Text="No variations yet. Add at least one — otherwise your main email above is used for everyone."
+                                   Style="{StaticResource EmptyStateStyle}"
+                                   Margin="0,8" />
+
+                            <!-- Inline add/edit editor -->
+                            <VerticalStackLayout x:Name="VariationEditor" Spacing="6" IsVisible="False">
+                                <Label Text="VARIATION SUBJECT" Style="{StaticResource CaptionStyle}" />
+                                <Entry x:Name="VarSubjectEntry" Placeholder="Another angle for the same offer..." Margin="0" />
+                                <Label Text="VARIATION MESSAGE" Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" />
+                                <Editor x:Name="VarBodyEditor"
+                                        Placeholder="Hey [name], different intro here but same [channel] personalization..."
+                                        HeightRequest="120"
+                                        AutoSize="TextChanges"
+                                        Margin="0" />
+                                <HorizontalStackLayout Spacing="10" Margin="0,8,0,0">
+                                    <Button x:Name="SaveVariationButton"
+                                            Text="Save Variation"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Clicked="OnSaveVariationClicked"
+                                            HorizontalOptions="FillAndExpand" />
+                                    <Button Text="Cancel"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Clicked="OnCancelVariationClicked"
+                                            HorizontalOptions="FillAndExpand" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,0">
+                            <Label Text="Send from account" VerticalOptions="Center" />
+                            <Picker x:Name="DefaultAccountPicker"
+                                    Grid.Column="1"
+                                    WidthRequest="220"
+                                    HorizontalOptions="End"
+                                    SelectedIndexChanged="OnDefaultAccountSelected" />
+                        </Grid>
+                    </VerticalStackLayout>
+
+                    <BoxView />
+
+                    <!-- Send -->
+                    <VerticalStackLayout Spacing="10">
+                        <ProgressBar x:Name="SendProgressBar" Progress="0" IsVisible="False" Margin="0" />
+                        <HorizontalStackLayout Spacing="10">
+                            <Button x:Name="SendButton"
+                                    Text="Send Campaign"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Clicked="OnSendEmailsClicked"
+                                    HorizontalOptions="FillAndExpand" />
+                            <ActivityIndicator x:Name="SendingIndicator"
+                                               IsRunning="False"
+                                               IsVisible="False"
+                                               Color="{StaticResource Primary}"
+                                               VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Label x:Name="StatusLabel" Style="{StaticResource StatusStyle}" Margin="0" />
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:TubeMailGorilla.Maui.Models"
+             x:Class="TubeMailGorilla.Maui.Views.SettingsPage"
+             Title="Settings">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="0">
+
+            <Frame Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="0">
+                    <Label Text="EXTRACTION" Style="{StaticResource SectionTitleStyle}" />
+                    <Label Text="Control how YouTube lead extraction works." Style="{StaticResource DescriptionStyle}" />
+
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                        <Label Text="Only extract Gmail addresses" FontSize="14" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+                        <Switch x:Name="GmailOnlySwitch" Grid.Column="1" Toggled="OnGmailOnlyToggled" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                        <Label Text="Validate email domains" FontSize="14" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+                        <Switch x:Name="ValidateEmailsSwitch" Grid.Column="1" Toggled="OnValidateEmailsToggled" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                        <Label Text="Default pages to search" FontSize="14" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+                        <Entry x:Name="PageLimitEntry" Grid.Column="1" Keyboard="Numeric" FontSize="14" WidthRequest="80" HorizontalOptions="End" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="0">
+                    <Label Text="EMAIL SHORTCODES" Style="{StaticResource SectionTitleStyle}" />
+                    <Label Text="Type these in your email and we automatically fill in each lead's details when sending."
+                           Style="{StaticResource DescriptionStyle}" />
+
+                    <ListView x:Name="ParametersList"
+                              Margin="0,8,0,0"
+                              SelectionMode="Single"
+                              BackgroundColor="Transparent">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="models:MessageParameter">
+                                <ViewCell>
+                                    <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,4" ColumnSpacing="6">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding Token, StringFormat='[{0}]'}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource TextPrimary}"
+                                               VerticalOptions="Center" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding Field, Converter={StaticResource FieldToDescription}}"
+                                               FontSize="13"
+                                               TextColor="{StaticResource TextSecondary}"
+                                               VerticalOptions="Center" />
+                                        <Button Grid.Column="2"
+                                                Text="✕"
+                                                Clicked="OnDeleteParameterClicked"
+                                                Style="{StaticResource ToolbarButtonStyle}"
+                                                BackgroundColor="Transparent"
+                                                Padding="4"
+                                                HeightRequest="32"
+                                                WidthRequest="36" />
+                                    </Grid>
+                                </ViewCell>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6" Margin="0,8,0,8">
+                        <Picker x:Name="NewFieldPicker"
+                                Grid.Column="0"
+                                Title="Add something to your emails…"
+                                FontSize="13" />
+                        <Button Grid.Column="1"
+                                Text="Add"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Clicked="OnAddParameterClicked" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6" Margin="0,0,0,8">
+                        <Entry x:Name="CustomTokenEntry" Grid.Column="0" Placeholder="Or type your own shortcode e.g. first_name" FontSize="13" />
+                        <Button Grid.Column="1"
+                                x:Name="SaveParametersButton"
+                                Text="Rename"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Clicked="OnRenameParameterClicked" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="0">
+                    <Label Text="EMAIL ACCOUNTS" Style="{StaticResource SectionTitleStyle}" />
+                                        <Label Text="Manage the SMTP accounts used to send emails." Style="{StaticResource DescriptionStyle}" />
+
+                    <ListView x:Name="AccountsList" Margin="0,8,0,0" SelectionMode="Single" ItemSelected="OnAccountSelected" BackgroundColor="Transparent">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="models:Sender">
+                                <ViewCell>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <VerticalStackLayout Grid.Column="0" Padding="6,8" Spacing="2">
+                                            <Label Text="{Binding Name}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                                            <Label Text="{Binding EmailAddress}" FontSize="13" TextColor="{StaticResource TextSecondary}" />
+                                            <Label Text="{Binding SmtpHost, StringFormat='SMTP: {0}'}" FontSize="12" TextColor="{StaticResource TextTertiary}" />
+                                            <Label Text="{Binding SmtpPort, StringFormat='Port: {0}'}" FontSize="12" TextColor="{StaticResource TextTertiary}" />
+                                        </VerticalStackLayout>
+                                        <Button Grid.Column="1"
+                                                Clicked="OnDeleteAccountClicked"
+                                                Style="{StaticResource ToolbarButtonStyle}"
+                                                Text="Delete"
+                                                BackgroundColor="Transparent"
+                                                Padding="4"
+                                                HeightRequest="32"
+                                                WidthRequest="60" />
+                                    </Grid>
+                                </ViewCell>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <Button Text="Add Account"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Clicked="OnAddAccountClicked" />
+
+                    <Label x:Name="EmptyAccountsLabel"
+                           Text="No email accounts configured. Add one to start sending campaigns."
+                           Style="{StaticResource EmptyStateStyle}"
+                           IsVisible="False" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="0">
+                    <Label Text="BILLING" Style="{StaticResource SectionTitleStyle}" />
+                    <Label x:Name="SubscriptionLabel" FontSize="14" TextColor="{StaticResource TextSecondary}" />
+                    <Label x:Name="SubscriptionDescLabel" FontSize="13" TextColor="{StaticResource TextTertiary}" Margin="0,0,0,8" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="0">
+                    <Label Text="ACCOUNT" Style="{StaticResource SectionTitleStyle}" />
+                    <Button Text="Logout" Style="{StaticResource DangerButtonStyle}" Clicked="OnLogoutClicked" />
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

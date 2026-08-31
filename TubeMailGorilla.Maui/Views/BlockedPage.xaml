@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:TubeMailGorilla.Maui.Models"
+             x:Class="TubeMailGorilla.Maui.Views.BlockedPage"
+             Title="Blocked">
+    <Grid>
+        <!-- Pro content: only visible to subscribed (paying) users. -->
+        <ScrollView x:Name="ProContent" IsVisible="False">
+        <VerticalStackLayout Padding="20" Spacing="0">
+
+            <Frame Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="0">
+                    <Label Text="BLOCKED EMAILS" Style="{StaticResource SectionTitleStyle}" />
+                    <Label Text="These emails are excluded from all send campaigns." Style="{StaticResource DescriptionStyle}" />
+
+                    <Entry x:Name="BlockedEmailEntry" Placeholder="Enter email to block, e.g. spam@example.com" Keyboard="Email" />
+
+                    <Button Text="Add to Blocklist"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Clicked="OnAddBlockerClicked" />
+
+                    <ListView x:Name="BlockedList" Margin="0,8,0,0" BackgroundColor="Transparent">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="models:Blocker">
+                                <ViewCell>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <VerticalStackLayout Grid.Column="0" Padding="6,8" Spacing="2">
+                                            <Label Text="{Binding BlockedEmail}" FontSize="14" TextColor="{StaticResource TextPrimary}" />
+                                            <Label Text="{Binding Reason, TargetNullValue=''}" FontSize="12" TextColor="{StaticResource TextTertiary}" />
+                                        </VerticalStackLayout>
+                                        <Button Grid.Column="1"
+                                                Clicked="OnDeleteBlockerClicked"
+                                                Style="{StaticResource ToolbarButtonStyle}"
+                                                Text="Delete"
+                                                BackgroundColor="Transparent"
+                                                Padding="4"
+                                                HeightRequest="32"
+                                                WidthRequest="60" />
+                                    </Grid>
+                                </ViewCell>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <Label x:Name="EmptyBlockedListLabel"
+                           Text="No blocked emails. Emails added here will be skipped during sends."
+                           Style="{StaticResource EmptyStateStyle}"
+                           IsVisible="False" />
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Pro gate: shown instead of the blocklist for non-paying users. -->
+        <ScrollView x:Name="ProGate" IsVisible="False">
+            <VerticalStackLayout Padding="20" Spacing="16" VerticalOptions="Center">
+                <Frame Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="🔒" FontSize="48" HorizontalOptions="Center" />
+                        <Label Text="BLOCK CONTACT IS A PRO FEATURE"
+                               Style="{StaticResource SectionTitleStyle}"
+                               HorizontalOptions="Center" />
+                        <Label Text="Blocking contacts keeps unwanted emails out of your campaigns. Upgrade to the Pro plan to unlock the blocklist on this app and the website."
+                               Style="{StaticResource DescriptionStyle}"
+                               HorizontalOptions="Center" />
+                        <Button x:Name="UpgradeButton"
+                                Text="Upgrade to Pro"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Clicked="OnUpgradeClicked" />
+                        <Button x:Name="RecheckButton"
+                                Text="I've subscribed - check again"
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                Clicked="OnRecheckClicked" />
+                        <ActivityIndicator x:Name="GateBusyIndicator" IsVisible="False" IsRunning="False" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Frame>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

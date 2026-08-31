@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TubeMailGorilla.Maui.Views.SenderDetailsPage"
+             Title="Sender Details">
+    <Grid Padding="20" RowDefinitions="Auto,*,Auto">
+        <VerticalStackLayout Grid.Row="0" Spacing="4">
+            <Label Text="SENDER DETAILS" Style="{StaticResource SectionTitleStyle}" />
+            <Label Text="Configure an SMTP email account for sending campaigns." Style="{StaticResource DescriptionStyle}" />
+        </VerticalStackLayout>
+
+        <ScrollView Grid.Row="1" HorizontalOptions="FillAndExpand">
+            <VerticalStackLayout Spacing="0">
+                <Entry x:Name="NameEntry" Placeholder="Account name (e.g. Work Email)" />
+                <Entry x:Name="EmailEntry" Placeholder="Email address" Keyboard="Email" />
+                <Entry x:Name="SmtpHostEntry" Placeholder="SMTP host (e.g. smtp.gmail.com)" />
+                <Entry x:Name="SmtpPortEntry" Placeholder="SMTP port (e.g. 587)" Keyboard="Numeric" />
+                <Entry x:Name="SmtpUserEntry" Placeholder="SMTP username" />
+                <Entry x:Name="SmtpPasswordEntry" Placeholder="SMTP password" IsPassword="True" />
+                <Label Text="Active account" FontSize="14" TextColor="{StaticResource TextPrimary}" />
+                <Switch x:Name="IsActiveSwitch" Toggled="OnIsActiveToggled" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <HorizontalStackLayout Grid.Row="2" Spacing="12" HorizontalOptions="Center">
+            <Button Text="Save" Style="{StaticResource PrimaryButtonStyle}" Clicked="OnSave" />
+            <Button Text="Cancel" Style="{StaticResource SecondaryButtonStyle}" Clicked="OnCancel" />
+        </HorizontalStackLayout>
+    </Grid>
+</ContentPage>

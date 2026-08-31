@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:converters="clr-namespace:TubeMailGorilla.Maui.Converters"
+    x:Class="TubeMailGorilla.Maui.Views.AuthView"
+    Title="TubeMailGorilla"
+    BackgroundColor="{StaticResource Background}">
+
+    <ContentPage.Resources>
+        <converters:InverseBoolConverter x:Key="InverseBool" />
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <Grid
+            Padding="24"
+            HorizontalOptions="Fill"
+            VerticalOptions="Center">
+
+            <!-- Main content -->
+            <VerticalStackLayout
+                WidthRequest="420"
+                MaximumWidthRequest="420"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Spacing="18">
+
+                <!-- Logo + Branding -->
+                <VerticalStackLayout
+                    HorizontalOptions="Center"
+                    Spacing="8">
+
+                    <Image
+                        Source="logo_play.svg"
+                        HeightRequest="80"
+                        WidthRequest="80"
+                        Aspect="AspectFit"
+                        HorizontalOptions="Center" />
+
+                    <Label
+                        Text="TubeMailGorilla"
+                        FontSize="26"
+                        FontAttributes="Bold"
+                        FontFamily="Outfit"
+                        TextColor="{StaticResource TextPrimary}"
+                        HorizontalOptions="Center" />
+
+                    <!-- Login subtitle -->
+                    <Label
+                        Text="Sign in to continue"
+                        Style="{StaticResource DescriptionStyle}"
+                        HorizontalOptions="Center"
+                        IsVisible="{Binding IsRegisterMode, Converter={StaticResource InverseBool}}" />
+
+                    <!-- Register subtitle -->
+                    <Label
+                        Text="Create your account"
+                        Style="{StaticResource DescriptionStyle}"
+                        HorizontalOptions="Center"
+                        IsVisible="{Binding IsRegisterMode}" />
+
+                </VerticalStackLayout>
+
+
+                <!-- Authentication Card -->
+                <Border
+                    BackgroundColor="{StaticResource CardBackground}"
+                    StrokeThickness="0"
+                    Padding="24"
+                    HorizontalOptions="Fill">
+
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="14">
+
+                        <!-- Email -->
+                        <Entry
+                            Placeholder="Email"
+                            Text="{Binding Email}"
+                            Keyboard="Email"
+                            ClearButtonVisibility="WhileEditing"
+                            HeightRequest="52" />
+
+                        <!-- Password -->
+                        <Entry
+                            Placeholder="Password"
+                            Text="{Binding Password}"
+                            IsPassword="True"
+                            ClearButtonVisibility="WhileEditing"
+                            HeightRequest="52" />
+
+                        <!-- Full Name - Register only -->
+                        <Entry
+                            Placeholder="Full Name"
+                            Text="{Binding FullName}"
+                            IsVisible="{Binding IsRegisterMode}"
+                            ClearButtonVisibility="WhileEditing"
+                            HeightRequest="52" />
+
+                        <!-- Login -->
+                        <Button
+                            Text="Login"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding LoginCommand}"
+                            IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}"
+                            IsVisible="{Binding IsRegisterMode, Converter={StaticResource InverseBool}}"
+                            HeightRequest="52"
+                            Margin="0,8,0,0" />
+
+                        <!-- Register -->
+                        <Button
+                            Text="Register"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding RegisterCommand}"
+                            IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}"
+                            IsVisible="{Binding IsRegisterMode}"
+                            HeightRequest="52"
+                            Margin="0,8,0,0" />
+
+                        <!-- Loading -->
+                        <ActivityIndicator
+                            IsVisible="{Binding IsLoading}"
+                            IsRunning="{Binding IsLoading}"
+                            Color="{StaticResource Primary}"
+                            HorizontalOptions="Center"
+                            Margin="0,4,0,0" />
+
+                    </VerticalStackLayout>
+
+                </Border>
+
+
+                <!-- Login/Register Toggle -->
+                <Label
+                    Text="Don't have an account? Sign Up"
+                    TextColor="{StaticResource Primary}"
+                    FontSize="14"
+                    FontFamily="PlusJakartaSans"
+                    HorizontalOptions="Center"
+                    IsVisible="{Binding IsRegisterMode, Converter={StaticResource InverseBool}}">
+
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer
+                            Command="{Binding SwitchModeCommand}"
+                            CommandParameter="register" />
+                    </Label.GestureRecognizers>
+
+                </Label>
+
+
+                <Label
+                    Text="Already have an account? Sign In"
+                    TextColor="{StaticResource Primary}"
+                    FontSize="14"
+                    FontFamily="PlusJakartaSans"
+                    HorizontalOptions="Center"
+                    IsVisible="{Binding IsRegisterMode}">
+
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer
+                            Command="{Binding SwitchModeCommand}"
+                            CommandParameter="login" />
+                    </Label.GestureRecognizers>
+
+                </Label>
+
+
+                <!-- Logout -->
+                <Button
+                    Text="Logout"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Command="{Binding LogoutCommand}"
+                    BorderColor="{StaticResource Danger}"
+                    TextColor="{StaticResource Danger}"
+                    IsVisible="{Binding IsLoggedIn}"
+                    HeightRequest="48"
+                    Margin="0,2,0,0" />
+
+            </VerticalStackLayout>
+
+        </Grid>
+    </ScrollView>
+
+</ContentPage>

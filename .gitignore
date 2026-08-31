@@ -1,7 +1,9 @@
-# Ignore the MAUI app entirely
-TubeMailGorilla.Maui/
+# Track the MAUI app, but never the LLM model weights (too large for GitHub)
+TubeMailGorilla.Maui/Resources/Models/
+TubeMailGorilla.Maui/Resources/Models/**
+*.gguf
 
-# Stray MAUI project file at repo root (MAUI app is excluded from the repo)
+# Stray MAUI project file at repo root (duplicate of the one inside TubeMailGorilla.Maui/)
 TubeMailGorilla.Maui.csproj
 
 

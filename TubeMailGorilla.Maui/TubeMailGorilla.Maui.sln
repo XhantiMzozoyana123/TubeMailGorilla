@@ -1,0 +1,45 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.9.12105.275
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TubeMailGorilla.Maui", "TubeMailGorilla.Maui.csproj", "{C3D4E5F6-A7B8-9012-CDEF-234567890123}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TubeMailGorilla.Api", "..\TubeMailGorilla.Api\TubeMailGorilla.Api.csproj", "{6FA838D5-3681-2E71-9437-AF4E43680A11}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TubeMailGorilla.Domain", "..\TubeMailGorilla.Domain\TubeMailGorilla.Domain.csproj", "{AA94A80E-027C-EFA4-0AA5-AB1E1F654701}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TubeMailGorilla.Application", "..\TubeMailGorilla.Application\TubeMailGorilla.Application.csproj", "{B2998FE8-5A9A-C79E-F06A-E55FB76BD90D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TubeMailGorilla.Infrastructure", "..\TubeMailGorilla.Infrastructure\TubeMailGorilla.Infrastructure.csproj", "{D25BB758-DAD1-8F2A-3FC8-2F125D1E3A8B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C3D4E5F6-A7B8-9012-CDEF-234567890123}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3D4E5F6-A7B8-9012-CDEF-234567890123}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3D4E5F6-A7B8-9012-CDEF-234567890123}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3D4E5F6-A7B8-9012-CDEF-234567890123}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6FA838D5-3681-2E71-9437-AF4E43680A11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6FA838D5-3681-2E71-9437-AF4E43680A11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6FA838D5-3681-2E71-9437-AF4E43680A11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6FA838D5-3681-2E71-9437-AF4E43680A11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA94A80E-027C-EFA4-0AA5-AB1E1F654701}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA94A80E-027C-EFA4-0AA5-AB1E1F654701}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA94A80E-027C-EFA4-0AA5-AB1E1F654701}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA94A80E-027C-EFA4-0AA5-AB1E1F654701}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2998FE8-5A9A-C79E-F06A-E55FB76BD90D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2998FE8-5A9A-C79E-F06A-E55FB76BD90D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2998FE8-5A9A-C79E-F06A-E55FB76BD90D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2998FE8-5A9A-C79E-F06A-E55FB76BD90D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D25BB758-DAD1-8F2A-3FC8-2F125D1E3A8B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D25BB758-DAD1-8F2A-3FC8-2F125D1E3A8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D25BB758-DAD1-8F2A-3FC8-2F125D1E3A8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D25BB758-DAD1-8F2A-3FC8-2F125D1E3A8B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

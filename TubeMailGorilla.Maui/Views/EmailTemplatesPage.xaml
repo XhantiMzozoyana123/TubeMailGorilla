@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:TubeMailGorilla.Maui.Models"
+             x:Class="TubeMailGorilla.Maui.Views.EmailTemplatesPage"
+             Title="Email Templates">
+    <Grid>
+        <!-- Pro content: only visible to subscribed (paying) users. -->
+        <VerticalStackLayout x:Name="ProContent" IsVisible="False" Padding="20" Spacing="12">
+        <VerticalStackLayout Spacing="4">
+            <Label Text="EMAIL TEMPLATES" Style="{StaticResource SectionTitleStyle}" />
+            <Label Text="Stored email templates. Add a new template, or tap a row to edit it."
+                   Style="{StaticResource DescriptionStyle}" />
+        </VerticalStackLayout>
+
+        <ListView x:Name="TemplatesList"
+                  SelectionMode="Single"
+                  ItemSelected="OnTemplateSelected"
+                  BackgroundColor="Transparent">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="models:EmailTemplate">
+                    <ViewCell>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Grid.Column="0" Padding="6,8" Spacing="2">
+                                <Label Text="{Binding Name}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+                                <Label Text="{Binding Subject}"
+                                       FontSize="13"
+                                       TextColor="{StaticResource TextSecondary}"
+                                       MaxLines="2"
+                                       LineHeight="1.1" />
+                                <Label Text="{Binding UpdatedAt, StringFormat='Updated {0:g}'}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource TextTertiary}" />
+                            </VerticalStackLayout>
+                            <Button Grid.Column="1"
+                                    Clicked="OnDeleteTemplateClicked"
+                                    Text="Delete"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    BackgroundColor="Transparent"
+                                    Padding="4"
+                                    HeightRequest="32"
+                                    WidthRequest="60" />
+                        </Grid>
+                    </ViewCell>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <Label x:Name="EmptyTemplatesLabel"
+               Text="No email templates yet. Add one to start storing reusable campaigns."
+               Style="{StaticResource EmptyStateStyle}"
+               HorizontalOptions="Center"
+               IsVisible="False" />
+
+        <Button Text="Add Template"
+                Style="{StaticResource SecondaryButtonStyle}"
+                Clicked="OnAddTemplateClicked" />
+        </VerticalStackLayout>
+
+        <!-- Pro gate: shown instead of templates for non-paying users. -->
+        <VerticalStackLayout x:Name="ProGate" IsVisible="False" Padding="20" Spacing="14" VerticalOptions="Center">
+            <Frame Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="🔒" FontSize="48" HorizontalOptions="Center" />
+                    <Label Text="EMAIL TEMPLATES ARE PRO"
+                           Style="{StaticResource SectionTitleStyle}"
+                           HorizontalOptions="Center" />
+                    <Label Text="Save, reuse and manage your outreach email templates with Pro. Upgrade on the Subscription tab or on our website."
+                           Style="{StaticResource DescriptionStyle}"
+                           HorizontalOptions="Center" />
+                    <Button x:Name="UpgradeButton"
+                            Text="Upgrade to Pro"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Clicked="OnUpgradeClicked" />
+                    <Button x:Name="RecheckButton"
+                            Text="I've subscribed - check again"
+                            Style="{StaticResource ToolbarButtonStyle}"
+                            Clicked="OnRecheckClicked" />
+                    <ActivityIndicator x:Name="GateBusyIndicator" IsVisible="False" IsRunning="False" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Frame>
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

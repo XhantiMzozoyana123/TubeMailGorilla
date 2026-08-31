@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:TubeMailGorilla.Maui.Models"
+             x:Class="TubeMailGorilla.Maui.Views.ContactsPage"
+             Title="Contacts">
+
+    <VerticalStackLayout Spacing="16" Padding="20">
+
+        <!-- Header -->
+        <VerticalStackLayout Spacing="4">
+            <Label Text="CONTACTS" Style="{StaticResource SectionTitleStyle}" />
+            <Label Text="Your extracted contacts. Tap a contact to edit it." Style="{StaticResource DescriptionStyle}" />
+        </VerticalStackLayout>
+
+        <!-- Search -->
+        <SearchBar x:Name="SearchBarControl"
+                   Placeholder="Search by name, email, or channel"
+                   TextChanged="OnSearchTextChanged" />
+
+        <!-- Primary actions: Add + Delete All -->
+        <HorizontalStackLayout Spacing="12">
+            <Button Text="Add Contact"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Clicked="OnAddContactClicked"
+                    HorizontalOptions="FillAndExpand" />
+            <Button Text="Delete All"
+                    Style="{StaticResource DangerButtonStyle}"
+                    Clicked="OnDeleteAllContactsClicked"
+                    HorizontalOptions="FillAndExpand" />
+        </HorizontalStackLayout>
+
+        <!-- Generate Icebreakers / Pro upsell -->
+        <Button x:Name="GenerateIcebreakersButton"
+                Text="Generate Icebreakers"
+                Style="{StaticResource PrimaryButtonStyle}"
+                Clicked="OnGenerateIcebreakersClicked" />
+        <Label x:Name="IcebreakerProLabel"
+               Text="AI Icebreakers are a Pro feature. Upgrade on the Subscription tab to unlock."
+               Style="{StaticResource DescriptionStyle}"
+               IsVisible="False" />
+
+        <!-- Free plan / denial banner -->
+        <Label x:Name="FreePlanBanner"
+               Style="{StaticResource DescriptionStyle}"
+               TextColor="{StaticResource Primary}"
+               IsVisible="False"
+               Margin="0,0,0,8" />
+
+        <!-- Contact list -->
+        <Frame Style="{StaticResource CardStyle}" Padding="0" Margin="0">
+            <VerticalStackLayout Spacing="0">
+                <CollectionView x:Name="ContactsList"
+                                SelectionMode="Single"
+                                SelectionChanged="OnContactSelected"
+                                                                                                BackgroundColor="Transparent">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:EmailContact">
+                            <Grid ColumnDefinitions="*,Auto,Auto"
+                                  Padding="12,10">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="{Binding Name, TargetNullValue='Unnamed Contact'}"
+                                           FontSize="15" FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="{Binding Email}"
+                                           FontSize="13"
+                                           TextColor="{StaticResource TextSecondary}" />
+                                    <Label Text="{Binding Channel, StringFormat='Channel: {0}', TargetNullValue='Channel: (unknown)'}"
+                                           FontSize="12"
+                                           TextColor="{StaticResource TextTertiary}" />
+                                </VerticalStackLayout>
+
+                                <!-- Block badge (only visible when blocked) -->
+                                <Frame Grid.Column="1"
+                                       IsVisible="{Binding IsBlocked}"
+                                       WidthRequest="60"
+                                       HeightRequest="24"
+                                       CornerRadius="12"
+                                       Padding="4"
+                                       BackgroundColor="{StaticResource Danger}"
+                                       HasShadow="False"
+                                       VerticalOptions="Center"
+                                       Margin="0,0,8,0">
+                                    <Label Text="Blocked"
+                                           FontSize="10"
+                                           FontAttributes="Bold"
+                                           TextColor="White"
+                                           HorizontalOptions="Center"
+                                          VerticalOptions="Center" />
+                                </Frame>
+
+                                <!-- Per-row Delete button -->
+                                <Button Grid.Column="2"
+                                        Text="Delete"
+                                        Style="{StaticResource CompactDangerButtonStyle}"
+                                        Clicked="OnDeleteContactClicked"
+                                        VerticalOptions="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Label x:Name="EmptyContactsLabel"
+                       Text="No contacts yet. Extract some leads from the Extract page."
+                       Style="{StaticResource EmptyStateStyle}"
+                       IsVisible="False" />
+            </VerticalStackLayout>
+        </Frame>
+
+    </VerticalStackLayout>
+</ContentPage>

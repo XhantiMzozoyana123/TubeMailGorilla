@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="TubeMailGorilla.Maui.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:TubeMailGorilla.Maui.Views"
+    FlyoutBehavior="Disabled"
+    Shell.NavBarIsVisible="False"
+    Shell.ForegroundColor="{StaticResource TextPrimary}"
+    Shell.TabBarBackgroundColor="{StaticResource Surface}"
+    Shell.TabBarForegroundColor="{StaticResource TextPrimary}"
+    Shell.TabBarTitleColor="{StaticResource Primary}"
+    Shell.TabBarUnselectedColor="{StaticResource TextSecondary}">
+
+    <TabBar>
+        <Tab Title="Extract">
+            <ShellContent ContentTemplate="{DataTemplate views:ExtractPage}" />
+        </Tab>
+        <Tab Title="Send Emails">
+            <ShellContent ContentTemplate="{DataTemplate views:SendEmailsPage}" />
+        </Tab>
+        <Tab Title="Contacts">
+            <ShellContent ContentTemplate="{DataTemplate views:ContactsPage}" />
+        </Tab>
+        <Tab Title="Blocked">
+            <ShellContent ContentTemplate="{DataTemplate views:BlockedPage}" />
+        </Tab>
+                <Tab Title="Email Templates">
+            <ShellContent ContentTemplate="{DataTemplate views:EmailTemplatesPage}" />
+        </Tab>
+        <Tab Title="Subscription">
+            <ShellContent ContentTemplate="{DataTemplate views:SubscriptionPage}" />
+        </Tab>
+        <Tab Title="Settings">
+            <ShellContent ContentTemplate="{DataTemplate views:SettingsPage}" />
+        </Tab>
+    </TabBar>
+
+</Shell>

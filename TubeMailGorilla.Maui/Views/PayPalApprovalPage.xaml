@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TubeMailGorilla.Maui.Views.PayPalApprovalPage"
+             Title="PayPal Checkout"
+             BackgroundColor="{StaticResource Background}">
+    <Grid RowDefinitions="Auto,*" Padding="0">
+        <Grid Grid.Row="0" Padding="16,12" BackgroundColor="{StaticResource Surface}">
+            <HorizontalStackLayout Spacing="10">
+                <ActivityIndicator IsRunning="True" WidthRequest="18" HeightRequest="18"
+                                   Color="{StaticResource Primary}" VerticalOptions="Center" />
+                <Label Text="Complete your payment in this window. Do not close it."
+                       FontSize="13" TextColor="{StaticResource TextSecondary}" VerticalOptions="Center" />
+            </HorizontalStackLayout>
+        </Grid>
+        <WebView Grid.Row="1" x:Name="CheckoutWebView" />
+    </Grid>
+</ContentPage>

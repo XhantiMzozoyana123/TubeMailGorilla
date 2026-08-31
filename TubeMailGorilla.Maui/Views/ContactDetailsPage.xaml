@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:TubeMailGorilla.Maui.Models"
+             x:Class="TubeMailGorilla.Maui.Views.ContactDetailsPage"
+             Title="Contact Details">
+    <Grid Padding="20" RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Spacing="4">
+            <Label Text="CONTACT DETAILS" Style="{StaticResource SectionTitleStyle}" />
+            <Label Text="Edit the name or email below, then Save. Delete removes this contact."
+                   Style="{StaticResource DescriptionStyle}" />
+        </VerticalStackLayout>
+
+        <ScrollView Grid.Row="1" HorizontalOptions="FillAndExpand">
+            <VerticalStackLayout Spacing="0">
+
+                <!-- Contact info (editable) -->
+                <Label Text="CONTACT INFO" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,4" />
+                <Entry x:Name="NameEntry" Placeholder="Name" />
+                <Entry x:Name="EmailEntry" Placeholder="Email" Keyboard="Email" />
+
+                <!-- Lead context (read-only) -->
+                <Label Text="LEAD CONTEXT" Style="{StaticResource SectionTitleStyle}" Margin="0,20,0,4" />
+                <Frame Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,16" CornerRadius="8">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="{Binding Channel, StringFormat='Channel: {0}', TargetNullValue='Channel: (unknown)'}"
+                               FontSize="13" TextColor="{StaticResource TextSecondary}" />
+                        <Label Text="{Binding VideoTitle, StringFormat='Latest video: {0}', TargetNullValue='Video: (unknown)'}"
+                               FontSize="13" TextColor="{StaticResource TextSecondary}" />
+                        <Label Text="{Binding VideoDescription, StringFormat='Description: {0}', TargetNullValue='Description: (unknown)'}"
+                               FontSize="12" TextColor="{StaticResource TextTertiary}"
+                               LineBreakMode="WordWrap" MaxLines="3" />
+                        <Label Text="{Binding ExtractedAt, StringFormat='Extracted: {0:g}'}"
+                               FontSize="12" TextColor="{StaticResource TextTertiary}" />
+                        <Label Text="{Binding IsEmailer, StringFormat='Newsletter sender: {0}'}"
+                               FontSize="12" TextColor="{StaticResource TextTertiary}" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- AI Icebreakers -->
+                <Label Text="AI ICEBREAKERS" Style="{StaticResource SectionTitleStyle}" />
+                <Label Text="Personalized first lines generated from this lead's channel and video. Pick the best one for your email."
+                       Style="{StaticResource DescriptionStyle}" />
+                <Button x:Name="GenerateIcebreakerButton"
+                        Text="Generate Icebreaker"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Clicked="OnGenerateIcebreakerClicked" />
+
+                <CollectionView x:Name="OpenersList"
+                                SelectionMode="None"
+                                BackgroundColor="Transparent"
+                                                                                                IsVisible="False">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:Opener">
+                            <Frame Padding="12"
+                                   Margin="0,0,0,8"
+                                   BackgroundColor="{StaticResource SurfaceVariant}"
+                                   CornerRadius="8"
+                                   HasShadow="False">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding Text}"
+                                           FontSize="13"
+                                           LineBreakMode="WordWrap"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                    <Button Grid.Column="1"
+                                            Text="Delete"
+                                            Style="{StaticResource CompactDangerButtonStyle}"
+                                            Clicked="OnDeleteOpenerClicked"
+                                            VerticalOptions="Center" />
+                                </Grid>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Label x:Name="NoOpenersLabel"
+                       Text="No icebreakers yet. Generate one above."
+                       FontSize="12"
+                       TextColor="{StaticResource TextTertiary}" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Save / Delete buttons -->
+        <HorizontalStackLayout Grid.Row="2" Spacing="12" HorizontalOptions="Center">
+            <Button Text="Save" Style="{StaticResource PrimaryButtonStyle}" Clicked="OnSave" />
+            <Button Text="Delete" Style="{StaticResource DangerButtonStyle}" Clicked="OnDelete" />
+        </HorizontalStackLayout>
+
+    </Grid>
+</ContentPage>

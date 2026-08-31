@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TubeMailGorilla.Maui.Views.SubscriptionPage"
+             Title="Subscription"
+             BackgroundColor="{StaticResource Background}">
+    <ScrollView>
+        <Grid Padding="24" HorizontalOptions="Fill" VerticalOptions="Center">
+            <VerticalStackLayout WidthRequest="460" MaximumWidthRequest="460"
+                                 HorizontalOptions="Center" Spacing="18">
+
+                <Label Text="SUBSCRIPTION" Style="{StaticResource SectionTitleStyle}" />
+
+                <!-- Current plan card -->
+                <Frame Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label x:Name="StatusLabel" FontSize="20" FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                        <Label x:Name="PriceLabel" FontSize="14"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <Label x:Name="BenefitsLabel" FontSize="13"
+                               TextColor="{StaticResource TextTertiary}" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Upgrade button -->
+                <Button x:Name="UpgradeButton" Text="Upgrade to Pro"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Clicked="OnUpgradeClicked" HeightRequest="52" />
+
+                <!-- Cancel button -->
+                <Button x:Name="CancelButton" Text="Cancel subscription"
+                        Style="{StaticResource DangerButtonStyle}"
+                        Clicked="OnCancelClicked" HeightRequest="48"
+                        IsVisible="False" Margin="0,2,0,0" />
+
+                <ActivityIndicator x:Name="BusyIndicator" IsVisible="False"
+                                   Color="{StaticResource Primary}" HorizontalOptions="Center" />
+
+            </VerticalStackLayout>
+        </Grid>
+    </ScrollView>
+</ContentPage>
