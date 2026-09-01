@@ -7,6 +7,7 @@ public partial class ExtractPage : ContentPage
     private readonly ExtractService _extract;
     private readonly PaymentService _payments;
     private readonly ValidationService _validator;
+    private readonly LLMService _llm;
     private EntitlementInfo _entitlements = new();
 
     public ExtractPage()
@@ -15,6 +16,7 @@ public partial class ExtractPage : ContentPage
         _extract = ServiceHelper.GetService<ExtractService>();
         _payments = ServiceHelper.GetService<PaymentService>();
         _validator = ServiceHelper.GetService<ValidationService>();
+        _llm = ServiceHelper.GetService<LLMService>();
     }
 
     protected override async void OnAppearing()
@@ -25,7 +27,7 @@ public partial class ExtractPage : ContentPage
 
         StartButton.Text = _entitlements.IsSubscribed
             ? "Start Extraction"
-            : $"Start Extraction (Free: max {_entitlements.MaxLeadsPerExtraction} leads)";
+            : "Start Extraction (Free: 1 run / month)";
     }
 
     private async void OnStartExtractionClicked(object? sender, EventArgs e)
@@ -58,7 +60,24 @@ public partial class ExtractPage : ContentPage
         ExtractionIndicator.IsVisible = true;
         StartButton.IsEnabled = false;
 
-        var progress = new Progress<int>(p => StatusLabel.Text = $"Extracting... {p}%");
+        // The on-device AI model used to be downloaded/loaded lazily on the first
+        // inference mid-loop (no progress was reported until a full video finished),
+        // which made the UI freeze on a fixed percentage ("20%"). Prepare it upfront
+        // with live status, or continue without AI fields if it can't be made ready.
+        if (!await EnsureAiModelReadyAsync())
+            StatusLabel.Text = $"AI model unavailable ({_llm.Status}) - continuing without AI fields.";
+
+        var progress = new Progress<int>(p =>
+        {
+            // Surface LLM status (model download/loading) so a long first inference
+            // never looks like the app has frozen.
+            var llmStatus = _llm.Status;
+            StatusLabel.Text = (string.IsNullOrEmpty(llmStatus) ||
+                                llmStatus.StartsWith("LLM not", StringComparison.Ordinal) ||
+                                llmStatus == "Model ready.")
+                ? $"Extracting... {p}%"
+                : $"Extracting ({llmStatus})... {p}%";
+        });
         var result = await _extract.ExtractByKeywordAsync(
             keyword,
             pageLimit,
@@ -188,8 +207,20 @@ public partial class ExtractPage : ContentPage
             return;
         }
 
+        // GATEKEEPER: Bulk extraction is a Pro feature. Free users are blocked
+        // outright before any work begins (the server whitelists this action only
+        // for paying users).
+        var bulkVerdict = await _validator.CheckOrAlertAsync(this, ValidationService.BulkExtractLeads, 0);
+        if (!bulkVerdict.Approved)
+            return;
+
         SetBusy(isBusy: true);
         BulkStatusLabel.Text = string.Empty;
+
+        // Same upfront model prep as single extraction, so a first-run download/load
+        // can never stall the middle of a bulk run with no visible progress.
+        if (!await EnsureAiModelReadyAsync())
+            BulkStatusLabel.Text = $"AI model unavailable ({_llm.Status}) - running without AI fields.";
 
         var totalVideos = 0;
         var totalEmails = 0;
@@ -334,6 +365,27 @@ public partial class ExtractPage : ContentPage
         }
         catch { /* non-fatal */ }
 #endif
+    }
+
+    /// <summary>
+    /// Ensures the on-device LLM model is downloaded and loaded before an extraction
+    /// loop starts. While the model is being prepared, this keeps the status line live
+    /// (download %, "Loading model...") so the UI never looks frozen on a fixed
+    /// percentage. Returns false when the model can't be made ready - AI fields are then
+    /// left empty (AIService fails gracefully) but scraping still proceeds.
+    /// </summary>
+    private async Task<bool> EnsureAiModelReadyAsync()
+    {
+        if (_llm.IsReady)
+            return true;
+
+        var readyTask = _llm.EnsureReadyAsync();
+        while (!readyTask.IsCompleted)
+        {
+            StatusLabel.Text = $"Preparing AI model ({_llm.Status})...";
+            await Task.Delay(250);
+        }
+        return await readyTask && _llm.IsReady;
     }
 
     private void SetBusy(bool isBusy)

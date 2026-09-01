@@ -41,9 +41,20 @@ public class YouTubeSearchService
 
             using var proc = new Process { StartInfo = psi };
             proc.Start();
-            var stdout = await proc.StandardOutput.ReadToEndAsync();
-            await proc.StandardError.ReadToEndAsync();
-            await proc.WaitForExitAsync();
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+            var stderrTask = proc.StandardError.ReadToEndAsync();
+            var exitTask = proc.WaitForExitAsync();
+
+            // Hard timeout: a stuck/throttled yt-dlp search must never freeze the
+            // extraction pipeline waiting for results.
+            var searchWinner = await Task.WhenAny(exitTask, Task.Delay(TimeSpan.FromSeconds(60)));
+            if (searchWinner != exitTask)
+            {
+                try { proc.Kill(entireProcessTree: true); } catch { }
+            }
+
+            var stdout = await stdoutTask;
+            await stderrTask;
 
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var rawLine in stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries))

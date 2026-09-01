@@ -23,15 +23,18 @@ namespace TubeMailGorilla.Api.Controllers;
 public class ValidationController : ControllerBase
 {
     private readonly ISubscriptionService _subscriptionService;
+    private readonly IExtractionUsageService _extractionUsageService;
     private readonly SubscriptionPlansOptions _plans;
     private readonly FreePlanLimits _freePlan;
 
     public ValidationController(
         ISubscriptionService subscriptionService,
+        IExtractionUsageService extractionUsageService,
         Microsoft.Extensions.Options.IOptions<SubscriptionPlansOptions> plansOptions,
         Microsoft.Extensions.Options.IOptions<FreePlanLimits> freePlanOptions)
     {
         _subscriptionService = subscriptionService;
+        _extractionUsageService = extractionUsageService;
         _plans = plansOptions.Value;
         _freePlan = freePlanOptions.Value;
     }
@@ -74,7 +77,11 @@ public class ValidationController : ControllerBase
         }
         else
         {
-            maxLeads = _freePlan.MaxLeadsPerExtraction;
+            // Free (non-paying) users have NO per-extraction lead cap - a single
+            // run may pull as many leads as it finds. The free plan's real throttle
+            // is exactly ONE extraction per calendar month (server-side, see the
+            // ExtractLeads case below). Contacts & sends keep their own limits.
+            maxLeads = int.MaxValue;
             maxContactsVisible = _freePlan.MaxContactsVisible;
             maxEmailsPerCampaign = _freePlan.MaxEmailsPerCampaign;
         }
@@ -95,12 +102,33 @@ public class ValidationController : ControllerBase
         switch (request.Action)
         {
             case ValidationAction.ExtractLeads:
+
+                // Free (non-paying) users get exactly ONE extraction per calendar
+                // month. The server enforces this (records the run when approved),
+                // so no client-side tampering can grant more runs. Paying users are
+                // unlimited by quota and only bound by the per-extraction lead cap.
+                if (!status.IsSubscribed)
+                {
+                    if (!await _extractionUsageService.TryConsumeFreeExtractionAsync(userId))
+                    {
+                        return Ok(Deny("You've used your free extraction for this month. Please upgrade to Pro to keep extracting, or wait until next month for another free run."));
+                    }
+                    break;
+                }
+
                 if (maxLeads != int.MaxValue)
                 {
                     var amount = request.RequestedAmount > 0 ? request.RequestedAmount : maxLeads;
                     if (amount > maxLeads)
                         return Ok(Deny($"{planName} plan allows up to {maxLeads} leads per extraction. Please upgrade your subscription for more."));
                 }
+                break;
+
+            case ValidationAction.BulkExtractLeads:
+
+                // Bulk extraction is a Pro feature; free users are blocked outright.
+                if (!status.IsSubscribed)
+                    return Ok(Deny("Bulk extraction is a Pro feature. Please upgrade your subscription to unlock it."));
                 break;
 
             case ValidationAction.SendEmails:

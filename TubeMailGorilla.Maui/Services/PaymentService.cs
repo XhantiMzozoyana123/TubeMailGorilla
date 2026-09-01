@@ -268,8 +268,12 @@ namespace TubeMailGorilla.Maui.Services
         public string PlanId { get; set; } = "free";
         public string PlanName { get; set; } = "Free";
 
-        /// <summary>Max leads per extraction run (-1 = unlimited).</summary>
-        public int MaxLeadsPerExtraction { get; set; } = 5;
+        /// <summary>
+        /// Max leads per extraction run (-1 = not capped). Free users are NOT
+        /// capped per run anymore; instead the server lets them run exactly ONE
+        /// extraction per calendar month (see the API's ValidationController).
+        /// </summary>
+        public int MaxLeadsPerExtraction { get; set; } = -1;
 
         /// <summary>Max contacts shown on the contacts page (-1 = unlimited).</summary>
         public int MaxContactsVisible { get; set; } = 5;

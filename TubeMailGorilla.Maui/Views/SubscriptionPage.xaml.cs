@@ -78,7 +78,7 @@ public partial class SubscriptionPage : ContentPage
         {
             BenefitsLabel.Text = _nextBilling is not null
                 ? $"Next payment on {_nextBilling.Value.ToLocalTime():d}. Works on the desktop app and the website."
-                : "Works on the desktop app and the website. Thank you for being a member!";
+                                : "Works on the desktop app and the website. Thank you for being a member!";
         }
         else
         {
@@ -99,11 +99,11 @@ public partial class SubscriptionPage : ContentPage
             // handles PayPal checkout; once subscribed, this page reflects it
             // automatically next time it loads.
             await Browser.Default.OpenAsync(_payments.GetUpgradeWebsiteUrl(), BrowserLaunchMode.SystemPreferred);
-            await DisplayAlertAsync("Upgrade on our website", "Complete your upgrade in the browser that just opened. Your Pro benefits appear here automatically afterwards.", "OK");
+            await DisplayAlert("Upgrade on our website", "Complete your upgrade in the browser that just opened. Your Pro benefits appear here automatically afterwards.", "OK");
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Error", ex.Message, "OK");
+            await DisplayAlert("Error", ex.Message, "OK");
         }
         finally
         {
@@ -114,7 +114,7 @@ public partial class SubscriptionPage : ContentPage
 
     private async void OnCancelClicked(object? sender, EventArgs e)
     {
-        var confirm = await DisplayAlertAsync(
+        var confirm = await DisplayAlert(
             "Cancel subscription",
             "You will lose access to premium features. Continue?",
             "Cancel subscription", "Keep it");
@@ -126,13 +126,13 @@ public partial class SubscriptionPage : ContentPage
         try
         {
             var (success, message) = await _payments.CancelSubscriptionAsync();
-            await DisplayAlertAsync(success ? "Subscription cancelled" : "Error",
+            await DisplayAlert(success ? "Subscription cancelled" : "Error",
                 message ?? "Done.", "OK");
             await RefreshStateAsync();
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Error", ex.Message, "OK");
+            await DisplayAlert("Error", ex.Message, "OK");
         }
         finally
         {

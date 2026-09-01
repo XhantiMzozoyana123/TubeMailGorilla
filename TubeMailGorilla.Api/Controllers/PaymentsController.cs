@@ -201,7 +201,9 @@ public class PaymentsController : ControllerBase
             IsSubscribed: false,
             PlanId: "free",
             PlanName: "Free",
-            MaxLeadsPerExtraction: _freePlan.MaxLeadsPerExtraction,
+            // Free users aren't capped per extraction (unlimited) - they're
+            // throttled to ONE extraction per month server-side instead.
+            MaxLeadsPerExtraction: -1,
             MaxContactsVisible: _freePlan.MaxContactsVisible,
             MaxEmailsPerCampaign: _freePlan.MaxEmailsPerCampaign,
             IcebreakerEnabled: false,

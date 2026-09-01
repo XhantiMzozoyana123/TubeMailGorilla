@@ -34,6 +34,7 @@ namespace TubeMailGorilla.Maui.Services
     {
         // Action names - MUST match TubeMailGorilla.Application.DTOs.ValidationAction.
         public const string ExtractLeads = "extract_leads";
+        public const string BulkExtractLeads = "bulk_extract_leads";
         public const string SendEmails = "send_emails";
         public const string ViewContacts = "view_contacts";
         public const string GenerateIcebreaker = "generate_icebreaker";

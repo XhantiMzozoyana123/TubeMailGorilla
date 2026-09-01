@@ -45,7 +45,7 @@ namespace TubeMailGorilla.Maui.ViewModels
         private static Task DisplayAlertSafeAsync(string title, string message, string cancel)
         {
             var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
-            return page is null ? Task.CompletedTask : page.DisplayAlertAsync(title, message, cancel);
+            return page is null ? Task.CompletedTask : page.DisplayAlert(title, message, cancel);
         }
 
         /// <summary>

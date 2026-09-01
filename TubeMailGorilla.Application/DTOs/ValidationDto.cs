@@ -7,6 +7,7 @@ namespace TubeMailGorilla.Application.DTOs;
 public static class ValidationAction
 {
     public const string ExtractLeads = "extract_leads";
+    public const string BulkExtractLeads = "bulk_extract_leads";
     public const string SendEmails = "send_emails";
     public const string ViewContacts = "view_contacts";
     public const string GenerateIcebreaker = "generate_icebreaker";
@@ -15,7 +16,7 @@ public static class ValidationAction
 
     public static readonly IReadOnlyCollection<string> All = new[]
     {
-        ExtractLeads, SendEmails, ViewContacts, GenerateIcebreaker, UseEmailTemplates, UseBlocklist
+        ExtractLeads, BulkExtractLeads, SendEmails, ViewContacts, GenerateIcebreaker, UseEmailTemplates, UseBlocklist
     };
 }
 

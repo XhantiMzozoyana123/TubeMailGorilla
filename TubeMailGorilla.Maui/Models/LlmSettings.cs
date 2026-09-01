@@ -35,4 +35,18 @@ public class LlmSettings
     /// transcript never overflows the fixed context window.
     /// </summary>
     public int MaxInputCharacters { get; set; } = 8000;
+
+    /// <summary>
+    /// Hard cap (seconds) on a single inference call. A stuck generation can never
+    /// block an extraction indefinitely - it is cancelled and reported as an error.
+    /// </summary>
+    public int InferenceTimeoutSeconds { get; set; } = 120;
+
+    /// <summary>
+    /// Hard cap (seconds) on loading the GGUF weights into memory. LLamaSharp's
+    /// <c>LoadFromFileAsync</c> is not cancellable, so the load is raced against this
+    /// timeout; a silent/stuck load can otherwise freeze an extraction on a fixed
+    /// progress percentage for minutes.
+    /// </summary>
+    public int ModelLoadTimeoutSeconds { get; set; } = 300;
 }

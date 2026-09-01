@@ -42,10 +42,32 @@ public class LLMService
     private LLamaWeights? _model;
     private StatelessExecutor? _executor;
     private int _warmupStarted;
+    private bool _loadFailed;
 
     public LLMService(LlmSettings? settings = null)
     {
         _settings = settings ?? new LlmSettings();
+    }
+
+    /// <summary>
+    /// Ensures the model file is downloaded (if missing) and the weights are loaded,
+    /// returning true once the cached executor is available for inference. Joins the
+    /// same download/load locks as the startup warmup, so calling this never duplicates
+    /// work. Returns false (and the AI fields stay empty in AIService) when the model
+    /// could not be made ready.
+    /// </summary>
+    public async Task<bool> EnsureReadyAsync()
+    {
+        try
+        {
+            await EnsureModelAsync();
+            return await GetOrCreateExecutorAsync() is not null;
+        }
+        catch (Exception ex)
+        {
+            Status = $"Failed to prepare model: {ex.Message}";
+            return false;
+        }
     }
 
     /// <summary>True once the model weights have been loaded into memory.</summary>
@@ -64,16 +86,31 @@ public class LLMService
     public string ModelPath => ResolveModelPath();
 
     /// <summary>
-    /// Begins the optional model download in the background so that by the time the user
-    /// starts an extraction the GGUF file is usually already on disk. The weights are only
-    /// loaded lazily on the first inference to avoid a startup memory spike.
+    /// Begins the optional model download AND load in the background so that by the
+    /// time the user starts an extraction the GGUF file is already on disk and the weights
+    /// are already in memory. Loading eagerly at startup (rather than lazily on the
+    /// first inference) also means an extraction never pauses mid-loop on a silent
+    /// model load with no visible progress.
     /// </summary>
     public void StartModelWarmup()
     {
         if (Interlocked.Exchange(ref _warmupStarted, 1) == 1)
             return;
 
-        _ = Task.Run(EnsureModelAsync);
+        // Warm the whole pipeline at launch: download if needed AND load the weights,
+        // so the first extraction never pays for a silent lazy model load mid-loop.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await EnsureModelAsync();
+                await GetOrCreateExecutorAsync();
+            }
+            catch (Exception ex)
+            {
+                Status = $"Model warmup failed: {ex.Message}";
+            }
+        });
     }
 
     /// <summary>
@@ -110,9 +147,22 @@ public class LLMService
             };
 
             var builder = new StringBuilder();
-            await foreach (var token in executor.InferAsync(prompt, inferenceParams))
+            // The serialized inference (including a possible hang in llama.cpp) must
+            // never freeze an extraction, so a hard timeout cancels the generation.
+            using (var timeout = new CancellationTokenSource(
+                TimeSpan.FromSeconds(_settings.InferenceTimeoutSeconds)))
             {
-                builder.Append(token);
+                try
+                {
+                    await foreach (var token in executor.InferAsync(prompt, inferenceParams, timeout.Token))
+                    {
+                        builder.Append(token);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    return $"LLM Error: Inference timed out after {_settings.InferenceTimeoutSeconds}s.";
+                }
             }
             return builder.ToString().Trim();
         }
@@ -258,9 +308,17 @@ public class LLMService
             if (_executor is not null)
                 return _executor;
 
+            // A previous load failed or timed out - don't retry a doomed load for every
+            // video (that is what makes an extraction appear frozen); skip the AI fields.
+            if (_loadFailed)
+                return null;
+
             var modelPath = ResolveModelPath();
             if (!File.Exists(modelPath))
+            {
+                Status = "Failed to load model: model file not found.";
                 return null;
+            }
 
             Status = "Loading model...";
 
@@ -271,7 +329,22 @@ public class LLMService
             };
 
             _model?.Dispose();
-            _model = await LLamaWeights.LoadFromFileAsync(parameters);
+            _model = null;
+
+            // LLamaSharp's load is not cancellation-safe, so race it against a hard
+            // timeout. A silently stuck loader must never freeze an extraction.
+            var loadTask = LLamaWeights.LoadFromFileAsync(parameters);
+            var winner = await Task.WhenAny(
+                loadTask,
+                Task.Delay(TimeSpan.FromSeconds(_settings.ModelLoadTimeoutSeconds)));
+            if (winner != loadTask)
+            {
+                _loadFailed = true;
+                Status = $"Failed to load model: timed out after {_settings.ModelLoadTimeoutSeconds}s.";
+                return null;
+            }
+
+            _model = await loadTask;
             _executor = new StatelessExecutor(_model, parameters)
             {
                 ApplyTemplate = true,
@@ -279,11 +352,13 @@ public class LLMService
             };
 
             IsReady = true;
+            _loadFailed = false;
             Status = "Model ready.";
             return _executor;
         }
         catch (Exception ex)
         {
+            _loadFailed = true;
             Status = $"Failed to load model: {ex.Message}";
             return null;
         }
