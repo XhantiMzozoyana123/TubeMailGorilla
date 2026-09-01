@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+  <Bundle Name="TubeMailGorilla" Version="1.0.0" Manufacturer="TubeMailGorilla"
+          UpgradeCode="D8F9A0B1-C2D3-4E5F-8A9B-0C1D2E3F4A5B" DisableModify="yes" DisableRemove="no">
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication LicenseUrl="https://tubemailgorilla.com/license" Theme="rtfLicense" />
+    </BootstrapperApplication>
+    <Chain>
+      <MsiPackage SourceFile="TubeMailGorilla.msi" Vital="yes" />
+    </Chain>
+  </Bundle>
+</Wix>
