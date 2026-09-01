@@ -7,10 +7,10 @@ namespace TubeMailGorilla.Domain;
 /// </summary>
 public class FreePlanLimits
 {
-    // NOTE: There is deliberately NO per-extraction lead cap on the free plan.
-    // Free users may pull as many leads as a single run finds, but the server
-    // throttles them to exactly ONE extraction per calendar month (see
-    // ExtractionUsageService / ValidationController).
+    /// <summary>Maximum leads a free user may extract per single extraction run.
+    /// The server enforces this in ValidationController — free users who request
+    /// more than this are denied and asked to upgrade.</summary>
+    public int MaxLeadsPerExtraction { get; set; } = 5;
 
     /// <summary>Maximum contacts visible on the contacts page.</summary>
     public int MaxContactsVisible { get; set; } = 5;

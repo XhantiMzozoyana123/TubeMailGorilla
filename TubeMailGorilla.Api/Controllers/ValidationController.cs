@@ -77,11 +77,11 @@ public class ValidationController : ControllerBase
         }
         else
         {
-            // Free (non-paying) users have NO per-extraction lead cap - a single
-            // run may pull as many leads as it finds. The free plan's real throttle
-            // is exactly ONE extraction per calendar month (server-side, see the
-            // ExtractLeads case below). Contacts & sends keep their own limits.
-            maxLeads = int.MaxValue;
+            // Free (non-paying) users are capped to a small number of leads per
+            // extraction run (FreePlan:MaxLeadsPerExtraction) AND throttled to
+            // exactly ONE extraction per calendar month. Both guards are enforced
+            // in the ExtractLeads case below. Contacts & sends keep their own limits.
+            maxLeads = _freePlan.MaxLeadsPerExtraction;
             maxContactsVisible = _freePlan.MaxContactsVisible;
             maxEmailsPerCampaign = _freePlan.MaxEmailsPerCampaign;
         }
@@ -113,10 +113,9 @@ public class ValidationController : ControllerBase
                     {
                         return Ok(Deny("You've used your free extraction for this month. Please upgrade to Pro to keep extracting, or wait until next month for another free run."));
                     }
-                    break;
                 }
 
-                if (maxLeads != int.MaxValue)
+                if (maxLeads > 0)
                 {
                     var amount = request.RequestedAmount > 0 ? request.RequestedAmount : maxLeads;
                     if (amount > maxLeads)
@@ -167,7 +166,7 @@ public class ValidationController : ControllerBase
 
     private static int LimitFor(string action, int maxLeads, int maxContacts, int maxEmails) => action switch
     {
-        ValidationAction.ExtractLeads => maxLeads == int.MaxValue ? -1 : maxLeads,
+        ValidationAction.ExtractLeads => maxLeads > 0 ? maxLeads : -1,
         ValidationAction.ViewContacts => maxContacts,
         ValidationAction.SendEmails => maxEmails,
         _ => -1
