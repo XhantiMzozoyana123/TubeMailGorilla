@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Download, AlertTriangle, LogOut, Monitor } from 'lucide-react';
 import { UserProfile } from '../types';
 import { DEFAULT_TRANSACTIONS } from '../services/authService';
-import { cancelSubscription, SITE_URL, fetchMySubscription, MySubscriptionStatus } from '../services/api';
+import { cancelSubscription, fetchMySubscription, MySubscriptionStatus } from '../services/api';
 
 interface AccountPortalProps {
   isOpen: boolean;
@@ -265,8 +265,8 @@ export const AccountPortal: React.FC<AccountPortalProps> = ({
                 </div>
 
                 <a
-                  href={`${SITE_URL}/downloads/TubeMailGorilla-Setup.exe`}
-                  download
+                  href="/downloads/TubeMailGorilla-v1.0.0-Windows.zip"
+                  download="TubeMailGorilla-v1.0.0-Windows.zip"
                   className="w-full py-3.5 rounded-lg bg-[#ff003b] hover:bg-[#ff1a4b] text-white font-extrabold text-sm uppercase tracking-wider font-['Rajdhani',sans-serif] shadow-[0_0_15px_rgba(255,0,59,0.3)] transition-colors cursor-pointer border border-[#ff4d73]/40 flex items-center justify-center gap-2 no-underline"
                 >
                   <Download className="w-4 h-4" />

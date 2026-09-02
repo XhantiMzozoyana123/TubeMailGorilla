@@ -1,6 +1,0 @@
-# Build artifacts
-*.msi
-*.exe
-*.wixpdb
-harvested.wxs
-tubemailgorilla.wxs
