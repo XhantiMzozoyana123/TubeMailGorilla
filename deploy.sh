@@ -53,7 +53,7 @@ check_env() {
 }
 
 wait_for_api() {
-    local port="${API_PORT:-8080}"
+    local port="${API_PORT:-8180}"
     local max=30
     log "Waiting for API health on http://127.0.0.1:${port}/swagger/v1/swagger.json ..."
     for i in $(seq 1 "$max"); do
@@ -107,9 +107,9 @@ cmd_deploy() {
 
     log "Deployment complete!"
     echo
-    echo "  API is listening on: http://0.0.0.0:${API_PORT:-8080}"
-    echo "  Swagger UI:          http://<VPS-IP>:${API_PORT:-8080}/swagger"
-    echo "  Health (plans):      curl http://<VPS-IP>:${API_PORT:-8080}/api/payments/plans"
+    echo "  API is listening on: http://0.0.0.0:${API_PORT:-8180}"
+    echo "  Swagger UI:          http://<VPS-IP>:${API_PORT:-8180}/swagger"
+    echo "  Health (plans):      curl http://<VPS-IP>:${API_PORT:-8180}/api/payments/plans"
     echo
     echo "  Put this behind a TLS-terminating reverse proxy (nginx/Caddy/Traefik)."
     echo "  See DEPLOY.md for full details."

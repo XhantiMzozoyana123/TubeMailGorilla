@@ -58,20 +58,20 @@ docker compose logs -f api
 ## 4. Verify
 
 ```bash
-curl http://127.0.0.1:8080/swagger/v1/swagger.json    # OpenAPI (dev only)
+curl http://127.0.0.1:8180/swagger/v1/swagger.json    # OpenAPI (dev only)
 # Health / plans are public JSON:
-curl http://127.0.0.1:8080/api/payments/plans
+curl http://127.0.0.1:8180/api/payments/plans
 ```
 
 ## 5. Put it behind a reverse proxy with TLS
 
-The API listens on `http://0.0.0.0:8080` in the container (mapped to `${API_PORT:-8080}`
+The API listens on `http://0.0.0.0:8180` in the container (mapped to `${API_PORT:-8180}`
 on the host). Terminate TLS in front of it with nginx, Caddy, or Traefik and forward to
 the host API port. Example Caddyfile:
 
 ```
 api.tubemailgorilla.com {
-    reverse_proxy 127.0.0.1:8080
+    reverse_proxy 127.0.0.1:8180
 }
 ```
 

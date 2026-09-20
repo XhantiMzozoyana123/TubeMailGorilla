@@ -5,7 +5,7 @@
 #
 # Secrets/configuration come from the .env file (see .env.example).
 # A reverse proxy (nginx/Caddy/Traefik) should terminate TLS and forward to
-# http://127.0.0.1:${API_PORT}:8080 on this host.
+# http://127.0.0.1:${API_PORT}:8180 on this host.
 # ---------------------------------------------------------------------------
 services:
   db:
@@ -35,10 +35,10 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "${API_PORT:-8080}:8080"
+      - "${API_PORT:-8180}:8180"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_URLS: http://+:8180
 
       # Database connection (Pomelo/EF Core, MySQL).
       ConnectionStrings__DefaultConnection: "server=db;port=3306;database=${MYSQL_DATABASE:-TubeMailGorillaDB};user=${MYSQL_USER:-tmg};password=${MYSQL_PASSWORD};SslMode=none;AllowPublicKeyRetrieval=True"
