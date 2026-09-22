@@ -27,10 +27,8 @@ services:
       ASPNETCORE_URLS: http://+:4000
 
       # ---- Storage provider ----
-      # Set to "Sqlite" to use the built-in SQLite file backed by the "sqlite_data"
-      # volume below. Leave empty (or set to "MySql") to use MySQL via the connection
-      # string below.
-      DataStorage__Provider: ${DATA_STORAGE_PROVIDER:-Sqlite}
+      # Set to "Sqlite" to use SQLite. Any other value (or blank) falls back to MySQL.
+      DataStorage__Provider: ${DATA_STORAGE_PROVIDER}
 
       # ---- SQLite connection string (used only when DataStorage__Provider=Sqlite) ----
       # The path here must match the mounted volume destination below.
