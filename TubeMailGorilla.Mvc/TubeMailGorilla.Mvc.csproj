@@ -13,4 +13,9 @@
     <ProjectReference Include="..\TubeMailGorilla.Infrastructure\TubeMailGorilla.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Used only for the MVC site's optional SQLite storage path. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
+  </ItemGroup>
+
 </Project>
