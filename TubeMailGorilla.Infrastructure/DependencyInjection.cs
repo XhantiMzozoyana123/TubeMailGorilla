@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -37,8 +38,8 @@ public static class DependencyInjection
             services.AddDbContext<ApplicationDbContext>(options =>
                 {
                     options.UseSqlite(sqliteConnectionString);
-                                        options.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Migrations.PendingModelChangesWarning));
-                    options.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Migrations.PendingMigrationsWarning));
+                                        options.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
+                    options.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingMigrationsWarning));
                 });
         }
         else
