@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using TubeMailGorilla.Application.DTOs;
 using TubeMailGorilla.Application.Interfaces;
 using TubeMailGorilla.Domain;
 using TubeMailGorilla.Domain.Interfaces;
+using TubeMailGorilla.Infrastructure.Models;
 using TubeMailGorilla.Mvc.Models;
 
 namespace TubeMailGorilla.Mvc.Controllers;
@@ -79,12 +82,7 @@ public class AccountController : Controller
         if (!ModelState.IsValid)
             return View(model);
 
-        var response = await _accountService.RegisterAsync(new RegisterRequest
-        {
-            Email = model.Email,
-            Password = model.Password,
-            FullName = model.FullName
-        });
+        var response = await _accountService.RegisterAsync(new RegisterRequest(model.Email, model.Password, model.FullName));
 
         if (!response.Success)
         {
