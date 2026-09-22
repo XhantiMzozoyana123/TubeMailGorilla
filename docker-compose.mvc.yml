@@ -1,0 +1,108 @@
+# ---------------------------------------------------------------------------
+# TubeMailGorilla MVC website (Linux VPS)
+#
+#   docker compose -f docker-compose.mvc.yml up -d --build
+#
+# Secrets/configuration come from the .env file (copy .env.mvc.example to .env
+# and fill in the real values). A reverse proxy (nginx / Caddy / Traefik) should
+# terminate TLS and forward to http://127.0.0.1:${MVC_PORT}:8181 on this host.
+#
+# STORAGE:
+#   This compose file runs the MVC app with SQLite by default. The SQLite file
+#   lives in a persistent Docker volume at /app/data/tubemailgorilla.db inside
+#   the container. If you prefer MySQL instead, set DataStorage__Provider= and
+#   set ConnectionStrings__DefaultConnection to your MySQL server (and keep the
+#   db service or point DB_HOST at an external MySQL server).
+# ---------------------------------------------------------------------------
+services:
+  mvc:
+    build:
+      context: .
+      dockerfile: TubeMailGorilla.Mvc/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${MVC_PORT:-8181}:8181"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8181
+
+      # ---- Storage provider ----
+      # Set to "Sqlite" to use the built-in SQLite file backed by the "sqlite_data"
+      # volume below. Leave empty (or set to "MySql") to use MySQL via the connection
+      # string below.
+      DataStorage__Provider: ${DATA_STORAGE_PROVIDER:-Sqlite}
+
+      # ---- SQLite connection string (used only when DataStorage__Provider=Sqlite) ----
+      # The path here must match the mounted volume destination below.
+      DataStorage__ConnectionString: "Data Source=/app/data/tubemailgorilla.db"
+
+      # ---- MySQL connection string (used only when DataStorage__Provider is not Sqlite) ----
+      # When using MySQL, set this to your real MySQL server (Docker service name "db"
+      # when using the compose MySQL service, or an external host).
+      ConnectionStrings__DefaultConnection: "server=${DB_HOST:-db};port=${DB_PORT:-3306};database=${MYSQL_DATABASE:-TubeMailGorillaDB};user=${MYSQL_USER:-tmg};password=${MYSQL_PASSWORD};SslMode=none;AllowPublicKeyRetrieval=True"
+
+      # ---- Auth ----
+      JwtSettings__Secret: ${JWT_SECRET}
+      JwtSettings__Issuer: ${JWT_ISSUER:-TubeMailGorillaAPI}
+      JwtSettings__Audience: ${JWT_AUDIENCE:-TubeMailGorillaClient}
+      JwtSettings__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-1440}
+
+      # ---- PayPal ----
+      PayPalSettings__ClientId: ${PAYPAL_CLIENT_ID}
+      PayPalSettings__Secret: ${PAYPAL_SECRET}
+      PayPalSettings__Mode: ${PAYPAL_MODE:-sandbox}
+      PayPalSettings__PlanId: ${PAYPAL_PLAN_ID}
+
+      # ---- Admin seed (used once to create the initial admin account on startup) ----
+      AdminSeed__Email: ${ADMIN_SEED_EMAIL:-admin@tubemailgorilla.com}
+      AdminSeed__Password: ${ADMIN_SEED_PASSWORD}
+
+      # ---- Subscription plan catalog + FREE plan limits ----
+      # If you want to keep the hardcoded catalog from appsettings.json, you can leave
+      # these blank; otherwise override per-environment here.
+      SubscriptionPlans__0__Id: ${SUBSCRIPTION_PLAN_0_ID:-pro}
+      SubscriptionPlans__0__Name: ${SUBSCRIPTION_PLAN_0_NAME:-Pro}
+      SubscriptionPlans__0__Tagline: ${SUBSCRIPTION_PLAN_0_TAGLINE:-Everything you need to find clients and land paid editing work.}
+      SubscriptionPlans__0__MonthlyPrice: ${SUBSCRIPTION_PLAN_0_MONTHLY_PRICE:-9.99}
+      SubscriptionPlans__0__Currency: ${SUBSCRIPTION_PLAN_0_CURRENCY:-USD}
+      SubscriptionPlans__0__LeadsPerMonth: ${SUBSCRIPTION_PLAN_0_LEADS_PER_MONTH:-5000}
+      SubscriptionPlans__0__IsEnabled: ${SUBSCRIPTION_PLAN_0_IS_ENABLED:-true}
+
+      FreePlan__MaxLeadsPerExtraction: ${FREE_PLAN_MAX_LEADS:-5}
+      FreePlan__MaxContactsVisible: ${FREE_PLAN_MAX_CONTACTS:-5}
+      FreePlan__MaxEmailsPerCampaign: ${FREE_PLAN_MAX_EMAILS:-5}
+
+    volumes:
+      # Persistent SQLite database. The path /app/data must match
+      # DataStorage__ConnectionString above.
+      - sqlite_data:/app/data
+
+    # Optional: mount an external appsettings.Production.json if you prefer file-based
+    # overrides instead of env vars. Example:
+    #   - ./appsettings.Production.json:/app/appsettings.Production.json:ro
+    # volumes:
+    #   - ./appsettings.Production.json:/app/appsettings.Production.json:ro
+
+  # Optional MySQL service. Only needed if you choose MySQL storage.
+  # Comment out the whole block if you use SQLite (the default for this compose file).
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-TubeMailGorillaDB}
+      MYSQL_USER: ${MYSQL_USER:-tmg}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  sqlite_data:
+  mysql_data:

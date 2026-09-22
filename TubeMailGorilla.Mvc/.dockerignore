@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+**/wwwroot/lib/
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.user
+**/*.suo
+**/*.userosscache
+**/*.sln.docstates
+**/Dockerfile.*
+**/docker-compose*.yml
+**/.env*
+**/.env.*.example
+**/.git/
+**/.github/

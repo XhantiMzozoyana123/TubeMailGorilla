@@ -37,6 +37,20 @@ builder.Services.Configure<FreePlanLimits>(builder.Configuration.GetSection("Fre
 // Infrastructure layer (EF Core, Identity, JWT token service, PayPal gateway)
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Optional per-application storage override.
+// By default the shared Infrastructure layer still registers EF Core against MySQL
+// (server=db / your external MySQL host). This block overrides the
+// ApplicationDbContext registration for THIS application only when
+// DataStorage:Provider is set to "Sqlite".
+if (builder.Configuration.GetValue<string>("DataStorage:Provider")?.Equals("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
+{
+    var sqliteConnectionString = builder.Configuration.GetConnectionString("DataStorage") ??
+                                  "Data Source=tubemailgorilla.db";
+
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseSqlite(sqliteConnectionString));
+}
+
 // ASP.NET Core Identity sign-in via auth cookies for the website. Shares the
 // same IdentityUser store as the API, so a user registered on one front end
 // can sign in on both. The API keeps issuing JWTs for the MAUI desktop app.
