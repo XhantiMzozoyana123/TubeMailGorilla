@@ -38,8 +38,9 @@ WORKDIR /app
 USER 1654:1654
 
 # Port is set via ASPNETCORE_URLS at runtime (compose/env). Default for Kestrel on non-root.
-EXPOSE 4000
+EXPOSE 8081
 
 COPY --from=build /app/publish .
 
 ENTRYPOINT ["dotnet", "TubeMailGorilla.Mvc.dll"]
+
