@@ -27,17 +27,28 @@ public static class DependencyInjection
         // Bind strongly-typed JwtSettings from configuration
         services.Configure<JwtSettings>(configuration.GetSection(nameof(JwtSettings)));
 
-                        // Database context
-        // NOTE: The MVC application overrides ApplicationDbContext later in Program.cs
-        // when DataStorage:Provider=Sqlite. This default registration targets MySQL.
-        services.AddDbContext<ApplicationDbContext>(options =>
+                                                // Database context
+        // Check if SQLite storage is requested before attempting MySQL setup
+        var storageProvider = configuration.GetValue<string>("DataStorage:Provider");
+        if (storageProvider?.Equals("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
-            if (!string.IsNullOrEmpty(connectionString))
+            var sqliteConnectionString = configuration.GetConnectionString("DataStorage") ??
+                                          "Data Source=tubemailgorilla.db";
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlite(sqliteConnectionString));
+        }
+        else
+        {
+            // Default MySQL registration (API behavior)
+            services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
-            }
-        });
+                var connectionString = configuration.GetConnectionString("DefaultConnection");
+                if (!string.IsNullOrEmpty(connectionString))
+                {
+                    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+                }
+            });
+        }
 
         // ASP.NET Core Identity
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
