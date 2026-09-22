@@ -27,7 +27,7 @@ public static class DependencyInjection
         // Bind strongly-typed JwtSettings from configuration
         services.Configure<JwtSettings>(configuration.GetSection(nameof(JwtSettings)));
 
-                                                // Database context
+        // Database context
         // Check if SQLite storage is requested before attempting MySQL setup
         var storageProvider = configuration.GetValue<string>("DataStorage:Provider");
         if (storageProvider?.Equals("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
@@ -35,7 +35,10 @@ public static class DependencyInjection
             var sqliteConnectionString = configuration.GetConnectionString("DataStorage") ??
                                           "Data Source=tubemailgorilla.db";
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlite(sqliteConnectionString));
+                {
+                    options.UseSqlite(sqliteConnectionString);
+                    options.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Migrations.PendingModelChangesWarning));
+                });
         }
         else
         {
