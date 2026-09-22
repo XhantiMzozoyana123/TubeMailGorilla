@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:TubeMailGorilla.Maui.Controls"
              x:Class="TubeMailGorilla.Maui.Views.SendEmailsPage"
              Title="Send Emails">
     <ScrollView Padding="24">
@@ -23,8 +24,9 @@
                 </Border>
             </HorizontalStackLayout>
 
-            <!-- One unified card -->
-            <Frame Style="{StaticResource RoundedCardStyle}" Padding="20">
+            <!-- One unified card (minimize/maximize via header click) -->
+            <controls:CollapsibleCard Title="CAMPAIGN">
+                <controls:CollapsibleCard.Body>
                 <VerticalStackLayout Spacing="14">
 
                     <Label x:Name="EmptyContactsPrompt"
@@ -171,7 +173,8 @@
                     </VerticalStackLayout>
 
                 </VerticalStackLayout>
-            </Frame>
+                </controls:CollapsibleCard.Body>
+            </controls:CollapsibleCard>
 
         </VerticalStackLayout>
     </ScrollView>

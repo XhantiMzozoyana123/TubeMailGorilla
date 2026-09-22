@@ -2,14 +2,15 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:TubeMailGorilla.Maui.Models"
+             xmlns:controls="clr-namespace:TubeMailGorilla.Maui.Controls"
              x:Class="TubeMailGorilla.Maui.Views.SettingsPage"
              Title="Settings">
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="0">
 
-            <Frame Style="{StaticResource CardStyle}">
+            <controls:CollapsibleCard Title="EXTRACTION">
+                <controls:CollapsibleCard.Body>
                 <VerticalStackLayout Spacing="0">
-                    <Label Text="EXTRACTION" Style="{StaticResource SectionTitleStyle}" />
                     <Label Text="Control how YouTube lead extraction works." Style="{StaticResource DescriptionStyle}" />
 
                     <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
@@ -27,11 +28,12 @@
                         <Entry x:Name="PageLimitEntry" Grid.Column="1" Keyboard="Numeric" FontSize="14" WidthRequest="80" HorizontalOptions="End" />
                     </Grid>
                 </VerticalStackLayout>
-            </Frame>
+                </controls:CollapsibleCard.Body>
+            </controls:CollapsibleCard>
 
-            <Frame Style="{StaticResource CardStyle}">
+            <controls:CollapsibleCard Title="EMAIL SHORTCODES">
+                <controls:CollapsibleCard.Body>
                 <VerticalStackLayout Spacing="0">
-                    <Label Text="EMAIL SHORTCODES" Style="{StaticResource SectionTitleStyle}" />
                     <Label Text="Type these in your email and we automatically fill in each lead's details when sending."
                            Style="{StaticResource DescriptionStyle}" />
 
@@ -88,11 +90,12 @@
                                 Clicked="OnRenameParameterClicked" />
                     </Grid>
                 </VerticalStackLayout>
-            </Frame>
+                </controls:CollapsibleCard.Body>
+            </controls:CollapsibleCard>
 
-            <Frame Style="{StaticResource CardStyle}">
+            <controls:CollapsibleCard Title="EMAIL ACCOUNTS">
+                <controls:CollapsibleCard.Body>
                 <VerticalStackLayout Spacing="0">
-                    <Label Text="EMAIL ACCOUNTS" Style="{StaticResource SectionTitleStyle}" />
                                         <Label Text="Manage the SMTP accounts used to send emails." Style="{StaticResource DescriptionStyle}" />
 
                     <ListView x:Name="AccountsList" Margin="0,8,0,0" SelectionMode="Single" ItemSelected="OnAccountSelected" BackgroundColor="Transparent">
@@ -129,22 +132,25 @@
                            Style="{StaticResource EmptyStateStyle}"
                            IsVisible="False" />
                 </VerticalStackLayout>
-            </Frame>
+                </controls:CollapsibleCard.Body>
+            </controls:CollapsibleCard>
 
-            <Frame Style="{StaticResource CardStyle}">
+            <controls:CollapsibleCard Title="BILLING">
+                <controls:CollapsibleCard.Body>
                 <VerticalStackLayout Spacing="0">
-                    <Label Text="BILLING" Style="{StaticResource SectionTitleStyle}" />
                     <Label x:Name="SubscriptionLabel" FontSize="14" TextColor="{StaticResource TextSecondary}" />
                     <Label x:Name="SubscriptionDescLabel" FontSize="13" TextColor="{StaticResource TextTertiary}" Margin="0,0,0,8" />
                 </VerticalStackLayout>
-            </Frame>
+                </controls:CollapsibleCard.Body>
+            </controls:CollapsibleCard>
 
-            <Frame Style="{StaticResource CardStyle}">
+            <controls:CollapsibleCard Title="ACCOUNT">
+                <controls:CollapsibleCard.Body>
                 <VerticalStackLayout Spacing="0">
-                    <Label Text="ACCOUNT" Style="{StaticResource SectionTitleStyle}" />
                     <Button Text="Logout" Style="{StaticResource DangerButtonStyle}" Clicked="OnLogoutClicked" />
                 </VerticalStackLayout>
-            </Frame>
+                </controls:CollapsibleCard.Body>
+            </controls:CollapsibleCard>
 
         </VerticalStackLayout>
     </ScrollView>

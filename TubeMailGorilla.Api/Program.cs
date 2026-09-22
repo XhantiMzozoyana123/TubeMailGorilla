@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using System.Security.Claims;
 using TubeMailGorilla.Application;
 using TubeMailGorilla.Domain;
 using TubeMailGorilla.Domain.Constants;
 using TubeMailGorilla.Infrastructure;
 using TubeMailGorilla.Infrastructure.Data;
+using TubeMailGorilla.Infrastructure.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -123,6 +126,65 @@ using (var scope = app.Services.CreateScope())
     // older EnsureCreated + raw-SQL approach, which couldn't evolve the schema
     // when entities change.
     await db.Database.MigrateAsync();
+
+    // -------------------------------------------------------------------
+    // Admin account seed. Creates the "Admin" role and a built-in admin
+    // user on first run (idempotent - safe to run on every startup).
+    //
+    // The admin gets:
+    //   1. The "Admin" role  - carried in every JWT as a role claim.
+    //   2. The persisted "subscription": "active" claim - the SAME claim
+    //      paying users receive, so all subscription-gated features in the
+    //      MAUI desktop app (extraction, contacts, AI icebreakers, email
+    //      templates, contact blocklist) are unlocked, including endpoints
+    //      protected by [Authorize(Policy = "Subscribed")].
+    //
+    // Credentials come from configuration ("AdminSeed" section); change them
+    // in appsettings.{Environment}.json or user-secrets for anything real.
+    // -------------------------------------------------------------------
+    var adminEmail = builder.Configuration["AdminSeed:Email"] ?? "admin@tubemailgorilla.com";
+    var adminPassword = builder.Configuration["AdminSeed:Password"] ?? "Adm1nGorilla!";
+
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+    const string adminRoleName = "Admin";
+    if (!await roleManager.RoleExistsAsync(adminRoleName))
+    {
+        await roleManager.CreateAsync(new IdentityRole(adminRoleName));
+    }
+
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    if (adminUser is null)
+    {
+        adminUser = new ApplicationUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            EmailConfirmed = true,
+            FullName = "Administrator"
+        };
+
+        var createResult = await userManager.CreateAsync(adminUser, adminPassword);
+        if (!createResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                "Failed to seed the admin account: " + string.Join("; ", createResult.Errors.Select(e => e.Description)));
+        }
+    }
+
+    if (!await userManager.IsInRoleAsync(adminUser, adminRoleName))
+    {
+        await userManager.AddToRoleAsync(adminUser, adminRoleName);
+    }
+
+    // Grant the admin the active-subscription claim so every Pro-gated
+    // feature (MAUI app + website) is unlocked for this account.
+    var adminClaims = await userManager.GetClaimsAsync(adminUser);
+    if (!adminClaims.Any(c => c.Type == SubscriptionClaim.Type && c.Value == SubscriptionClaim.Value))
+    {
+        await userManager.AddClaimAsync(adminUser, new Claim(SubscriptionClaim.Type, SubscriptionClaim.Value));
+    }
 }
 
 // -----------------------------------------------------------------------

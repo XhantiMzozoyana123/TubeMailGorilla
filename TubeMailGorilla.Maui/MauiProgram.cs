@@ -73,6 +73,30 @@ public static class MauiProgram
         var app = builder.Build();
         ServiceHelper.Initialize(app.Services);
 
+#if WINDOWS
+        // TEMPORARY crash/startup logging (remove once startup crash is fixed).
+        var crashLogPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "TubeMailGorilla", "startup-crash.log");
+        Directory.CreateDirectory(Path.GetDirectoryName(crashLogPath)!);
+        void LogCrash(string source, Exception ex) =>
+            File.AppendAllText(crashLogPath, $"[{DateTime.Now:HH:mm:ss.fff}] {source}: {ex}\r\n\r\n");
+        void LogBread(string message) =>
+            File.AppendAllText(crashLogPath, $"[{DateTime.Now:HH:mm:ss.fff}] BREADCRUMB: {message}\r\n");
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            LogCrash("AppDomain.UnhandledException", (Exception)e.ExceptionObject);
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+            LogCrash("UnobservedTaskException", e.Exception);
+        Microsoft.UI.Xaml.Application.Current.UnhandledException += (_, e) =>
+        {
+            LogCrash("XamlUnhandledException", e.Exception);
+            e.Handled = true; // keep the process alive so the log is flushed
+        };
+        LogBread("CreateMauiApp complete");
+        _ = typeof(App).TypeInitializer; // force App type load
+        App.TraceStartup += m => LogBread(m);
+#endif
+
         return app;
     }
 }

@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:TubeMailGorilla.Maui.Models"
+             xmlns:controls="clr-namespace:TubeMailGorilla.Maui.Controls"
              x:Class="TubeMailGorilla.Maui.Views.ContactsPage"
              Title="Contacts">
 
@@ -48,7 +49,8 @@
                Margin="0,0,0,8" />
 
         <!-- Contact list -->
-        <Frame Style="{StaticResource CardStyle}" Padding="0" Margin="0">
+        <controls:CollapsibleCard Title="CONTACT LIST">
+            <controls:CollapsibleCard.Body>
             <VerticalStackLayout Spacing="0">
                 <CollectionView x:Name="ContactsList"
                                 SelectionMode="Single"
@@ -105,7 +107,8 @@
                        Style="{StaticResource EmptyStateStyle}"
                        IsVisible="False" />
             </VerticalStackLayout>
-        </Frame>
+            </controls:CollapsibleCard.Body>
+        </controls:CollapsibleCard>
 
     </VerticalStackLayout>
 </ContentPage>

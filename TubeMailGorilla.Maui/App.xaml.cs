@@ -2,13 +2,19 @@ namespace TubeMailGorilla.Maui;
 
 public partial class App : Application
 {
+    /// <summary>Temporary startup tracing hook (remove with crash logging).</summary>
+    public static Action<string>? TraceStartup { get; set; }
+
     public App()
     {
+        TraceStartup?.Invoke("App ctor begin");
         InitializeComponent();
+        TraceStartup?.Invoke("App ctor complete");
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
+        TraceStartup?.Invoke("CreateWindow begin (token=" + Preferences.Get("AuthToken", string.Empty).Length + " chars)");
         // Check if user is already logged in
         var hasToken = Preferences.Get("AuthToken", string.Empty) is { Length: > 0 };
 
@@ -17,10 +23,12 @@ public partial class App : Application
             ? new AppShell()
             : new NavigationPage(new Views.AuthView());
 
+        TraceStartup?.Invoke($"CreateWindow startPage created: {startPage.GetType().Name}");
         var window = new Window(startPage)
         {
             Title = "TubeMailGorilla"
         };
+        TraceStartup?.Invoke("CreateWindow window created");
 
         // A stored token does NOT guarantee it is still valid (expired,
         // revoked, or from an older database). Validate it against the API;
