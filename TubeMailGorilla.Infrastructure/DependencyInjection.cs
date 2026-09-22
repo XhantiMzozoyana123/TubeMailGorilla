@@ -37,7 +37,8 @@ public static class DependencyInjection
             services.AddDbContext<ApplicationDbContext>(options =>
                 {
                     options.UseSqlite(sqliteConnectionString);
-                    options.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Migrations.PendingModelChangesWarning));
+                                        options.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Migrations.PendingModelChangesWarning));
+                    options.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Migrations.PendingMigrationsWarning));
                 });
         }
         else
