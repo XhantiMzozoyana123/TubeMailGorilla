@@ -28,11 +28,15 @@ public static class DependencyInjection
         services.Configure<JwtSettings>(configuration.GetSection(nameof(JwtSettings)));
 
                         // Database context
+        // NOTE: The MVC application overrides ApplicationDbContext later in Program.cs
+        // when DataStorage:Provider=Sqlite. This default registration targets MySQL.
         services.AddDbContext<ApplicationDbContext>(options =>
         {
-            options.UseMySql(
-                configuration.GetConnectionString("DefaultConnection"),
-                ServerVersion.AutoDetect(configuration.GetConnectionString("DefaultConnection")));
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            if (!string.IsNullOrEmpty(connectionString))
+            {
+                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+            }
         });
 
         // ASP.NET Core Identity
