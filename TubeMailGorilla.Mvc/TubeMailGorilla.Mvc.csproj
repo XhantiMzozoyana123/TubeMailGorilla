@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <!-- Used only for the MVC site's optional SQLite storage path. -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
   </ItemGroup>
 
 </Project>
