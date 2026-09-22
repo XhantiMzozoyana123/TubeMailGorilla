@@ -39,7 +39,6 @@ public static class DependencyInjection
                 {
                     options.UseSqlite(sqliteConnectionString);
                                         options.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
-                    options.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingMigrationsWarning));
                 });
         }
         else
