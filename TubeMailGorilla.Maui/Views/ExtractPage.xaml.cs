@@ -59,6 +59,8 @@ public partial class ExtractPage : ContentPage
         ResultsLabel.Text = string.Empty;
         ExtractionIndicator.IsVisible = true;
         StartButton.IsEnabled = false;
+        ExtractProgressBar.Progress = 0;
+        ExtractProgressBar.IsVisible = true;
 
         // The on-device AI model used to be downloaded/loaded lazily on the first
         // inference mid-loop (no progress was reported until a full video finished),
@@ -69,6 +71,9 @@ public partial class ExtractPage : ContentPage
 
         var progress = new Progress<int>(p =>
         {
+            // Drive the visible progress bar (0..1).
+            ExtractProgressBar.Progress = Math.Clamp(p, 0, 100) / 100.0;
+
             // Surface LLM status (model download/loading) so a long first inference
             // never looks like the app has frozen.
             var llmStatus = _llm.Status;
@@ -89,6 +94,8 @@ public partial class ExtractPage : ContentPage
         ResultsLabel.Text = $"Videos: {result.TotalVideos}  |  Emails: {result.EmailsFound}  |  Errors: {result.Errors}";
         ExtractionIndicator.IsVisible = false;
         StartButton.IsEnabled = true;
+        ExtractProgressBar.Progress = 1.0;
+        ExtractProgressBar.IsVisible = false;
 
         if (cappedByPlan)
         {
@@ -216,6 +223,8 @@ public partial class ExtractPage : ContentPage
 
         SetBusy(isBusy: true);
         BulkStatusLabel.Text = string.Empty;
+        BulkProgressBar.Progress = 0;
+        BulkProgressBar.IsVisible = true;
 
         // Same upfront model prep as single extraction, so a first-run download/load
         // can never stall the middle of a bulk run with no visible progress.
@@ -254,6 +263,7 @@ public partial class ExtractPage : ContentPage
                 var progress = new Progress<int>(p =>
                 {
                     int overall = (i * 100 + Math.Clamp(p, 0, 100)) / rows.Count;
+                    BulkProgressBar.Progress = Math.Clamp(overall, 0, 100) / 100.0;
                     BulkStatusLabel.Text = $"{prefix}extracting... {p}%   (overall {overall}%)";
                 });
 
@@ -285,6 +295,8 @@ public partial class ExtractPage : ContentPage
         finally
         {
             SetBusy(isBusy: false);
+            BulkProgressBar.IsVisible = false;
+            BulkProgressBar.Progress = 0;
         }
     }
 
@@ -374,17 +386,38 @@ public partial class ExtractPage : ContentPage
     /// percentage. Returns false when the model can't be made ready - AI fields are then
     /// left empty (AIService fails gracefully) but scraping still proceeds.
     /// </summary>
+    /// <summary>
+    /// Ensures the on-device LLM model is downloaded and loaded before an extraction
+    /// loop starts. While the model is being prepared, this keeps the status line live
+    /// (download %, "Loading model...") so the UI never looks frozen on a fixed
+    /// percentage. Waits at most <c>ModelPrepTimeoutSeconds</c> (appsettings) - past
+    /// that the extraction starts WITHOUT AI fields rather than sitting frozen while
+    /// a 1.9 GB model downloads; the warmup keeps running in the background.
+    /// </summary>
     private async Task<bool> EnsureAiModelReadyAsync()
     {
         if (_llm.IsReady)
             return true;
 
+        var prepSeconds = _llm.ModelPrepTimeoutSeconds;
+        var deadline = DateTime.UtcNow.AddSeconds(prepSeconds);
         var readyTask = _llm.EnsureReadyAsync();
-        while (!readyTask.IsCompleted)
+
+        // Keep the status line live (download %, "Loading model...") but give up
+        // after the prep budget so the extraction starts without AI fields instead
+        // of sitting frozen while a 1.9 GB model downloads.
+        while (!readyTask.IsCompleted && DateTime.UtcNow < deadline)
         {
             StatusLabel.Text = $"Preparing AI model ({_llm.Status})...";
             await Task.Delay(250);
         }
+
+        if (!readyTask.IsCompleted)
+        {
+            StatusLabel.Text = $"AI model still preparing ({_llm.Status}) - continuing without AI fields.";
+            return false;
+        }
+
         return await readyTask && _llm.IsReady;
     }
 

@@ -24,23 +24,33 @@ public class LlmSettings
     /// <summary>Layers offloaded to GPU (0 = run purely on CPU).</summary>
     public int GpuLayerCount { get; set; } = 0;
 
-    /// <summary>Maximum number of tokens the model may generate per call.</summary>
-    public int MaxTokens { get; set; } = 512;
+    /// <summary>Maximum number of tokens the model may generate per call.
+    /// Extraction answers are a few words, so a small cap keeps each call fast
+    /// (512 was making every inference take tens of seconds on CPU).</summary>
+    public int MaxTokens { get; set; } = 96;
 
     /// <summary>Sampling temperature (lower = more deterministic, better for extraction).</summary>
     public float Temperature { get; set; } = 0.6f;
 
     /// <summary>
     /// Hard cap on the prompt length (characters) sent to the model, so a long video
-    /// transcript never overflows the fixed context window.
+    /// transcript never overflows the fixed context window. Shorter prompts also
+    /// mean much faster CPU prefill (8000 chars made every call crawl).
     /// </summary>
-    public int MaxInputCharacters { get; set; } = 8000;
+    public int MaxInputCharacters { get; set; } = 2500;
 
     /// <summary>
     /// Hard cap (seconds) on a single inference call. A stuck generation can never
     /// block an extraction indefinitely - it is cancelled and reported as an error.
     /// </summary>
-    public int InferenceTimeoutSeconds { get; set; } = 120;
+    public int InferenceTimeoutSeconds { get; set; } = 90;
+
+    /// <summary>
+    /// Hard cap (seconds) the UI waits for the model to download+load before an
+    /// extraction starts. Past this, the run continues WITHOUT AI fields instead
+    /// of sitting frozen while a 1.9 GB download trickles in.
+    /// </summary>
+    public int ModelPrepTimeoutSeconds { get; set; } = 90;
 
     /// <summary>
     /// Hard cap (seconds) on loading the GGUF weights into memory. LLamaSharp's

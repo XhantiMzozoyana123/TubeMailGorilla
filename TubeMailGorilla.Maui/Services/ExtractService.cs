@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Text;
 using TubeMailGorilla.Maui.Models;
 
 namespace TubeMailGorilla.Maui.Services;
@@ -7,16 +5,14 @@ namespace TubeMailGorilla.Maui.Services;
 public class ExtractService
 {
     private readonly DatabaseService _db;
-    private readonly YouTubeSearchService _ytSearch;
-    private readonly YouTubeTranscriptService _transcript;
+    private readonly YouTubeExplodeService _youtube;
     private readonly AIService _ai;
     private readonly EmailService _email;
 
-    public ExtractService(DatabaseService db, YouTubeSearchService ytSearch, YouTubeTranscriptService transcript, AIService ai, EmailService email)
+    public ExtractService(DatabaseService db, YouTubeExplodeService youtube, AIService ai, EmailService email)
     {
         _db = db;
-        _ytSearch = ytSearch;
-        _transcript = transcript;
+        _youtube = youtube;
         _ai = ai;
         _email = email;
     }
@@ -36,8 +32,12 @@ public class ExtractService
 
         try
         {
-            // Search YouTube for videos matching the keyword
-            var videos = await _ytSearch.SearchAsync(keyword, pageViewLimit);
+            // Search YouTube for videos matching the keyword (YoutubeExplode).
+            // Bounded so a stalled search can never hang the extraction start.
+            var videos = await WithTimeout(
+                _youtube.SearchAsync(keyword, pageViewLimit),
+                TimeSpan.FromSeconds(60),
+                new List<YouTubeVideo>());
             result.TotalVideos = videos.Count;
 
             for (int i = 0; i < videos.Count; i++)
@@ -45,16 +45,19 @@ public class ExtractService
                 var video = videos[i];
                 try
                 {
-                    // Get description
-                    string description = await GetYouTubeVideoDescription(video.Url);
+                    // Get description (from the video's watch page metadata). Bounded
+                    // so a stalled HTTP request can never hang the extraction loop.
+                    string description = await WithTimeout(
+                        _youtube.GetDescriptionAsync(video.Url),
+                        TimeSpan.FromSeconds(45),
+                        string.Empty);
 
-                    // Get captions
-                    string subtitles = string.Empty;
-                    try
-                    {
-                        subtitles = await _transcript.ExtractTranscriptAsync(video.Url);
-                    }
-                    catch { }
+                    // Get captions/transcript (closed captions via YoutubeExplode).
+                    // Also bounded - a video with no/hanging captions is skipped data-wise.
+                    string subtitles = await WithTimeout(
+                        _youtube.GetTranscriptAsync(video.Url),
+                        TimeSpan.FromSeconds(45),
+                        string.Empty);
 
                     // Extract emails
                     var emailFound = _email.ExtractEmails(description + " " + subtitles);
@@ -84,7 +87,7 @@ public class ExtractService
                     // Extract phone
                     var phoneFound = _email.ExtractPhoneNumbers(description + " " + subtitles);
 
-                    // Extract AI info
+                    // Build the lead from the regex-extracted data...
                     var emailer = new Emailer
                     {
                         VideoTitle = video.Title,
@@ -98,11 +101,20 @@ public class ExtractService
                         Status = EmailerStatus.New.ToString()
                     };
 
-                    try
+                    // ...then enrich it with AI fields under a hard per-video budget,
+                    // so a slow first-run model download or CPU inference can never
+                    // stall the whole extraction on one video (fields are left empty).
+                    var aiTask = _ai.ExtractAllAsync(emailer);
+                    if (await Task.WhenAny(aiTask, Task.Delay(TimeSpan.FromSeconds(90))) != aiTask)
                     {
-                        await _ai.ExtractAllAsync(emailer);
+                        // Budget exceeded - clear AI fields; the late-finishing task
+                        // writes empty strings, never partial data.
+                        emailer.FullName = string.Empty;
+                        emailer.Company = string.Empty;
+                        emailer.Job = string.Empty;
+                        emailer.Location = string.Empty;
+                        emailer.Industry = string.Empty;
                     }
-                    catch { }
 
                     // Save to database
                     var contact = new EmailContact
@@ -139,14 +151,9 @@ public class ExtractService
     {
         try
         {
-            string description = await GetYouTubeVideoDescription(videoUrl);
+            string description = await _youtube.GetDescriptionAsync(videoUrl);
 
-            string subtitles = string.Empty;
-            try
-            {
-                subtitles = await _transcript.ExtractTranscriptAsync(videoUrl);
-            }
-            catch { }
+            string subtitles = await _youtube.GetTranscriptAsync(videoUrl);
 
             var emailFound = _email.ExtractEmails(description + " " + subtitles);
             if (string.IsNullOrEmpty(emailFound))
@@ -199,50 +206,17 @@ public class ExtractService
         return totalExtracted;
     }
 
-    private async Task<string> GetYouTubeVideoDescription(string videoUrl)
+    /// <summary>
+    /// Awaits a task with a hard timeout, returning <paramref name="fallback"/>
+    /// when the task doesn't complete in time. Used to bound every network and
+    /// inference step so the extraction loop can never hang on one video.
+    /// </summary>
+    private static async Task<T> WithTimeout<T>(Task<T> task, TimeSpan timeout, T fallback)
     {
-        try
-        {
-            var ytDlpPath = await YtDlp.GetPathAsync();
-
-            var psi = new ProcessStartInfo
-            {
-                FileName = ytDlpPath,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-            };
-
-            psi.ArgumentList.Add("--skip-download");
-            psi.ArgumentList.Add("--no-warnings");
-            psi.ArgumentList.Add("--get-description");
-            psi.ArgumentList.Add(videoUrl);
-
-            using var proc = new Process { StartInfo = psi };
-            proc.Start();
-            var descTask = proc.StandardOutput.ReadToEndAsync();
-
-            // Hard timeout: if yt-dlp hangs (throttling, outdated binary, network
-            // stall), kill it and continue rather than freezing the extraction.
-            var waitTask = proc.WaitForExitAsync();
-            var winner = await Task.WhenAny(waitTask, Task.Delay(TimeSpan.FromSeconds(45)));
-            if (winner != waitTask)
-            {
-                try { proc.Kill(true); } catch { }
-                return string.Empty;
-            }
-
-            var desc = await descTask;
-            await proc.StandardError.ReadToEndAsync();
-
-            return (desc ?? string.Empty).Trim();
-        }
-        catch
-        {
-            return string.Empty;
-        }
+        if (await Task.WhenAny(task, Task.Delay(timeout)) != task)
+            return fallback;
+        try { return await task; }
+        catch { return fallback; }
     }
 
     private string ExtractTitleFromUrl(string videoUrl)

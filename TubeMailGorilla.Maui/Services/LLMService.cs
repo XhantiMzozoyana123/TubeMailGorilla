@@ -82,6 +82,12 @@ public class LLMService
     /// <summary>Human-readable status message surfaced to the UI.</summary>
     public string Status { get; private set; } = "LLM not initialized";
 
+    /// <summary>Hard cap (seconds) the UI waits for model download+load before
+    /// starting an extraction without AI fields. 0/negative falls back to 90s.</summary>
+    public int ModelPrepTimeoutSeconds => _settings.ModelPrepTimeoutSeconds > 0
+        ? _settings.ModelPrepTimeoutSeconds
+        : 90;
+
     /// <summary>Absolute path the model file is stored at (bundled, or app-data if absent).</summary>
     public string ModelPath => ResolveModelPath();
 

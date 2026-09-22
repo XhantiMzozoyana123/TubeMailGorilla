@@ -46,6 +46,10 @@
                                                VerticalOptions="Center" />
                         </HorizontalStackLayout>
                         <Label x:Name="StatusLabel" Style="{StaticResource StatusStyle}" Margin="0" />
+                        <ProgressBar x:Name="ExtractProgressBar"
+                                     Progress="0"
+                                     IsVisible="False"
+                                     ProgressColor="{StaticResource Primary}" />
                     </VerticalStackLayout>
 
                     <BoxView />
@@ -66,6 +70,10 @@
                                 Margin="0"
                                 Clicked="OnBulkExtractionClicked" />
                         <Label x:Name="BulkStatusLabel" Style="{StaticResource StatusStyle}" Margin="0" />
+                        <ProgressBar x:Name="BulkProgressBar"
+                                     Progress="0"
+                                     IsVisible="False"
+                                     ProgressColor="{StaticResource Primary}" />
                     </VerticalStackLayout>
 
                 </VerticalStackLayout>

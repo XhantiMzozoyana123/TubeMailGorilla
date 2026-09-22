@@ -24,18 +24,20 @@
                 </Border>
             </HorizontalStackLayout>
 
-            <!-- One unified card (minimize/maximize via header click) -->
-            <controls:CollapsibleCard Title="CAMPAIGN">
+            <!-- Shown when there is nothing to send yet -->
+            <Label x:Name="EmptyContactsPrompt"
+                   Text="You have no leads yet. Extract some leads first, then come back."
+                   Style="{StaticResource EmptyStateStyle}"
+                   IsVisible="False" />
+
+            <!-- ======================================================= -->
+            <!--  MESSAGE  (template + compose)                          -->
+            <!-- ======================================================= -->
+            <controls:CollapsibleCard Title="MESSAGE">
                 <controls:CollapsibleCard.Body>
-                <VerticalStackLayout Spacing="14">
-
-                    <Label x:Name="EmptyContactsPrompt"
-                           Text="You have no leads yet. Extract some leads first, then come back."
-                           Style="{StaticResource EmptyStateStyle}"
-                           IsVisible="False" />
-
-                    <!-- Template -->
                     <VerticalStackLayout Spacing="6">
+
+                        <!-- Template -->
                         <Label Text="START FROM A TEMPLATE (OPTIONAL)" Style="{StaticResource CaptionStyle}" />
                         <Picker x:Name="TemplatePicker"
                                 Title="Select a template..."
@@ -44,43 +46,51 @@
                                Style="{StaticResource StatusStyle}"
                                Margin="0"
                                Text="" />
+
+                        <BoxView />
+
+                        <!-- Compose (hidden while message rotation is on) -->
+                        <VerticalStackLayout x:Name="ComposeSection" Spacing="6">
+                            <Label Text="SUBJECT" Style="{StaticResource CaptionStyle}" />
+                            <Entry x:Name="SubjectEntry" Placeholder="A quick idea for your next video" Margin="0" />
+
+                            <Label Text="MESSAGE" Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" />
+                            <Editor x:Name="BodyEditor"
+                                    Placeholder="Hi [name], I loved your latest video on [channel]..."
+                                    HeightRequest="170"
+                                    AutoSize="TextChanges"
+                                    Margin="0" />
+                            <Label Text="Tokens personalize every email:  [name]   [email]   [channel]   [icebreaker]"
+                                   FontFamily="JetBrainsMono"
+                                   FontSize="11"
+                                   TextColor="{StaticResource TextSecondary}" />
+                        </VerticalStackLayout>
+
                     </VerticalStackLayout>
+                </controls:CollapsibleCard.Body>
+            </controls:CollapsibleCard>
 
                     <BoxView />
 
-                    <!-- Compose (hidden while message rotation is on) -->
-                    <VerticalStackLayout x:Name="ComposeSection" Spacing="6">
-                        <Label Text="SUBJECT" Style="{StaticResource CaptionStyle}" />
-                        <Entry x:Name="SubjectEntry" Placeholder="A quick idea for your next video" Margin="0" />
+            <!-- ======================================================= -->
+            <!--  SENDING OPTIONS (rotation, variations, sender account) -->
+            <!-- ======================================================= -->
+            <controls:CollapsibleCard Title="SENDING OPTIONS">
+                <controls:CollapsibleCard.Body>
+                    <VerticalStackLayout Spacing="10">
 
-                        <Label Text="MESSAGE" Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" />
-                        <Editor x:Name="BodyEditor"
-                                Placeholder="Hi [name], I loved your latest video on [channel]..."
-                                HeightRequest="170"
-                                AutoSize="TextChanges"
-                                Margin="0" />
-                        <Label Text="Tokens personalize every email:  [name]   [email]   [channel]   [icebreaker]"
-                               FontFamily="Monospace"
-                               FontSize="11"
-                               TextColor="{StaticResource TextSecondary}" />
-                    </VerticalStackLayout>
-
-                    <BoxView />
-
-                    <!-- Sending options -->
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="SENDING" Style="{StaticResource CaptionStyle}" />
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                        <Grid ColumnDefinitions="*,Auto">
                             <Label Text="Rotate email accounts" VerticalOptions="Center" />
                             <Switch x:Name="AccountRotationSwitch" Grid.Column="1" Toggled="OnAccountRotationToggled" />
                         </Grid>
+
                         <Grid ColumnDefinitions="*,Auto">
                             <Label Text="Rotate message variations" VerticalOptions="Center" />
                             <Switch x:Name="MessageRotationSwitch" Grid.Column="1" Toggled="OnMessageRotationToggled" />
                         </Grid>
 
                         <!-- Message variations (visible while rotation is on) -->
-                        <VerticalStackLayout x:Name="VariationsSection" Spacing="6" IsVisible="False">
+                        <VerticalStackLayout x:Name="VariationsSection" Spacing="8" IsVisible="False">
                             <Label Text="Your messages take turns across the campaign. Tokens like [name] are personalized per recipient."
                                    Style="{StaticResource SectionSubtitleStyle}"
                                    Margin="0"
@@ -88,15 +98,20 @@
 
                             <ListView x:Name="VariationsList"
                                       SelectionMode="Single"
+                                      HasUnevenRows="True"
                                       ItemSelected="OnVariationSelected"
-                                      BackgroundColor="Transparent">
+                                      BackgroundColor="Transparent"
+                                      SeparatorVisibility="None">
                                 <ListView.ItemTemplate>
                                     <DataTemplate>
                                         <ViewCell>
-                                            <Grid ColumnDefinitions="*,Auto" Padding="4,8">
+                                            <Grid ColumnDefinitions="*,Auto"
+                                                  Padding="12,10"
+                                                  Margin="0,0,0,6"
+                                                  BackgroundColor="{StaticResource SurfaceVariant}">
                                                 <VerticalStackLayout Spacing="2">
                                                     <Label Text="{Binding Subject}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" LineBreakMode="TailTruncation" />
-                                                    <Label Text="{Binding Preview}" FontSize="11" TextColor="{StaticResource TextTertiary}" LineBreakMode="TailTruncation" MaxLines="1" />
+                                                    <Label Text="{Binding Preview}" FontSize="11" TextColor="{StaticResource TextTertiary}" LineBreakMode="TailTruncation" MaxLines="2" />
                                                 </VerticalStackLayout>
                                                 <Button Grid.Column="1"
                                                         Text="Delete"
@@ -110,18 +125,19 @@
                                 </ListView.ItemTemplate>
                             </ListView>
 
-                            <Button x:Name="AddVariationButton"
-                                    Text="Add Variation"
-                                    Style="{StaticResource SecondaryButtonStyle}"
-                                    Clicked="OnAddVariationClicked" />
                             <Label x:Name="EmptyVariationsLabel"
                                    Text="No variations yet. Add at least one — otherwise your main email above is used for everyone."
                                    Style="{StaticResource EmptyStateStyle}"
                                    Margin="0,8" />
 
+                            <Button x:Name="AddVariationButton"
+                                    Text="Add Variation"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Clicked="OnAddVariationClicked" />
+
                             <!-- Inline add/edit editor -->
                             <VerticalStackLayout x:Name="VariationEditor" Spacing="6" IsVisible="False">
-                                <Label Text="VARIATION SUBJECT" Style="{StaticResource CaptionStyle}" />
+                                <Label Text="VARIATION SUBJECT" Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" />
                                 <Entry x:Name="VarSubjectEntry" Placeholder="Another angle for the same offer..." Margin="0" />
                                 <Label Text="VARIATION MESSAGE" Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" />
                                 <Editor x:Name="VarBodyEditor"
@@ -129,50 +145,60 @@
                                         HeightRequest="120"
                                         AutoSize="TextChanges"
                                         Margin="0" />
-                                <HorizontalStackLayout Spacing="10" Margin="0,8,0,0">
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,8,0,0">
                                     <Button x:Name="SaveVariationButton"
                                             Text="Save Variation"
                                             Style="{StaticResource PrimaryButtonStyle}"
-                                            Clicked="OnSaveVariationClicked"
-                                            HorizontalOptions="FillAndExpand" />
-                                    <Button Text="Cancel"
+                                            Clicked="OnSaveVariationClicked" />
+                                    <Button Grid.Column="1"
+                                            Text="Cancel"
                                             Style="{StaticResource SecondaryButtonStyle}"
-                                            Clicked="OnCancelVariationClicked"
-                                            HorizontalOptions="FillAndExpand" />
-                                </HorizontalStackLayout>
+                                            Clicked="OnCancelVariationClicked" />
+                                </Grid>
                             </VerticalStackLayout>
                         </VerticalStackLayout>
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,0">
-                            <Label Text="Send from account" VerticalOptions="Center" />
+
+                        <BoxView />
+
+                        <!-- Sender account -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="SEND FROM ACCOUNT" Style="{StaticResource CaptionStyle}" />
                             <Picker x:Name="DefaultAccountPicker"
-                                    Grid.Column="1"
-                                    WidthRequest="220"
-                                    HorizontalOptions="End"
+                                    Title="Select an account..."
                                     SelectedIndexChanged="OnDefaultAccountSelected" />
-                        </Grid>
+                            <Label Text="Used when rotation is off. Turn on “Rotate email accounts” to spread the campaign across all active accounts."
+                                   Style="{StaticResource SectionSubtitleStyle}"
+                                   Margin="0"
+                                   FontSize="12" />
+                        </VerticalStackLayout>
+
                     </VerticalStackLayout>
+                </controls:CollapsibleCard.Body>
+            </controls:CollapsibleCard>
 
-                    <BoxView />
-
-                    <!-- Send -->
+            <!-- ======================================================= -->
+            <!--  SEND                                                   -->
+            <!-- ======================================================= -->
+            <controls:CollapsibleCard Title="SEND">
+                <controls:CollapsibleCard.Body>
                     <VerticalStackLayout Spacing="10">
-                        <ProgressBar x:Name="SendProgressBar" Progress="0" IsVisible="False" Margin="0" />
-                        <HorizontalStackLayout Spacing="10">
-                            <Button x:Name="SendButton"
-                                    Text="Send Campaign"
-                                    Style="{StaticResource PrimaryButtonStyle}"
-                                    Clicked="OnSendEmailsClicked"
-                                    HorizontalOptions="FillAndExpand" />
-                            <ActivityIndicator x:Name="SendingIndicator"
-                                               IsRunning="False"
-                                               IsVisible="False"
-                                               Color="{StaticResource Primary}"
-                                               VerticalOptions="Center" />
-                        </HorizontalStackLayout>
-                        <Label x:Name="StatusLabel" Style="{StaticResource StatusStyle}" Margin="0" />
-                    </VerticalStackLayout>
 
-                </VerticalStackLayout>
+                        <ProgressBar x:Name="SendProgressBar" Progress="0" IsVisible="False" Margin="0" />
+
+                        <Button x:Name="SendButton"
+                                Text="Send Campaign"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Clicked="OnSendEmailsClicked" />
+
+                        <ActivityIndicator x:Name="SendingIndicator"
+                                           IsRunning="False"
+                                           IsVisible="False"
+                                           Color="{StaticResource Primary}"
+                                           HorizontalOptions="Center" />
+
+                        <Label x:Name="StatusLabel" Style="{StaticResource StatusStyle}" Margin="0" HorizontalTextAlignment="Center" />
+
+                    </VerticalStackLayout>
                 </controls:CollapsibleCard.Body>
             </controls:CollapsibleCard>
 

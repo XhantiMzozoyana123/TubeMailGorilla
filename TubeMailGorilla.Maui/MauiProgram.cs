@@ -25,9 +25,7 @@ public static class MauiProgram
             });
 
         builder.Services.AddSingleton<DatabaseService>();
-        builder.Services.AddSingleton<YouTubeSearchService>();
-        builder.Services.AddSingleton<YouTubeTranscriptService>();
-        builder.Services.AddSingleton<CaptionService>();
+        builder.Services.AddSingleton<YouTubeExplodeService>();
         builder.Services.AddSingleton<ExtractService>();
 
         builder.Services.AddHttpClient();

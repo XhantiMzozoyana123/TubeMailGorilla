@@ -154,23 +154,70 @@ Text:
         }
     }
 
+    /// <summary>
+    /// Extracts all AI fields (name, company, job title, location, industry) for a
+    /// lead in a SINGLE inference call. The previous version made five separate
+    /// calls, each re-sending the full transcript through the local CPU model -
+    /// that serialized the extraction loop for minutes per video and made the
+    /// progress bar appear stuck. One call with a compact JSON answer is ~5x faster.
+    /// Fields not found stay as empty strings.
+    /// </summary>
     public async Task ExtractAllAsync(Emailer emailer)
     {
-        var tasks = new[]
-        {
-            GetFullNameAsync(emailer.VideoDescription, emailer.VideoTranscript),
-            GetCompanyAsync(emailer.VideoDescription, emailer.VideoTranscript),
-            GetJobTitleAsync(emailer.VideoDescription, emailer.VideoTranscript),
-            GetLocationAsync(emailer.VideoDescription, emailer.VideoTranscript),
-            GetIndustryAsync(emailer.VideoDescription, emailer.VideoTranscript)
-        };
+        var text = $"{emailer.VideoDescription} {emailer.VideoTranscript}";
 
-        var results = await Task.WhenAll(tasks);
-        emailer.FullName = results[0];
-        emailer.Company = results[1];
-        emailer.Job = results[2];
-        emailer.Location = results[3];
-        emailer.Industry = results[4];
+        var prompt = $@"
+You are a data-extraction engine. Extract the following about the CREATOR of the text below.
+
+Return ONLY a single compact JSON object with exactly these keys:
+{{""name"":"""",""company"":"""",""job"":"""",""location"":"""",""industry"":""""}}
+
+Rules:
+- Use an empty string for anything not explicitly stated in the text.
+- industry must be ONE of: Technology, Finance, Healthcare, Education, Retail, Manufacturing, Energy, Transportation, Entertainment, Hospitality, Other.
+- No explanations, no markdown, no code fences - ONLY the JSON object.
+
+Text:
+{text}";
+
+        var result = await _llm.GenerateTextAsync(prompt);
+
+        var extracted = ParseLeadJson(result);
+        emailer.FullName = extracted.TryGetValue("name", out var n) ? n : string.Empty;
+        emailer.Company = extracted.TryGetValue("company", out var c) ? c : string.Empty;
+        emailer.Job = extracted.TryGetValue("job", out var j) ? j : string.Empty;
+        emailer.Location = extracted.TryGetValue("location", out var l) ? l : string.Empty;
+        emailer.Industry = extracted.TryGetValue("industry", out var i) ? ParseIndustry(i) : "Other";
+    }
+
+    /// <summary>Parses the compact JSON returned by the model, tolerating code
+    /// fences and prose around it. Returns an empty dictionary on any failure.</summary>
+    private static Dictionary<string, string> ParseLeadJson(string input)
+    {
+        var empty = new Dictionary<string, string>();
+        if (string.IsNullOrWhiteSpace(input) || input.StartsWith("LLM Error", StringComparison.OrdinalIgnoreCase))
+            return empty;
+
+        try
+        {
+            var start = input.IndexOf('{');
+            var end = input.LastIndexOf('}');
+            if (start < 0 || end <= start)
+                return empty;
+
+            using var doc = System.Text.Json.JsonDocument.Parse(input[start..(end + 1)]);
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var prop in doc.RootElement.EnumerateObject())
+            {
+                if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.String)
+                    result[prop.Name] = prop.Value.GetString() ?? string.Empty;
+            }
+            return result;
+        }
+        catch
+        {
+            return empty;
+        }
     }
 
     private string BuildNamePrompt(string text, string target)
