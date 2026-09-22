@@ -34,11 +34,6 @@ services:
       # The path here must match the mounted volume destination below.
       DataStorage__ConnectionString: "Data Source=/app/data/tubemailgorilla.db"
 
-      # ---- MySQL connection string (used only when DataStorage__Provider is not Sqlite) ----
-      # When using MySQL, set this to your real MySQL server (Docker service name "db"
-      # when using the compose MySQL service, or an external host).
-      ConnectionStrings__DefaultConnection: "server=${DB_HOST:-db};port=${DB_PORT:-3306};database=${MYSQL_DATABASE:-TubeMailGorillaDB};user=${MYSQL_USER:-tmg};password=${MYSQL_PASSWORD};SslMode=none;AllowPublicKeyRetrieval=True"
-
       # ---- Auth ----
       JwtSettings__Secret: ${JWT_SECRET}
       JwtSettings__Issuer: ${JWT_ISSUER:-TubeMailGorillaAPI}
@@ -70,9 +65,9 @@ services:
       FreePlan__MaxContactsVisible: ${FREE_PLAN_MAX_CONTACTS:-5}
       FreePlan__MaxEmailsPerCampaign: ${FREE_PLAN_MAX_EMAILS:-5}
 
+    # Persistent SQLite database. The path /app/data must match
+    # DataStorage__ConnectionString above.
     volumes:
-      # Persistent SQLite database. The path /app/data must match
-      # DataStorage__ConnectionString above.
       - sqlite_data:/app/data
 
     # Optional: mount an external appsettings.Production.json if you prefer file-based
