@@ -1,0 +1,52 @@
+@using System.Security.Claims
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - TubeMail Gorilla</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="site-header">
+        <nav class="nav container">
+            <a class="brand" asp-controller="Home" asp-action="Index">TUBE<span>MAIL</span> GORILLA</a>
+            <div class="nav-links">
+                <a asp-controller="Home" asp-action="Index">Home</a>
+                <a href="/pricing">Pricing</a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a asp-controller="Subscription" asp-action="Index">Subscription</a>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="inline-form">
+                        <button type="submit" class="link-button">Logout (@User.Identity.Name)</button>
+                    </form>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Login">Login</a>
+                    <a class="btn btn-primary" asp-controller="Account" asp-action="Register">Get started</a>
+                }
+            </div>
+        </nav>
+    </header>
+
+    <main class="container main">
+        @if (TempData["StatusMessage"] is string ok && !string.IsNullOrWhiteSpace(ok))
+        {
+            <div class="alert alert-success">@ok</div>
+        }
+        @if (TempData["StatusError"] is string err && !string.IsNullOrWhiteSpace(err))
+        {
+            <div class="alert alert-error">@err</div>
+        }
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <span>&copy; @DateTime.Now.Year TubeMail Gorilla</span>
+            <span>Find creators. Land clients.</span>
+        </div>
+    </footer>
+</body>
+</html>

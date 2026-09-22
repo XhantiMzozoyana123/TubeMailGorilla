@@ -1,0 +1,46 @@
+@model TubeMailGorilla.Mvc.Models.PricingViewModel
+@{
+    ViewData["Title"] = "Pricing";
+}
+
+<h1>Simple pricing, serious results</h1>
+<p class="lead">
+    Start free. Upgrade when you're ready to scale your outreach.
+</p>
+
+<div class="plan-grid">
+    <div class="plan-card plan-free">
+        <h2>Free</h2>
+        <p class="price">$0<span>/mo</span></p>
+        <ul class="plan-features">
+            <li>@Model.FreeLeadsPerExtraction leads per extraction run</li>
+            <li>@Model.FreeContactsVisible contacts visible</li>
+            <li>@Model.FreeEmailsPerCampaign emails per campaign</li>
+            <li>1 free extraction per month</li>
+        </ul>
+        <a class="btn btn-secondary" asp-controller="Account" asp-action="Register">Start free</a>
+    </div>
+
+    @foreach (var plan in Model.Plans)
+    {
+        <div class="plan-card plan-pro">
+            <h2>@plan.Name</h2>
+            <p class="price">@plan.MonthlyPrice.ToString("0.00")<span>/mo</span></p>
+            <p class="tagline">@plan.Tagline</p>
+            <ul class="plan-features">
+                @foreach (var feature in plan.Features)
+                {
+                    <li>@feature</li>
+                }
+            </ul>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a class="btn btn-primary" asp-controller="Subscription" asp-action="Index">Manage subscription</a>
+            }
+            else
+            {
+                <a class="btn btn-primary" asp-controller="Account" asp-action="Register">Get @plan.Name</a>
+            }
+        </div>
+    }
+</div>

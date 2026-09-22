@@ -1,0 +1,28 @@
+@model TubeMailGorilla.Mvc.Models.LoginViewModel
+@{
+    ViewData["Title"] = "Log in";
+}
+
+<h1>Welcome back</h1>
+
+<div class="auth-card">
+    <form asp-action="Login" method="post">
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <div class="form-field">
+            <label asp-for="Email"></label>
+            <input asp-for="Email" autocomplete="username" />
+        </div>
+        <div class="form-field">
+            <label asp-for="Password"></label>
+            <input asp-for="Password" autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Log in</button>
+    </form>
+    <p class="auth-alt">
+        New here? <a asp-action="Register">Create an account</a>
+    </p>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
