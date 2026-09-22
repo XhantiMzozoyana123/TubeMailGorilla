@@ -21,10 +21,10 @@ services:
       dockerfile: TubeMailGorilla.Mvc/Dockerfile
     restart: unless-stopped
     ports:
-      - "${MVC_PORT:-8181}:8181"
+      - "${MVC_PORT:-5001}:5001"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://+:8181
+      ASPNETCORE_URLS: http://+:5001
 
       # ---- Storage provider ----
       # Set to "Sqlite" to use the built-in SQLite file backed by the "sqlite_data"
