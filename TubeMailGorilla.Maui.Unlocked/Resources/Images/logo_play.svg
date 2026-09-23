@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="456" height="456" viewBox="0 0 456 456" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <rect x="0" y="0" width="456" height="456" style="fill:#FF0000;" />
+    <path d="M 105.5,281.6 c -2.7,0 -5,-0.9 -6.9,-2.7 c -1.9,-1.8 -2.8,-4 -2.8,-6.6 0,-2.6 0.9,-4.8 2.8,-6.7 1.9,-1.8 4.2,-2.8 6.9,-2.8 2.7,0 5.1,0.9 7,2.8 1.9,1.8 2.9,4.1 2.9,6.7 0,2.5 -1,4.7 -2.9,6.6 -1.9,1.8 -4.2,2.7 -6.9,2.7 z" style="fill:#ffffff;fill-rule:nonzero;" />
+    <path d="M 213.6,280.1 h -17.6 l -46.3,-73 c -1.2,-1.8 -2.1,-3.8 -2.9,-5.8 h -0.4 c 0.4,2.1 0.5,6.7 0.5,13.6 v 65.1 h -15.5 v -99.4 h 18.7 l 44.8,80.6 h 0.3 v -80.6 h 15.5 z" style="fill:#ffffff;fill-rule:nonzero;" />
+    <path d="M 228,100 c 9.9,0 18,8.1 18,18 c 0,9.9 -8.1,18 -18,18 c -9.9,0 -18,-8.1 -18,-18 c 0,-9.9 8.1,-18 18,-18 z" style="fill:#ffffff;fill-rule:nonzero;" />
+</svg>

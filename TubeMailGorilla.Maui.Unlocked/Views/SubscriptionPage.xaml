@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TubeMailGorilla.Maui.Unlocked.Views.SubscriptionPage"
+             Title="Unlocked"
+             BackgroundColor="{StaticResource Background}">
+    <ScrollView>
+        <Grid Padding="24" HorizontalOptions="Fill" VerticalOptions="Start">
+            <VerticalStackLayout WidthRequest="460" MaximumWidthRequest="460"
+                                 HorizontalOptions="Center" Spacing="18">
+
+                <Label Text="UNLOCKED EDITION" Style="{StaticResource SectionTitleStyle}" />
+
+                <!-- Headline card -->
+                <Frame Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label FontSize="20" FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}"
+                               Text="Everything is unlocked" />
+                        <Label FontSize="13" TextColor="{StaticResource TextSecondary}"
+                               Text="No account, no sign-in, no subscription and no limits. This build works fully offline and never asks our servers for permission." />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- What's included -->
+                <Frame Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="WHAT'S INCLUDED" Style="{StaticResource SectionTitleStyle}" />
+
+                        <Label FontSize="13" TextColor="{StaticResource TextSecondary}"
+                               Text="• Unlimited YouTube lead extraction by keyword or channel" />
+                        <Label FontSize="13" TextColor="{StaticResource TextSecondary}"
+                               Text="• Bulk (CSV) extraction across many keywords at once" />
+                        <Label FontSize="13" TextColor="{StaticResource TextSecondary}"
+                               Text="• AI-written icebreakers, generated on your own machine" />
+                        <Label FontSize="13" TextColor="{StaticResource TextSecondary}"
+                               Text="• Unlimited email templates and custom shortcodes" />
+                        <Label FontSize="13" TextColor="{StaticResource TextSecondary}"
+                               Text="• Unlimited campaigns - send to every lead you have" />
+                        <Label FontSize="13" TextColor="{StaticResource TextSecondary}"
+                               Text="• Block list, contact manager and unlimited SMTP accounts" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Privacy note -->
+                <Frame Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="YOUR DATA" Style="{StaticResource SectionTitleStyle}" />
+                        <Label FontSize="13" TextColor="{StaticResource TextTertiary}"
+                               Text="Leads, templates and settings are stored in a local SQLite database on this PC. The AI model runs on-device - your data never leaves your machine." />
+                    </VerticalStackLayout>
+                </Frame>
+
+            </VerticalStackLayout>
+        </Grid>
+    </ScrollView>
+</ContentPage>

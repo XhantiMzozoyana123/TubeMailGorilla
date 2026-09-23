@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ResourceDictionary 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+        <Style TargetType="Page" ApplyToDerivedTypes="True">
+        <Setter Property="BackgroundColor" Value="{StaticResource Background}" />
+        <Setter Property="Background" Value="{StaticResource BackgroundGradient}" />
+    </Style>
+
+    <!-- Base label: readable default font (body = Plus Jakarta Sans, like the site) -->
+    <Style TargetType="Label">
+        <Setter Property="FontFamily" Value="PlusJakartaSans" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+    </Style>
+
+    <!-- Card: dark panel with rounded corners and a quiet border -->
+    <Style TargetType="Frame" x:Key="CardStyle">
+        <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+        <Setter Property="BorderColor" Value="{StaticResource Border}" />
+        <Setter Property="HasShadow" Value="False" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="20" />
+        <Setter Property="Margin" Value="0,0,0,16" />
+    </Style>
+
+    <!-- Section title: bold, larger (headings = Outfit, like the site) -->
+    <Style TargetType="Label" x:Key="SectionTitleStyle">
+        <Setter Property="FontFamily" Value="Outfit" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="TextColor" Value="{StaticResource Primary}" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <!-- Description text: readable secondary -->
+    <Style TargetType="Label" x:Key="DescriptionStyle">
+        <Setter Property="FontFamily" Value="PlusJakartaSans" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+
+    <!-- Inputs: visible dark field with focus indication -->
+    <Style TargetType="Entry">
+        <Setter Property="BackgroundColor" Value="{StaticResource SurfaceVariant}" />
+        <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+        <Setter Property="PlaceholderColor" Value="{StaticResource TextSecondary}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontFamily" Value="PlusJakartaSans" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+        <Setter Property="HeightRequest" Value="44" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource SurfaceVariant}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="Focused">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource Background}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+    <!-- SearchBar: visible input field -->
+    <Style TargetType="SearchBar">
+        <Setter Property="BackgroundColor" Value="{StaticResource SurfaceVariant}" />
+        <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+        <Setter Property="PlaceholderColor" Value="{StaticResource TextSecondary}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontFamily" Value="PlusJakartaSans" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+        <Setter Property="HeightRequest" Value="44" />
+    </Style>
+
+    <Style TargetType="Editor">
+        <Setter Property="BackgroundColor" Value="{StaticResource SurfaceVariant}" />
+        <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+        <Setter Property="PlaceholderColor" Value="{StaticResource TextSecondary}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontFamily" Value="PlusJakartaSans" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+
+    <Style TargetType="Picker">
+        <Setter Property="BackgroundColor" Value="{StaticResource SurfaceVariant}" />
+        <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+        <Setter Property="TitleColor" Value="{StaticResource TextSecondary}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontFamily" Value="PlusJakartaSans" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+        <Setter Property="HeightRequest" Value="44" />
+    </Style>
+
+    <Style TargetType="Switch">
+        <Setter Property="OnColor" Value="{StaticResource Primary}" />
+        <Setter Property="ThumbColor" Value="{StaticResource White}" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <Style TargetType="ListView">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="SeparatorColor" Value="{StaticResource BorderLight}" />
+        <Setter Property="SeparatorVisibility" Value="Default" />
+        <Setter Property="HasUnevenRows" Value="True" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="HeightRequest" Value="400" />
+    </Style>
+
+    <Style TargetType="ActivityIndicator">
+        <Setter Property="Color" Value="{StaticResource Primary}" />
+        <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+
+    <Style TargetType="Label" x:Key="StatusStyle">
+        <Setter Property="FontFamily" Value="JetBrainsMono" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+        <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+
+    <!-- Primary: brand-red CTA (buttons = Rajdhani, like the site) -->
+    <Style TargetType="Button" x:Key="PrimaryButtonStyle">
+        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+        <Setter Property="TextColor" Value="{StaticResource TextInverse}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontFamily" Value="Rajdhani" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+        <Setter Property="MinimumHeightRequest" Value="44" />
+    </Style>
+
+    <!-- Secondary: dark outline -->
+    <Style TargetType="Button" x:Key="SecondaryButtonStyle">
+        <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+        <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontFamily" Value="Rajdhani" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+        <Setter Property="MinimumHeightRequest" Value="44" />
+        <Setter Property="BorderColor" Value="{StaticResource Primary}" />
+        <Setter Property="BorderWidth" Value="2" />
+    </Style>
+
+    <!-- Danger -->
+    <Style TargetType="Button" x:Key="DangerButtonStyle">
+        <Setter Property="BackgroundColor" Value="{StaticResource DangerLight}" />
+        <Setter Property="TextColor" Value="{StaticResource Danger}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontFamily" Value="Rajdhani" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+        <Setter Property="MinimumHeightRequest" Value="44" />
+    </Style>
+
+    <!-- Small transparent toolbar/link button (e.g. Delete actions in list rows) -->
+    <Style TargetType="Button" x:Key="ToolbarButtonStyle">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="{StaticResource Danger}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontFamily" Value="Rajdhani" />
+    </Style>
+
+    <Style TargetType="ProgressBar">
+        <Setter Property="ProgressColor" Value="{StaticResource Primary}" />
+        <Setter Property="HeightRequest" Value="5" />
+        <Setter Property="Margin" Value="0,0,0,16" />
+    </Style>
+
+        <Style TargetType="BoxView">
+        <Setter Property="Color" Value="{StaticResource BorderLight}" />
+        <Setter Property="HeightRequest" Value="1" />
+        <Setter Property="Margin" Value="0,8,0,16" />
+    </Style>
+
+    <!-- Empty state label: centred helper text -->
+    <Style TargetType="Label" x:Key="EmptyStateStyle">
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+        <Setter Property="HorizontalOptions" Value="Center" />
+        <Setter Property="VerticalOptions" Value="Center" />
+        <Setter Property="Margin" Value="0,24" />
+    </Style>
+
+    <!-- Section subtitle: smaller secondary text -->
+    <Style TargetType="Label" x:Key="SectionSubtitleStyle">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+
+    <!-- Small quiet caption used for field labels (matches Send Emails page) -->
+    <Style TargetType="Label" x:Key="CaptionStyle">
+        <Setter Property="FontFamily" Value="Outfit" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="CharacterSpacing" Value="1" />
+        <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+    </Style>
+
+    <!-- Card with rounded corners -->
+    <Style TargetType="Frame" x:Key="RoundedCardStyle" BasedOn="{StaticResource CardStyle}">
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="BorderColor" Value="{StaticResource Border}" />
+    </Style>
+
+    <!-- Compact danger button for inline row actions (e.g. per-row Delete in lists) -->
+    <Style TargetType="Button" x:Key="CompactDangerButtonStyle" BasedOn="{StaticResource DangerButtonStyle}">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="MinimumHeightRequest" Value="32" />
+        <Setter Property="HeightRequest" Value="32" />
+         </Style>
+
+</ResourceDictionary>
