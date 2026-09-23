@@ -9,7 +9,10 @@
 ; =====================================================================
 
 #define MyAppName "TubeMailGorilla"
-#define MyAppVersion "1.0.0"
+; Allow the version to be supplied by build-installer.ps1 (-Version ...)
+#ifndef MyAppVersion
+  #define MyAppVersion "1.1.0"
+#endif
 #define MyAppPublisher "TubeMailGorilla"
 #define MyAppExeName "TubeMailGorilla.Maui.exe"
 #define ModelFileName "Llama-3.2-3B-Instruct-Q4_K_M.gguf"
@@ -21,7 +24,13 @@
 AppId={{8F3A6C21-9B47-4E02-9D51-6A8C0B7E4F12}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
+AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+VersionInfoVersion={#MyAppVersion}
+VersionInfoProductName={#MyAppName}
+VersionInfoProductVersion={#MyAppVersion}
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription={#MyAppName} Setup
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes

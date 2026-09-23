@@ -4,7 +4,7 @@ TubeMailGorilla.Maui/Resources/Models/**
 *.gguf
 
 # Stray MAUI project file at repo root (duplicate of the one inside TubeMailGorilla.Maui/)
-TubeMailGorilla.Maui.csproj
+/TubeMailGorilla.Maui.csproj
 
 
 
@@ -371,6 +371,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Build logs / scratch files produced by build-installer.ps1
+TubeMailGorilla.Maui/Installer/build-*.log
+TubeMailGorilla.Maui/Installer/build.pid
 
 # ------ Docker / deployment secrets ------
 # Never commit the real Docker Compose environment file.
