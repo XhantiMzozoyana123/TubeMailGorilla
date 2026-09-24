@@ -44,12 +44,14 @@ public partial class SendEmailsPage : ContentPage
         _payments = ServiceHelper.GetService<PaymentService>();
         _validator = ServiceHelper.GetService<ValidationService>();
 
-        SubjectTokens.Add(new TokenOption("[name]", "name"));
-        SubjectTokens.Add(new TokenOption("[channel]", "channel"));
-        BodyTokens.Add(new TokenOption("[name]", "name"));
-        BodyTokens.Add(new TokenOption("[channel]", "channel"));
-        BodyTokens.Add(new TokenOption("[email]", "email"));
-        BodyTokens.Add(new TokenOption("[icebreaker]", "icebreaker"));
+        // Composer chips are populated from the saved parameters in OnAppearing.
+        // Keep the built-ins as a safe fallback for the first render.
+        AddTokenOption(SubjectTokens, "[name]", "[name]");
+        AddTokenOption(SubjectTokens, "[channel]", "[channel]");
+        AddTokenOption(BodyTokens, "[name]", "[name]");
+        AddTokenOption(BodyTokens, "[channel]", "[channel]");
+        AddTokenOption(BodyTokens, "[email]", "[email]");
+        AddTokenOption(BodyTokens, "[icebreaker]", "[icebreaker]");
     }
 
     protected override async void OnAppearing()
@@ -60,6 +62,7 @@ public partial class SendEmailsPage : ContentPage
         await LoadStatsAsync();
         LoadTemplate();
         await LoadTemplatesIntoPickerAsync();
+        await LoadTokenOptionsAsync();
         await LoadSendingOptionsAsync();
     }
 
@@ -79,6 +82,47 @@ public partial class SendEmailsPage : ContentPage
             RecipientsValueLabel.Text = "0";
             await DisplayAlert("Error", $"Could not load stats: {ex.Message}", "OK");
         }
+    }
+
+    private async Task LoadTokenOptionsAsync()
+    {
+        try
+        {
+            var parameters = await _db.GetMessageParametersAsync();
+            var savedTokens = parameters
+                .Select(p => p.Token?.Trim().Trim('[', ']') ?? string.Empty)
+                .Where(token => token.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(token => $"[{token}]")
+                .ToList();
+
+            var subjectTokens = savedTokens
+                .Concat(new[] { "[name]", "[channel]" })
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var bodyTokens = savedTokens
+                .Concat(new[] { "[name]", "[email]", "[channel]", "[video-title]", "[icebreaker]" })
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            SubjectTokens.Clear();
+            foreach (var token in subjectTokens)
+                AddTokenOption(SubjectTokens, token, token);
+            BodyTokens.Clear();
+            foreach (var token in bodyTokens)
+                AddTokenOption(BodyTokens, token, token);
+        }
+        catch (Exception ex)
+        {
+            TemplateStatusLabel.Text = $"Could not load email parameters: {ex.Message}";
+        }
+    }
+
+    private static void AddTokenOption(ObservableCollection<TokenOption> options, string label, string token)
+    {
+        if (options.Any(option => option.Token.Equals(token, StringComparison.OrdinalIgnoreCase)))
+            return;
+        options.Add(new TokenOption(label, token));
     }
 
     private void LoadTemplate()
@@ -507,7 +551,8 @@ public partial class SendEmailsPage : ContentPage
                 }
 
                 var personalizedSubject = EmailService.Personalize(messageSubject, contact, parameters, icebreaker);
-                var personalizedBody = EmailService.Personalize(messageBody, contact, parameters, icebreaker);
+                var personalizedBody = EmailService.ToHtmlBody(
+                    EmailService.Personalize(messageBody, contact, parameters, icebreaker));
 
                 var message = new MessengerDto
                 {
