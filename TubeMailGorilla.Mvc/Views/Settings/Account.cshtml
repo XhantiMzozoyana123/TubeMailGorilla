@@ -1,0 +1,37 @@
+@model TubeMailGorilla.Mvc.Models.Sender
+@{
+    ViewData["Title"] = "Sender Details";
+    var accountError = ViewBag.AccountError as string;
+}
+
+<a class="back-link" asp-controller="Settings" asp-action="Index">&#x2039; Settings</a>
+
+<div class="page-header">
+    <h1 class="section-title">SENDER DETAILS</h1>
+    <p class="description">Configure an SMTP email account for sending campaigns.</p>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(accountError))
+{
+    <div class="alert alert-error">@accountError</div>
+}
+
+<form method="post" asp-controller="Settings" asp-action="SaveAccount">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <input type="text" name="name" value="@Model.Name" placeholder="Account name (e.g. Work Email)" />
+    <input type="email" name="emailAddress" value="@Model.EmailAddress" placeholder="Email address" />
+    <input type="text" name="smtpHost" value="@Model.SmtpHost" placeholder="SMTP host (e.g. smtp.gmail.com)" />
+    <input type="number" name="smtpPort" value="@(Model.SmtpPort > 0 ? Model.SmtpPort : 587)" placeholder="SMTP port (e.g. 587)" />
+    <input type="text" name="smtpUser" value="@Model.SmtpUser" placeholder="SMTP username" />
+    <input type="password" name="smtpPassword" value="@Model.SmtpPassword" placeholder="SMTP password" autocomplete="new-password" />
+
+    <div class="setting-row">
+        <span class="setting-label">Active account</span>
+        <input type="checkbox" class="switch" name="isActive" value="true" checked="@Model.IsActive" />
+    </div>
+
+    <div class="actions-center" style="margin-top: 16px;">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a class="btn btn-secondary" asp-controller="Settings" asp-action="Index">Cancel</a>
+    </div>
+</form>

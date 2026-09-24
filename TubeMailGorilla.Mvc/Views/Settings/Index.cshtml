@@ -1,0 +1,142 @@
+@model TubeMailGorilla.Mvc.Models.SettingsViewModel
+@{
+    ViewData["Title"] = "Settings";
+}
+
+@* EXTRACTION card *@
+<section class="card">
+    <div class="card-header">
+        <span class="card-title">EXTRACTION</span>
+        <span class="card-chevron">&#x25BE;</span>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+        <p class="description">Control how YouTube lead extraction works.</p>
+
+        <form method="post" asp-controller="Settings" asp-action="SaveExtraction" id="extractionSettingsForm">
+            <div class="setting-row">
+                <span class="setting-label">Only extract Gmail addresses</span>
+                <input type="checkbox" class="switch" name="gmailOnly" value="true"
+                       checked="@Model.GmailOnly" data-autosave onchange="document.getElementById('extractionSettingsForm').submit();" />
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Validate email domains</span>
+                <input type="checkbox" class="switch" name="validateEmails" value="true"
+                       checked="@Model.ValidateEmails" data-autosave onchange="document.getElementById('extractionSettingsForm').submit();" />
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Default pages to search</span>
+                <input type="number" name="defaultPageLimit" min="1" max="50"
+                       value="@Model.DefaultPageLimit" onchange="document.getElementById('extractionSettingsForm').submit();" />
+            </div>
+        </form>
+    </div>
+</section>
+
+@* EMAIL SHORTCODES card *@
+<section class="card">
+    <div class="card-header">
+        <span class="card-title">EMAIL SHORTCODES</span>
+        <span class="card-chevron">&#x25BE;</span>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+        <p class="description">
+            Type these in your email and we automatically fill in each lead's details when sending.
+        </p>
+
+        @if (Model.Parameters.Count > 0)
+        {
+            <div style="margin-bottom: 8px;">
+                @foreach (var parameter in Model.Parameters)
+                {
+                    <div class="list-row selectable" data-id="@parameter.Id">
+                        <div class="list-main" style="display: flex; gap: 6px; align-items: baseline;">
+                            <span class="list-title">[@parameter.Token]</span>
+                            <span class="list-sub">@SettingsViewModel.DescribeField(parameter.Field)</span>
+                        </div>
+                        <form method="post" asp-controller="Settings" asp-action="DeleteParameter">
+                            <input type="hidden" name="id" value="@parameter.Id" />
+                            <button type="submit" class="btn-toolbar" title="Delete">&#x2715;</button>
+                        </form>
+                    </div>
+                }
+            </div>
+        }
+
+        <form method="post" asp-controller="Settings" asp-action="AddParameter"
+              style="display: grid; grid-template-columns: 1fr auto; gap: 6px; margin-bottom: 8px;">
+            <select name="field" aria-label="Add something to your emails">
+                <option value="">Add something to your emails…</option>
+                @foreach (var (label, field) in SettingsViewModel.AddableFields)
+                {
+                    <option value="@field">@label</option>
+                }
+            </select>
+            <button type="submit" class="btn-secondary btn btn-0" style="min-height: 44px;">Add</button>
+        </form>
+
+        <form method="post" asp-controller="Settings" asp-action="RenameParameter"
+              style="display: grid; grid-template-columns: 1fr auto; gap: 6px; margin-bottom: 8px;">
+            <input type="hidden" id="selectedParameterId" name="selectedParameterId" value="@Model.SelectedParameterId" />
+            <input type="text" name="customToken" value="@Model.CustomToken"
+                   placeholder="Or type your own shortcode e.g. first_name" style="font-size: 13px; margin-bottom: 0;" />
+            <button type="submit" class="btn-secondary btn btn-0" style="min-height: 44px;">Rename</button>
+        </form>
+    </div>
+</section>
+
+@* EMAIL ACCOUNTS card *@
+<section class="card">
+    <div class="card-header">
+        <span class="card-title">EMAIL ACCOUNTS</span>
+        <span class="card-chevron">&#x25BE;</span>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+        <p class="description">Manage the SMTP accounts used to send emails.</p>
+
+        @if (Model.Senders.Count == 0)
+        {
+            <p class="empty-state">No email accounts configured. Add one to start sending campaigns.</p>
+        }
+        else
+        {
+            <div style="margin-bottom: 8px;">
+                @foreach (var sender in Model.Senders)
+                {
+                    <div class="list-row">
+                        <a class="list-main" asp-controller="Settings" asp-action="Account" asp-route-id="@sender.Id"
+                           style="text-decoration: none; color: inherit;">
+                            <div class="list-title lg">@sender.Name</div>
+                            <div class="list-sub">@sender.EmailAddress</div>
+                            <div class="list-meta">SMTP: @(sender.SmtpHost ?? "-")</div>
+                            <div class="list-meta">Port: @sender.SmtpPort</div>
+                        </a>
+                        <form method="post" asp-controller="Settings" asp-action="DeleteAccount"
+                              class="js-confirm"
+                              data-confirm="Remove &quot;@sender.EmailAddress&quot; from your accounts?">
+                            <input type="hidden" name="id" value="@sender.Id" />
+                            <button type="submit" class="btn-toolbar">Delete</button>
+                        </form>
+                    </div>
+                }
+            </div>
+        }
+
+        <a class="btn btn-secondary btn-block" asp-controller="Settings" asp-action="Account">Add Account</a>
+    </div>
+</section>
+
+@* EDITION card *@
+<section class="card">
+    <div class="card-header">
+        <span class="card-title">EDITION</span>
+        <span class="card-chevron">&#x25BE;</span>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+        <div style="font-size: 14px; color: var(--text-secondary);">@Model.EditionLabel</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 8px;">@Model.EditionDescription</div>
+    </div>
+</section>

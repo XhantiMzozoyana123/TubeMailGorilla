@@ -39,8 +39,9 @@ public class LlmSettings
     /// <summary>
     /// Hard cap (seconds) on a single inference call. A stuck generation can never
     /// block an extraction indefinitely - it is cancelled and reported as an error.
+    /// Sized for CPU-only inference of a few hundred tokens on a low-end machine.
     /// </summary>
-    public int InferenceTimeoutSeconds { get; set; } = 120;
+    public int InferenceTimeoutSeconds { get; set; } = 300;
 
     /// <summary>
     /// Hard cap (seconds) on loading the GGUF weights into memory. LLamaSharp's

@@ -1,0 +1,43 @@
+@model TubeMailGorilla.Mvc.Models.BlockedViewModel
+@{
+    ViewData["Title"] = "Blocked";
+}
+
+@* Static card (Frame Style=CardStyle) - BlockedPage content *@
+<section class="card card-static">
+    <h1 class="section-title">BLOCKED EMAILS</h1>
+    <p class="description">These emails are excluded from all send campaigns.</p>
+
+    <form method="post" asp-controller="Blocked" asp-action="Add">
+        <input type="email" name="email" value="@Model.EmailInput"
+               placeholder="Enter email to block, e.g. spam@example.com" />
+        <button type="submit" class="btn btn-primary btn-block">Add to Blocklist</button>
+    </form>
+
+    @if (Model.Blockers.Count == 0)
+    {
+        <p class="empty-state">No blocked emails. Emails added here will be skipped during sends.</p>
+    }
+    else
+    {
+        <div style="margin-top: 8px;">
+            @foreach (var blocker in Model.Blockers)
+            {
+                <div class="list-row">
+                    <div class="list-main">
+                        <div class="list-title">@blocker.BlockedEmail</div>
+                        @if (!string.IsNullOrWhiteSpace(blocker.Reason))
+                        {
+                            <div class="list-meta">@blocker.Reason</div>
+                        }
+                    </div>
+                    <form method="post" asp-controller="Blocked" asp-action="Remove"
+                          class="js-confirm" data-confirm="Remove &quot;@blocker.BlockedEmail&quot; from the blocklist?">
+                        <input type="hidden" name="id" value="@blocker.Id" />
+                        <button type="submit" class="btn-toolbar">Delete</button>
+                    </form>
+                </div>
+            }
+        </div>
+    }
+</section>

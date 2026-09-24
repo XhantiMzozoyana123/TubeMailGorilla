@@ -12,6 +12,8 @@ using TubeMailGorilla.Domain.Interfaces;
 using TubeMailGorilla.Infrastructure;
 using TubeMailGorilla.Infrastructure.Data;
 using TubeMailGorilla.Infrastructure.Models;
+using TubeMailGorilla.Mvc.Models;
+using TubeMailGorilla.Mvc.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +38,47 @@ builder.Services.Configure<FreePlanLimits>(builder.Configuration.GetSection("Fre
 
 // Infrastructure layer (EF Core, Identity, JWT token service, PayPal gateway)
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// -----------------------------------------------------------------------
+// TubeMailGorilla Unlocked - web edition.
+//
+// The same local services the MAUI Unlocked app uses are registered here:
+// a private SQLite store (leads, templates, senders, inbox), yt-dlp for
+// YouTube search/transcripts, Ollama for inference and SMTP/IMAP for mail.
+// There is no auth/payment/validation server - PaymentService and
+// ValidationService always answer "everything included", exactly like the
+// desktop edition, so no feature can be locked out.
+// -----------------------------------------------------------------------
+var unlockedDataDirectory = builder.Configuration["DataStorage:Directory"];
+if (string.IsNullOrWhiteSpace(unlockedDataDirectory))
+    unlockedDataDirectory = Path.Combine(builder.Environment.ContentRootPath, "App_Data");
+
+builder.Services.AddSingleton(new DatabaseService(
+    Path.Combine(unlockedDataDirectory, "tubemailgorilla.db3")));
+
+// Small preference store (the web equivalent of MAUI Preferences) and the
+// yt-dlp binary location - both resolved once at startup.
+WebPreferences.Configure(Path.Combine(unlockedDataDirectory, "websettings.json"));
+YtDlp.Configure(builder.Configuration["YtDlp:Path"], builder.Environment.ContentRootPath);
+
+// Ollama inference is remote, so the HttpClient timeout is managed per call.
+builder.Services.AddSingleton(new HttpClient { Timeout = Timeout.InfiniteTimeSpan });
+builder.Services.AddSingleton(sp =>
+{
+    var settings = new LlmSettings();
+    builder.Configuration.GetSection(nameof(LlmSettings)).Bind(settings);
+    return new LLMService(settings, sp.GetRequiredService<HttpClient>());
+});
+
+builder.Services.AddSingleton<YouTubeSearchService>();
+builder.Services.AddSingleton<YouTubeTranscriptService>();
+builder.Services.AddSingleton<CaptionService>();
+builder.Services.AddSingleton<AIService>();
+builder.Services.AddSingleton<EmailService>();
+builder.Services.AddSingleton<ExtractService>();
+builder.Services.AddSingleton<ValidationService>();
+builder.Services.AddSingleton<PaymentService>();
+
 
 // Storage provider logic is now handled within AddInfrastructure in the
 // shared Infrastructure layer (DependencyInjection.cs), so the MVC app
@@ -63,13 +106,29 @@ builder.Services.AddAuthorization(options =>
         policy.RequireClaim(SubscriptionClaim.Type, SubscriptionClaim.Value));
 });
 
+// AddInfrastructure() sets the default authentication/challenge schemes to
+// JWT Bearer (what the API and MAUI app need). The MVC site authenticates
+// with the ASP.NET Core Identity application cookie instead, so restore the
+// cookie defaults AFTER the infrastructure registration - otherwise every
+// signed-in user still reads as anonymous and [Authorize] challenges with a
+// bare 401 instead of redirecting to /Account/Login.
+builder.Services.Configure<AuthenticationOptions>(options =>
+{
+    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
+});
+
 var app = builder.Build();
 
 // -----------------------------------------------------------------------
 // Database bootstrap (migrations) + admin seed, mirroring the API's Program.cs
 // -----------------------------------------------------------------------
-using (var scope = app.Services.CreateScope())
+// database must not crash the site at startup - the marketing/home pages
+// still render; auth-dependent pages surface the underlying DB error instead.
+try
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await db.Database.MigrateAsync();
 
@@ -115,6 +174,12 @@ using (var scope = app.Services.CreateScope())
         await userManager.AddClaimAsync(adminUser, new Claim(SubscriptionClaim.Type, SubscriptionClaim.Value));
     }
 }
+catch (Exception ex)
+{
+    app.Logger.LogError(ex,
+        "Database bootstrap failed (migrations/admin seed). The site will still start; " +
+        "sign-in, registration and subscription pages will not work until the database is reachable.");
+}
 
 // -----------------------------------------------------------------------
 // HTTP request pipeline
@@ -135,6 +200,6 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Extract}/{action=Index}/{id?}");
 
 app.Run();

@@ -1,0 +1,91 @@
+@using TubeMailGorilla.Mvc.Models
+@model ExtractViewModel
+@{
+    ViewData["Title"] = "Extract";
+    ViewData["Pad24"] = true; // ExtractPage uses ScrollView Padding="24"
+}
+
+<div class="page-header">
+    <h1 class="section-title">EXTRACT LEADS</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="alert alert-error">@Model.Error</div>
+}
+@if (!Model.YtDlpAvailable)
+{
+    <div class="alert alert-error">
+        yt-dlp was not found, so YouTube search and transcripts cannot run. Install it on the server
+        (set <code>YtDlp:Path</code> in appsettings.json) or drop the binary in <code>Tools/yt-dlp</code>.
+    </div>
+}
+
+@* EXTRACTION card (CollapsibleCard Title="EXTRACTION") *@
+<section class="card">
+    <div class="card-header">
+        <span class="card-title">EXTRACTION</span>
+        <span class="card-chevron">&#x25BE;</span>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+        <form method="post" asp-controller="Extract" asp-action="Run" class="js-busy">
+            <label class="caption" for="keyword">KEYWORD</label>
+            <input id="keyword" name="keyword" value="@Model.Keyword"
+                   placeholder="e.g. marketing, tech review, fitness coach" />
+
+            <label class="caption" for="pageViewLimit" style="margin-top: 8px;">PAGE LIMIT (MAX RESULTS)</label>
+            <input id="pageViewLimit" name="pageViewLimit" type="number" min="1" max="50"
+                   value="@Model.PageViewLimit" placeholder="e.g. 5" />
+
+            <hr class="divider" />
+
+            <button type="submit" class="btn btn-primary btn-block" data-busy-target="this">Start Extraction</button>
+            @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+            {
+                <p class="status">@Model.StatusMessage</p>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.LlmStatus))
+            {
+                <p class="status">AI: @Model.LlmStatus</p>
+            }
+        </form>
+
+        <hr class="divider" />
+
+        <label class="caption">BULK EXTRACT FROM CSV (OPTIONAL)</label>
+        <p class="section-subtitle">
+            Have a whole list of keywords? Upload one CSV and every search runs back-to-back — no typing, waiting, repeating.
+        </p>
+
+        <a class="btn btn-secondary btn-block" asp-controller="Extract" asp-action="BulkTemplate">
+            Download CSV Bulk Extraction Template
+        </a>
+
+        <form method="post" asp-controller="Extract" asp-action="Bulk"
+              enctype="multipart/form-data" class="js-busy">
+            <input type="file" name="file" accept=".csv,.txt" style="margin-bottom: 12px;" />
+            <button type="submit" class="btn btn-primary btn-block" data-busy-target="this">
+                Upload CSV &amp; Start Bulk Extracting
+            </button>
+        </form>
+        @if (!string.IsNullOrWhiteSpace(Model.BulkStatusMessage))
+        {
+            <p class="status">@Model.BulkStatusMessage</p>
+        }
+    </div>
+</section>
+
+@* RESULTS card *@
+<section class="card">
+    <div class="card-header">
+        <span class="card-title">RESULTS</span>
+        <span class="card-chevron">&#x25BE;</span>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+        <p class="section-subtitle" style="margin-bottom: 0;">
+            @(Model.ResultsLabel ?? "Extracted contacts are saved and viewable on the Contacts page.")
+        </p>
+    </div>
+</section>

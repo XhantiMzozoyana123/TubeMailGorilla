@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using TubeMailGorilla.Maui.Unlocked.Models;
 using TubeMailGorilla.Maui.Unlocked.Services;
 
@@ -16,17 +17,39 @@ public partial class SendEmailsPage : ContentPage
     private List<Sender> _activeAccounts = new();
     private bool _pickerInitializing;
 
-    // Message rotation variations
+    // Message rotation variations (bound to the variations list in XAML)
+    public ObservableCollection<MessageVariation> Variations { get; } = new();
     private List<MessageVariation> _variations = new();
     private int _editingVariationIndex = -1; // -1 = adding a new one
 
+    // Token insert chips (bound to the subject / body token bars in XAML)
+    public ObservableCollection<TokenOption> SubjectTokens { get; } = new();
+    public ObservableCollection<TokenOption> BodyTokens { get; } = new();
+    private FocusedField _focusedField = FocusedField.Body;
+
+    /// <summary>Last field that had focus (for tappable token insertion).</summary>
+    private View? _lastFocusedField;
+
+    /// <summary>Cached campaign stats for the review summary.</summary>
+    private int _leadCount;
+    private int _activeSenderCount;
+    private string _defaultSenderLabel = string.Empty;
+
     public SendEmailsPage()
     {
+        BindingContext = this;
         InitializeComponent();
         _db = ServiceHelper.GetService<DatabaseService>();
         _email = ServiceHelper.GetService<EmailService>();
         _payments = ServiceHelper.GetService<PaymentService>();
         _validator = ServiceHelper.GetService<ValidationService>();
+
+        SubjectTokens.Add(new TokenOption("[name]", "name"));
+        SubjectTokens.Add(new TokenOption("[channel]", "channel"));
+        BodyTokens.Add(new TokenOption("[name]", "name"));
+        BodyTokens.Add(new TokenOption("[channel]", "channel"));
+        BodyTokens.Add(new TokenOption("[email]", "email"));
+        BodyTokens.Add(new TokenOption("[icebreaker]", "icebreaker"));
     }
 
     protected override async void OnAppearing()
@@ -47,15 +70,9 @@ public partial class SendEmailsPage : ContentPage
             var contacts = await _db.GetContactsAsync();
             var senders = await _db.GetSendersAsync();
 
-            // FREE plan caps how many leads a single campaign may target.
-            var maxCampaign = _entitlements.MaxEmailsPerCampaign;
-            var effectiveCount = _entitlements.IsUnlimited(maxCampaign)
-                ? contacts.Count
-                : Math.Min(contacts.Count, maxCampaign);
+            UpdateSummary();
 
-            RecipientsValueLabel.Text = $"{effectiveCount} lead{(effectiveCount == 1 ? "" : "s")}" +
-                (_entitlements.IsUnlimited(maxCampaign) ? "" : $" (free limit {maxCampaign}/campaign)");
-            EmptyContactsPrompt.IsVisible = contacts.Count == 0;
+            // Note: RemotePlanLimits describes the current plan (limits messaging only).
         }
         catch (Exception ex)
         {
@@ -121,31 +138,73 @@ public partial class SendEmailsPage : ContentPage
         SendSettings.AllowMessageRotation = e.Value;
         VariationsSection.IsVisible = e.Value;
         CloseVariationEditor();
+        UpdateReviewSummary();
+    }
+
+    /// <summary>
+    /// Inserts a token (e.g. [name]) into the last-focused field
+    /// (Subject or Message). Defaults to the Message editor.
+    /// </summary>
+    private void OnTokenClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button { Text: string token } || string.IsNullOrWhiteSpace(token))
+            return;
+
+        if (ReferenceEquals(_lastFocusedField, SubjectEntry))
+        {
+            SubjectEntry.Text = (SubjectEntry.Text ?? string.Empty) + token + " ";
+            SubjectEntry.Focus();
+        }
+        else
+        {
+            var body = BodyEditor.Text ?? string.Empty;
+            var cursor = Math.Clamp(BodyEditor.CursorPosition, 0, body.Length);
+            BodyEditor.Text = body.Insert(cursor, token + " ");
+            BodyEditor.Focus();
+        }
+    }
+
+    private void OnSubjectFocused(object? sender, FocusEventArgs e) => _lastFocusedField = SubjectEntry;
+
+    private void OnSubjectUnfocused(object? sender, FocusEventArgs e) { }
+
+    private void OnBodyFocused(object? sender, FocusEventArgs e) => _lastFocusedField = BodyEditor;
+
+    private void OnBodyUnfocused(object? sender, FocusEventArgs e) { }
+
+    private void UpdateSummary()
+    {
+        _leadCount = 0;
+        _activeSenderCount = 0;
+        _defaultSenderLabel = string.Empty;
+        UpdateReviewSummary();
+    }
+
+    private void UpdateReviewSummary()
+    {
+        if (SendSummaryLabel != null)
+            SendSummaryLabel.Text = "Review your message, then send.";
     }
 
     // ------------------------------------------------------------------
     //  MESSAGE VARIATIONS — the actual messages used when rotation is on.
     // ------------------------------------------------------------------
 
-    /// <summary>Read-only row model for the variations list.</summary>
-    private sealed record VariationRow(string Subject, string Preview);
-
     private void RefreshVariationsUi()
     {
         _variations = SendSettings.MessageVariations;
 
-        var rotationOn = MessageRotationSwitch.IsToggled;
+        Variations.Clear();
+        foreach (var v in _variations)
+            Variations.Add(v);
+
+        var rotationOn = MessageRotationSwitch?.IsToggled ?? false;
         VariationsSection.IsVisible = rotationOn;
 
         // The main subject/message form is unused while variations drive
         // the campaign, so hide it to keep the page focused.
         ComposeSection.IsVisible = !rotationOn;
 
-        VariationsList.ItemsSource = _variations
-            .Select(v => new VariationRow(
-                string.IsNullOrWhiteSpace(v.Subject) ? "(no subject)" : v.Subject,
-                v.Body.Length > 90 ? v.Body[..90] + "..." : v.Body))
-            .ToList();
         EmptyVariationsLabel.IsVisible = _variations.Count == 0;
         AddVariationButton.Text = _variations.Count == 0 ? "Add First Variation" : "Add Another Variation";
     }
@@ -157,20 +216,6 @@ public partial class SendEmailsPage : ContentPage
         VarBodyEditor.Text = string.Empty;
         VariationEditor.IsVisible = true;
         VarSubjectEntry.Focus();
-    }
-
-    private async void OnVariationSelected(object? sender, SelectedItemChangedEventArgs e)
-    {
-        if (e.SelectedItem is not VariationRow row) return;
-        VariationsList.SelectedItem = null; // deselect immediately
-
-        var index = _variations.FindIndex(v => v.Subject == row.Subject);
-        if (index < 0) return;
-
-        _editingVariationIndex = index;
-        VarSubjectEntry.Text = _variations[index].Subject;
-        VarBodyEditor.Text = _variations[index].Body;
-        VariationEditor.IsVisible = true;
     }
 
     private void OnCancelVariationClicked(object? sender, EventArgs e)
@@ -201,18 +246,20 @@ public partial class SendEmailsPage : ContentPage
         SendSettings.MessageVariations = _variations;
         CloseVariationEditor();
         RefreshVariationsUi();
+        UpdateReviewSummary();
     }
 
-    private void OnDeleteVariationClicked(object? sender, EventArgs e)
+    private void OnRemoveVariationClicked(object? sender, EventArgs e)
     {
-        if ((sender as Button)?.CommandParameter is not VariationRow row) return;
+        if ((sender as Button)?.CommandParameter is not MessageVariation variation) return;
 
-        var index = _variations.FindIndex(v => v.Subject == row.Subject);
+        var index = _variations.IndexOf(variation);
         if (index < 0) return;
 
         _variations.RemoveAt(index);
         SendSettings.MessageVariations = _variations;
         RefreshVariationsUi();
+        UpdateReviewSummary();
     }
 
     private void OnDefaultAccountSelected(object? sender, EventArgs e)

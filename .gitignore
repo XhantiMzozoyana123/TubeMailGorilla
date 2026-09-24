@@ -376,8 +376,19 @@ FodyWeavers.xsd
 TubeMailGorilla.Maui/Installer/build-*.log
 TubeMailGorilla.Maui/Installer/build.pid
 
+# Unlocked edition installer outputs are large binaries - keep them out of
+# normal commits. Force-add them (git add -f) if you want to publish the
+# installer in the repo like the subscription edition does.
+TubeMailGorilla.Maui.Unlocked/Installer/TubeMailGorillaUnlocked-setup.exe
+TubeMailGorilla.Maui.Unlocked/Installer/TubeMailGorilla-Unlocked-v*-Windows.zip
+
 # ------ Docker / deployment secrets ------
 # Never commit the real Docker Compose environment file.
 .env
 .env.local
 !.env.example
+TubeMailGorilla.Mvc/App_Data/
+*.db3
+mvc-run*.log
+mvc-run*.pid
+

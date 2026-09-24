@@ -117,8 +117,10 @@ public class LLMService
     /// Runs a one-shot, stateless completion for the given prompt against the local model
     /// and returns the generated text. Returns an "LLM Error: ..." string on failure so
     /// callers / the UI can surface it (AIService deliberately drops those).
+    /// maxTokens caps generation for short outputs (e.g. icebreakers) so they
+    /// finish well inside the inference timeout; null uses the configured MaxTokens.
     /// </summary>
-    public async Task<string> GenerateTextAsync(string prompt)
+    public async Task<string> GenerateTextAsync(string prompt, int? maxTokens = null)
     {
         await EnsureModelAsync();
 
@@ -141,7 +143,7 @@ public class LLMService
                 {
                     Temperature = _settings.Temperature
                 },
-                MaxTokens = _settings.MaxTokens,
+                MaxTokens = maxTokens ?? _settings.MaxTokens,
                 // Stop at the Llama 3 end-of-turn token so we never echo trailing markers.
                 AntiPrompts = new List<string> { "<|eot_id|>" }
             };

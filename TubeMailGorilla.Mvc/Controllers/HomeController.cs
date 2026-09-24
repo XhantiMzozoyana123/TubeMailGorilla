@@ -20,10 +20,11 @@ public class HomeController : Controller
         _freePlan = freePlanOptions.Value;
     }
 
-    public IActionResult Index()
-    {
-        return View();
-    }
+    /// <summary>
+    /// The web edition opens straight into the app, like the desktop build
+    /// landing on its first tab (Extract) - there is no marketing home.
+    /// </summary>
+    public IActionResult Index() => RedirectToAction(nameof(ExtractController.Index), "Extract");
 
     /// <summary>Public pricing page (plan catalog from configuration).</summary>
     [HttpGet("/pricing")]
@@ -37,5 +38,17 @@ public class HomeController : Controller
             FreeEmailsPerCampaign = _freePlan.MaxEmailsPerCampaign
         };
         return View(model);
+    }
+
+    /// <summary>
+    /// Generic error page - the target of UseExceptionHandler("/Home/Error")
+    /// in production. Without it, any unhandled exception causes a second
+    /// failure while trying to render the (non-existent) error page.
+    /// </summary>
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    [HttpGet("/Home/Error")]
+    public IActionResult Error()
+    {
+        return View();
     }
 }

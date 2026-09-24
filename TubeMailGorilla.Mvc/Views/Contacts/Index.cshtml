@@ -1,0 +1,90 @@
+@model TubeMailGorilla.Mvc.Models.ContactsViewModel
+@{
+    ViewData["Title"] = "Contacts";
+    var sort = Model.Sort switch { 1 => "name", 2 => "email", _ => "newest" };
+}
+
+<div class="page-header">
+    <h1 class="section-title">CONTACTS</h1>
+    <p class="description" style="margin-bottom: 0;">
+        All of your extracted leads. Tap a lead to open it, or search / sort to find one fast.
+    </p>
+</div>
+
+@* Search + sort (SearchBar + SortPicker) *@
+<form id="contactFilterForm" method="get" asp-controller="Contacts" asp-action="Index" class="filter-bar">
+    <input id="contactSearch" type="search" name="q" value="@Model.Query"
+           placeholder="Search name, email or channel" autocomplete="off" />
+    <select id="contactSort" name="sort" aria-label="Sort">
+        <option value="newest" selected="@(sort == "newest")">Newest first</option>
+        <option value="name" selected="@(sort == "name")">Name (A-Z)</option>
+        <option value="email" selected="@(sort == "email")">Email (A-Z)</option>
+    </select>
+</form>
+
+@* Action buttons *@
+<div class="btn-row">
+    <a class="btn btn-primary" asp-controller="Contacts" asp-action="Details">Add Contact</a>
+    <form method="post" asp-controller="Contacts" asp-action="GenerateIcebreakers"
+          class="js-confirm js-busy"
+          data-confirm="Create an AI-personalized first line for each of the leads shown? This can take a moment.">
+        <input type="hidden" name="q" value="@Model.Query" />
+        <input type="hidden" name="sort" value="@sort" />
+        <button type="submit" class="btn btn-primary btn-block" data-busy-target="this">
+            &#x2728; Generate Icebreakers
+        </button>
+    </form>
+</div>
+
+@* List panel (Frame + header + rows) *@
+<div class="contacts-panel">
+    <div class="contacts-panel-header">
+        <span class="contacts-count">@Model.CountLabel</span>
+        <form method="post" asp-controller="Contacts" asp-action="DeleteAll"
+              class="js-confirm"
+              data-confirm="Are you sure you want to delete ALL contacts? This cannot be undone.">
+            <input type="hidden" name="q" value="@Model.Query" />
+            <input type="hidden" name="sort" value="@sort" />
+            <button type="submit" class="btn btn-compact-danger">Delete All</button>
+        </form>
+    </div>
+    <div class="card-divider"></div>
+
+    <div class="contacts-list">
+        @if (Model.Contacts.Count == 0)
+        {
+            <p class="empty-state">@Model.EmptyMessage</p>
+        }
+        else
+        {
+            @foreach (var contact in Model.Contacts)
+            {
+                <div class="contact-row">
+                    <a class="contact-inner" asp-controller="Contacts" asp-action="Details" asp-route-id="@contact.Id">
+                        <span class="avatar">@contact.Initials</span>
+                        <span class="contact-text">
+                            <span class="contact-name">@contact.DisplayName</span>
+                            <span class="contact-email">@contact.Email</span>
+                            <span class="contact-sub">@contact.DisplaySubtitle</span>
+                        </span>
+                        <span class="contact-right">
+                            @if (contact.IsBlocked)
+                            {
+                                <span class="badge-blocked">Blocked</span>
+                            }
+                            <span class="chevron">&#x203A;</span>
+                        </span>
+                    </a>
+                    <form method="post" asp-controller="Contacts" asp-action="Delete"
+                          class="js-confirm contact-delete"
+                          data-confirm="Delete &quot;@contact.Email&quot; from your contacts?">
+                        <input type="hidden" name="id" value="@contact.Id" />
+                        <input type="hidden" name="q" value="@Model.Query" />
+                        <input type="hidden" name="sort" value="@sort" />
+                        <button type="submit" class="btn-toolbar">Delete</button>
+                    </form>
+                </div>
+            }
+        }
+    </div>
+</div>

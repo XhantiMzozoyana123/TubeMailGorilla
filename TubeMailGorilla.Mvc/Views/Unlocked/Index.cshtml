@@ -1,0 +1,38 @@
+@{
+    ViewData["Title"] = "Unlocked";
+    ViewData["Pad24"] = true; // SubscriptionPage uses Padding="24"
+}
+
+@* Exact port of the MAUI Unlocked SubscriptionPage (static info cards). *@
+<div style="max-width: 460px; margin: 0 auto;">
+    <h1 class="section-title" style="margin-bottom: 18px;">UNLOCKED EDITION</h1>
+
+    @* Headline card *@
+    <section class="card card-static" style="margin-bottom: 18px;">
+        <div style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
+            Everything is unlocked
+        </div>
+        <div style="font-size: 13px; color: var(--text-secondary);">
+            No account, no sign-in, no subscription and no limits. This build works fully offline and never asks our servers for permission.
+        </div>
+    </section>
+
+    @* What's included *@
+    <section class="card card-static" style="margin-bottom: 18px;">
+        <h2 class="section-title">WHAT'S INCLUDED</h2>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">• Unlimited YouTube lead extraction by keyword or channel</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">• Bulk (CSV) extraction across many keywords at once</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">• AI-written icebreakers, generated on your own machine</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">• Unlimited email templates and custom shortcodes</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">• Unlimited campaigns - send to every lead you have</div>
+        <div style="font-size: 13px; color: var(--text-secondary);">• Block list, contact manager and unlimited SMTP accounts</div>
+    </section>
+
+    @* Privacy note *@
+    <section class="card card-static">
+        <h2 class="section-title">YOUR DATA</h2>
+        <div style="font-size: 13px; color: var(--text-tertiary);">
+            Leads, templates and settings are stored in a local SQLite database on this server. The AI model runs remotely for the web edition - your campaign data never leaves your workspace.
+        </div>
+    </section>
+</div>

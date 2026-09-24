@@ -34,7 +34,7 @@ public static class DependencyInjection
         if (storageProvider?.Equals("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
         {
             var sqliteConnectionString = configuration.GetConnectionString("DataStorage") ??
-                                          "Data Source=tubemailgorilla.db";
+                                          "Data Source=/app/data/tubemailgorilla.db";
             services.AddDbContext<ApplicationDbContext>(options =>
                 {
                     options.UseSqlite(sqliteConnectionString);
@@ -43,13 +43,15 @@ public static class DependencyInjection
         }
         else
         {
-            // Default MySQL registration (API behavior)
+            // Default MySQL registration (API behavior).
+            // NOTE: fixed server version (no AutoDetect round-trip at startup, so a
+            // down/unreachable DB doesn't crash DI - the bootstrap below handles it).
             services.AddDbContext<ApplicationDbContext>(options =>
             {
                 var connectionString = configuration.GetConnectionString("DefaultConnection");
                 if (!string.IsNullOrEmpty(connectionString))
                 {
-                    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+                    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0)));
                 }
             });
         }

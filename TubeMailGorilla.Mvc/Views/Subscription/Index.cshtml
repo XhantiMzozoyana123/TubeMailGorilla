@@ -1,0 +1,49 @@
+@model TubeMailGorilla.Mvc.Models.SubscriptionIndexViewModel
+@{
+    ViewData["Title"] = "Subscription";
+}
+
+<h1>Your subscription</h1>
+
+<div class="auth-card">
+    @if (Model.Status.IsSubscribed)
+    {
+        <h2>@Model.Status.PlanName plan — active</h2>
+        @if (!string.IsNullOrWhiteSpace(Model.Status.Tagline))
+        {
+            <p>@Model.Status.Tagline</p>
+        }
+        @if (Model.Status.NextBillingDate.HasValue)
+        {
+            <p>Next billing date: <strong>@Model.Status.NextBillingDate.Value.ToString("d MMM yyyy")</strong></p>
+        }
+
+        <form asp-action="Cancel" method="post" class="inline-form">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-secondary"
+                    onclick="return confirm('Cancel your subscription? You will lose Pro features at the end of the billing period.');">
+                Cancel subscription
+            </button>
+        </form>
+    }
+    else
+    {
+        <h2>Free plan</h2>
+        <p>You are currently on the free plan. Upgrade to Pro to unlock unlimited leads, templates and AI personalization.</p>
+
+        <form asp-action="Upgrade" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-primary btn-block">Upgrade with PayPal</button>
+        </form>
+    }
+</div>
+
+<h2>What your plan includes</h2>
+<ul class="plan-features">
+    <li>@(Model.Entitlements.MaxLeadsPerExtraction < 0 ? "Unlimited" : Model.Entitlements.MaxLeadsPerExtraction.ToString()) leads per extraction</li>
+    <li>@(Model.Entitlements.MaxContactsVisible < 0 ? "Unlimited" : Model.Entitlements.MaxContactsVisible.ToString()) contacts visible</li>
+    <li>@(Model.Entitlements.MaxEmailsPerCampaign < 0 ? "Unlimited" : Model.Entitlements.MaxEmailsPerCampaign.ToString()) emails per campaign</li>
+    <li>AI icebreakers: @(Model.Entitlements.IcebreakerEnabled ? "included" : "not included")</li>
+    <li>Email templates: @(Model.Entitlements.EmailTemplatesEnabled ? "included" : "not included")</li>
+    <li>Contact blocklist: @(Model.Entitlements.BlocklistEnabled ? "included" : "not included")</li>
+</ul>

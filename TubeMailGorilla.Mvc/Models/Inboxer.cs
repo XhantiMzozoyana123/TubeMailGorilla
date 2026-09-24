@@ -1,0 +1,13 @@
+﻿
+namespace TubeMailGorilla.Mvc.Models;
+
+public class Inboxer
+{
+    public int Id { get; set; }
+    public int EmailerId { get; set; }
+    public string? Subject { get; set; }
+    public string? Body { get; set; }
+    public bool IsRead { get; set; }
+    public DateTime ReceivedAt { get; set; } = DateTime.Now;
+    public DateTime? RepliedAt { get; set; }
+}

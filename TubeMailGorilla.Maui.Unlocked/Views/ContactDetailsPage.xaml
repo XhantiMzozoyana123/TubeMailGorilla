@@ -3,7 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:TubeMailGorilla.Maui.Unlocked.Models"
              x:Class="TubeMailGorilla.Maui.Unlocked.Views.ContactDetailsPage"
+             Shell.NavBarIsVisible="True"
              Title="Contact Details">
+    <!-- Shell hides navigation bars app-wide, so this page opts back in: it is
+         pushed onto the stack and needs a title + back button to get out of. -->
     <Grid Padding="20" RowDefinitions="Auto,*,Auto">
 
         <!-- Header -->
@@ -44,22 +47,29 @@
                 <Label Text="Personalized first lines generated from this lead's channel and video. Pick the best one for your email."
                        Style="{StaticResource DescriptionStyle}" />
                 <Button x:Name="GenerateIcebreakerButton"
-                        Text="Generate Icebreaker"
+                        Text="&#x2728; Generate Icebreaker"
                         Style="{StaticResource PrimaryButtonStyle}"
                         Clicked="OnGenerateIcebreakerClicked" />
 
-                <CollectionView x:Name="OpenersList"
-                                SelectionMode="None"
-                                BackgroundColor="Transparent"
-                                                                                                IsVisible="False">
-                    <CollectionView.ItemTemplate>
+                <!--
+                    The icebreakers are laid out with BindableLayout instead of a
+                    CollectionView: this content sits inside a ScrollView, and a
+                    CollectionView nested in a ScrollView is measured with no height,
+                    which can silently render nothing.
+                -->
+                <VerticalStackLayout x:Name="OpenersStack"
+                                     Spacing="8"
+                                     Margin="0,8,0,0"
+                                     IsVisible="False">
+                    <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="models:Opener">
                             <Frame Padding="12"
-                                   Margin="0,0,0,8"
+                                   Margin="0"
                                    BackgroundColor="{StaticResource SurfaceVariant}"
+                                   BorderColor="{StaticResource Border}"
                                    CornerRadius="8"
                                    HasShadow="False">
-                                <Grid ColumnDefinitions="*,Auto">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                     <Label Grid.Column="0"
                                            Text="{Binding Text}"
                                            FontSize="13"
@@ -73,13 +83,14 @@
                                 </Grid>
                             </Frame>
                         </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
 
                 <Label x:Name="NoOpenersLabel"
                        Text="No icebreakers yet. Generate one above."
                        FontSize="12"
                        TextColor="{StaticResource TextTertiary}" />
+
             </VerticalStackLayout>
         </ScrollView>
 

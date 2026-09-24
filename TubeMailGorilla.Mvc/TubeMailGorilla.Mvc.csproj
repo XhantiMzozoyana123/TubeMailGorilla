@@ -16,6 +16,11 @@
   <ItemGroup>
     <!-- Used only for the MVC site's optional SQLite storage path. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
+
+    <!-- Ported from TubeMailGorilla.Maui.Unlocked: IMAP inbox reading in EmailService.
+         The lead/template/sender store uses Microsoft.Data.Sqlite (already pulled in
+         by Microsoft.EntityFrameworkCore.Sqlite) so no second SQLite stack is added. -->
+    <PackageReference Include="MailKit" Version="4.17.0" />
   </ItemGroup>
 
 </Project>

@@ -82,7 +82,7 @@ public partial class ContactDetailsPage : ContentPage
             if (string.IsNullOrWhiteSpace(icebreaker))
             {
                 await DisplayAlert("Generation failed",
-                    "Could not generate an icebreaker. Check your internet connection / API key and try again.", "OK");
+                    "The AI model timed out or could not be loaded. Check your connection and try again.", "OK");
                 return;
             }
 

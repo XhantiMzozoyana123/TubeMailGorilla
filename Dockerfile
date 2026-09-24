@@ -41,3 +41,5 @@ EXPOSE 8180
 COPY --from=build /app/publish .
 
 ENTRYPOINT ["dotnet", "TubeMailGorilla.Api.dll"]
+
+

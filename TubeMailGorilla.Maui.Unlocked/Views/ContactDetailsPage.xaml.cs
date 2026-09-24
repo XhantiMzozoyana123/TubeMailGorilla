@@ -29,21 +29,21 @@ public partial class ContactDetailsPage : ContentPage
         if (BindingContext is not EmailContact contact || contact.Id == 0)
         {
             NoOpenersLabel.IsVisible = true;
-            OpenersList.IsVisible = false;
+            OpenersStack.IsVisible = false;
             return;
         }
 
         try
         {
             var openers = await _db.GetOpenersForLeadAsync(contact.Id);
-            OpenersList.ItemsSource = openers;
-            OpenersList.IsVisible = openers.Count > 0;
+            BindableLayout.SetItemsSource(OpenersStack, openers);
+            OpenersStack.IsVisible = openers.Count > 0;
             NoOpenersLabel.IsVisible = openers.Count == 0;
         }
         catch
         {
             NoOpenersLabel.IsVisible = true;
-            OpenersList.IsVisible = false;
+            OpenersStack.IsVisible = false;
         }
     }
 
@@ -82,7 +82,7 @@ public partial class ContactDetailsPage : ContentPage
             if (string.IsNullOrWhiteSpace(icebreaker))
             {
                 await DisplayAlert("Generation failed",
-                    "Could not generate an icebreaker. Check your internet connection / API key and try again.", "OK");
+                    "The AI service timed out or could not be reached. Check your internet connection and try again.", "OK");
                 return;
             }
 

@@ -40,7 +40,9 @@ Rules:
 - Plain text only, no quotes, no emojis
 
 Return ONLY the icebreaker text.";
-            var result = await _llm.GenerateTextAsync(prompt);
+            var result = await _llm.GenerateTextAsync(prompt, maxTokens: 160);
+            // An icebreaker is one or two sentences, so a short token cap keeps
+            // generation well inside the inference timeout even under load.
             return CleanIcebreaker(result);
         }
         catch

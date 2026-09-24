@@ -7,6 +7,8 @@
     FlyoutBehavior="Disabled"
     Shell.NavBarIsVisible="False"
     Shell.ForegroundColor="{StaticResource TextPrimary}"
+    Shell.BackgroundColor="{StaticResource Surface}"
+    Shell.TitleColor="{StaticResource TextPrimary}"
     Shell.TabBarBackgroundColor="{StaticResource Surface}"
     Shell.TabBarForegroundColor="{StaticResource TextPrimary}"
     Shell.TabBarTitleColor="{StaticResource Primary}"

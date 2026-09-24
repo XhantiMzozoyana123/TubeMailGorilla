@@ -200,7 +200,7 @@ public partial class ContactsPage : ContentPage
         _isGeneratingIcebreakers = true;
         GenerateIcebreakersButton.IsEnabled = false;
 
-        int created = 0, failed = 0;
+        int created = 0, failed = 0, consecutiveFailures = 0;
 
         try
         {
@@ -215,9 +215,15 @@ public partial class ContactsPage : ContentPage
                     if (string.IsNullOrWhiteSpace(icebreaker))
                     {
                         failed++;
+                        // A timeout/unreachable-model failure will fail for every
+                        // remaining lead too - bail out instead of burning the full
+                        // inference timeout on each one.
+                        if (++consecutiveFailures >= 3)
+                            break;
                         continue;
                     }
 
+                    consecutiveFailures = 0;
                     await _db.SaveOpenerAsync(new Opener
                     {
                         EmailerId = contact.Id,
@@ -229,6 +235,8 @@ public partial class ContactsPage : ContentPage
                 catch
                 {
                     failed++;
+                    if (++consecutiveFailures >= 3)
+                        break;
                 }
             }
         }
@@ -240,7 +248,8 @@ public partial class ContactsPage : ContentPage
         }
 
         var summary = $"Created {created} icebreaker{(created == 1 ? "" : "s")}";
-        if (failed > 0) summary += $"\n{failed} failed (check your connection/API key and try again)";
+        if (failed > 0) summary += $"\n{failed} failed (the AI model timed out or failed to load - check your connection and try again)";
+        if (consecutiveFailures >= 3) summary += "\nStopped early after 3 consecutive failures.";
         await DisplayAlert("Done", summary, "OK");
     }
 }

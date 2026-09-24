@@ -64,7 +64,13 @@ public class AccountController : Controller
         }
 
         await SignInWithClaimsAsync(model.Email, response.Token);
-        return LocalRedirect(string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl);
+
+        // LocalRedirect() throws on non-local URLs; only honour safe local
+        // return URLs and fall back to the home page otherwise.
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return LocalRedirect(returnUrl);
+
+        return RedirectToAction("Index", "Home");
     }
 
     [AllowAnonymous]
@@ -102,6 +108,7 @@ public class AccountController : Controller
         return RedirectToAction("Index", "Home");
     }
 
+    [AllowAnonymous]
     [HttpGet]
     public IActionResult AccessDenied()
     {

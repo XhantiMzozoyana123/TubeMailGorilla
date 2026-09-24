@@ -5,7 +5,7 @@
 #
 # Secrets/configuration come from the .env file (copy .env.mvc.example to .env
 # and fill in the real values). A reverse proxy (nginx / Caddy / Traefik) should
-# terminate TLS and forward to http://127.0.0.1:${MVC_PORT}:8081 on this host.
+# terminate TLS and forward to http://127.0.0.1:${MVC_PORT} on this host.
 #
 # STORAGE:
 #   This compose file runs the MVC app with SQLite by default. The SQLite file
@@ -21,10 +21,10 @@ services:
       dockerfile: TubeMailGorilla.Mvc/Dockerfile
     restart: unless-stopped
     ports:
-      - "${MVC_PORT:-8081}:8081"
+      - "${MVC_PORT:-5000}:5000"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://+:8081
+      ASPNETCORE_URLS: http://+:5000
 
       # ---- Storage provider ----
       # Set to "Sqlite" to use SQLite. Any other value (or blank) falls back to MySQL.

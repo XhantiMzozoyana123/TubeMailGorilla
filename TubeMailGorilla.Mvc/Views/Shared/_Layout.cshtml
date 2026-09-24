@@ -1,4 +1,5 @@
 @using System.Security.Claims
+@using TubeMailGorilla.Mvc
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,29 +9,9 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
-    <header class="site-header">
-        <nav class="nav container">
-            <a class="brand" asp-controller="Home" asp-action="Index">TUBE<span>MAIL</span> GORILLA</a>
-            <div class="nav-links">
-                <a asp-controller="Home" asp-action="Index">Home</a>
-                <a href="/pricing">Pricing</a>
-                @if (User.Identity?.IsAuthenticated == true)
-                {
-                    <a asp-controller="Subscription" asp-action="Index">Subscription</a>
-                    <form asp-controller="Account" asp-action="Logout" method="post" class="inline-form">
-                        <button type="submit" class="link-button">Logout (@User.Identity.Name)</button>
-                    </form>
-                }
-                else
-                {
-                    <a asp-controller="Account" asp-action="Login">Login</a>
-                    <a class="btn btn-primary" asp-controller="Account" asp-action="Register">Get started</a>
-                }
-            </div>
-        </nav>
-    </header>
-
-    <main class="container main">
+    @* Shell hides navigation bars app-wide (AppShell.xaml Shell.NavBarIsVisible="False"):
+       the app is just content plus the bottom TabBar. *@
+    <main class="app-main @(ViewData["Pad24"] as bool? == true ? "pad-24" : null)">
         @if (TempData["StatusMessage"] is string ok && !string.IsNullOrWhiteSpace(ok))
         {
             <div class="alert alert-success">@ok</div>
@@ -42,11 +23,24 @@
         @RenderBody()
     </main>
 
-    <footer class="site-footer">
-        <div class="container">
-            <span>&copy; @DateTime.Now.Year TubeMail Gorilla</span>
-            <span>Find creators. Land clients.</span>
-        </div>
-    </footer>
+    @{
+        // TabBar titles/order come straight from AppShell.xaml.
+        var controller = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "").ToLowerInvariant();
+        string Active(params string[] names) =>
+            names.Contains(controller) ? "active" : "";
+    }
+    <nav class="tab-bar" aria-label="App tabs">
+        <a class="tab @Active("extract")" asp-controller="Extract" asp-action="Index">Extract</a>
+        <a class="tab @Active("sendemails")" asp-controller="SendEmails" asp-action="Index">Send Emails</a>
+        <a class="tab @Active("contacts")" asp-controller="Contacts" asp-action="Index">Contacts</a>
+        <a class="tab @Active("blocked")" asp-controller="Blocked" asp-action="Index">Blocked</a>
+        <a class="tab @Active("templates")" asp-controller="Templates" asp-action="Index">Email Templates</a>
+        <a class="tab @Active("unlocked", "subscription")" asp-controller="Unlocked" asp-action="Index">Unlocked</a>
+        <a class="tab @Active("settings")" asp-controller="Settings" asp-action="Index">Settings</a>
+    </nav>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+

@@ -98,7 +98,13 @@ public class LLMService
         {
             try
             {
-                await EnsureReadyAsync();
+                if (!await EnsureReadyAsync())
+                    return;
+
+                // GET /api/tags does not load the model. Run one tiny generation so
+                // the weights are resident before the first real request - a cold
+                // model load alone can take longer than the inference timeout.
+                await GenerateTextAsync("ping");
             }
             catch (Exception ex)
             {
@@ -111,9 +117,11 @@ public class LLMService
     /// Runs a one-shot, non-streaming completion for the given prompt against the
     /// VPS Ollama server and returns the generated text. Returns an
     /// "LLM Error: ..." string on failure so callers / the UI can surface it
-    /// (AIService deliberately drops those).
+    /// (AIService deliberately drops those). maxTokens caps generation for short
+    /// outputs (e.g. icebreakers) so they finish well inside the inference
+    /// timeout; null uses the configured MaxTokens.
     /// </summary>
-    public async Task<string> GenerateTextAsync(string prompt)
+    public async Task<string> GenerateTextAsync(string prompt, int? maxTokens = null)
     {
         await _inferenceLock.WaitAsync();
         try
@@ -130,10 +138,11 @@ public class LLMService
                 System = SYSTEM_PROMPT,
                 Prompt = prompt,
                 Stream = false,
+                KeepAlive = FormatKeepAlive(),
                 Options = new OllamaOptions
                 {
                     Temperature = _settings.Temperature,
-                    NumPredict = _settings.MaxTokens
+                    NumPredict = maxTokens ?? _settings.MaxTokens
                 }
             };
 
@@ -176,6 +185,20 @@ public class LLMService
         }
     }
 
+    /// <summary>
+    /// keep_alive for the Ollama request: how long the server keeps the model
+    /// loaded after this call. Without it Ollama unloads after its default 5
+    /// minutes, so the next icebreaker pays a full multi-GB cold load again -
+    /// which alone can exceed the inference timeout on the VPS.
+    /// </summary>
+    private string FormatKeepAlive()
+    {
+        var minutes = _settings.ModelKeepAliveMinutes;
+        if (minutes < 0) return "-1";   // keep until Ollama restarts
+        if (minutes == 0) return "0";   // unload immediately after this call
+        return $"{minutes}m";
+    }
+
     private string BaseUrl => (_settings.OllamaBaseUrl ?? string.Empty).TrimEnd('/');
 
     private static async Task<string> SafeReadBodyAsync(HttpResponseMessage response)
@@ -201,6 +224,9 @@ public class LLMService
         public string Prompt { get; set; } = string.Empty;
         [JsonPropertyName("stream")]
         public bool Stream { get; set; }
+        [JsonPropertyName("keep_alive")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? KeepAlive { get; set; }
         [JsonPropertyName("options")]
         public OllamaOptions? Options { get; set; }
     }

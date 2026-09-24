@@ -1,0 +1,182 @@
+@model TubeMailGorilla.Mvc.Models.SendEmailsViewModel
+@{
+    ViewData["Title"] = "Send Emails";
+    ViewData["Pad24"] = true; // SendEmailsPage uses ScrollView Padding="24"
+}
+
+@* Header: SEND CAMPAIGN + recipients pill + subtitle *@
+<div class="title-row">
+    <h1 class="section-title">SEND CAMPAIGN</h1>
+    <span class="pill">@Model.RecipientsLabel</span>
+</div>
+<p class="description">Compose once, personalize for every lead.</p>
+
+@if (!Model.HasContacts)
+{
+    <p class="empty-state">You have no leads yet. Extract some leads first, then come back.</p>
+}
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="alert alert-error">@Model.Error</div>
+}
+
+@* One form drives every action; buttons pick the endpoint via formaction. *@
+<form method="post" asp-controller="SendEmails" asp-action="Send" class="js-busy">
+    @* Hidden autosave target clicked by site.js when a switch/select changes. *@
+    <button type="submit" id="saveOptsBtn" formaction="/SendEmails/SaveOptions"
+            class="hidden" tabindex="-1" aria-hidden="true">Save</button>
+
+    @* 1 - MESSAGE *@
+    <section class="card">
+        <div class="card-header">
+            <span class="card-title">1 - MESSAGE</span>
+            <span class="card-chevron">&#x25BE;</span>
+        </div>
+        <div class="card-divider"></div>
+        <div class="card-body">
+            <label class="caption" for="templateSelect">START FROM A TEMPLATE (OPTIONAL)</label>
+            <select id="templateSelect">
+                <option value="">— write from scratch —</option>
+                @foreach (var template in Model.Templates)
+                {
+                    <option value="@template.Id"
+                            data-subject="@template.Subject"
+                            data-body="@template.Body">@template.Name</option>
+                }
+            </select>
+            <p class="status" id="templateStatus" style="margin-top: 0;">@Model.TemplateStatus</p>
+
+            <hr class="divider" />
+
+            <div id="composeSection">
+                <label class="caption" for="subjectInput">SUBJECT</label>
+                <input type="text" id="subjectInput" name="subject" value="@Model.Subject"
+                       placeholder="A quick idea for your next video" />
+                <div class="token-bar">
+                    <button type="button" class="token-chip" data-token="[name]">[name]</button>
+                    <button type="button" class="token-chip" data-token="[channel]">[channel]</button>
+                </div>
+
+                <label class="caption" for="bodyInput">MESSAGE</label>
+                <textarea id="bodyInput" name="body" rows="6" style="min-height: 140px;"
+                          placeholder="Hi [name], I loved your latest video on [channel]...">@Model.Body</textarea>
+                <div class="token-bar">
+                    <button type="button" class="token-chip" data-token="[name]">[name]</button>
+                    <button type="button" class="token-chip" data-token="[channel]">[channel]</button>
+                    <button type="button" class="token-chip" data-token="[email]">[email]</button>
+                    <button type="button" class="token-chip" data-token="[icebreaker]">[icebreaker]</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* 2 - SENDING *@
+    <section class="card">
+        <div class="card-header">
+            <span class="card-title">2 - SENDING</span>
+            <span class="card-chevron">&#x25BE;</span>
+        </div>
+        <div class="card-divider"></div>
+        <div class="card-body">
+            <div class="setting-row">
+                <span>
+                    <span class="setting-label">Rotate email accounts</span>
+                    <span class="setting-hint" style="display: block;">Spread sending across every active account.</span>
+                </span>
+                <input type="checkbox" class="switch" id="accountRotationSwitch"
+                       name="allowAccountRotation" value="true"
+                       checked="@Model.AllowAccountRotation" data-autosave />
+            </div>
+
+            <label class="caption" for="defaultSenderSelect">SEND FROM ACCOUNT</label>
+            <select id="defaultSenderSelect" name="defaultSenderId" data-autosave
+                    disabled="@(Model.AllowAccountRotation ? "disabled" : null)">
+                <option value="0" selected="@(Model.DefaultSenderId == 0)">(first active account)</option>
+                @foreach (var account in Model.ActiveAccounts)
+                {
+                    <option value="@account.Id" selected="@(Model.DefaultSenderId == account.Id)">
+                        @account.Name — @account.EmailAddress
+                    </option>
+                }
+            </select>
+        </div>
+    </section>
+
+    @* 3 - MESSAGE ROTATION (OPTIONAL) *@
+    <section class="card">
+        <div class="card-header">
+            <span class="card-title">3 - MESSAGE ROTATION (OPTIONAL)</span>
+            <span class="card-chevron">&#x25BE;</span>
+        </div>
+        <div class="card-divider"></div>
+        <div class="card-body">
+            <div class="setting-row">
+                <span>
+                    <span class="setting-label">Rotate message variations</span>
+                    <span class="setting-hint" style="display: block;">Each variation takes a turn across your leads.</span>
+                </span>
+                <input type="checkbox" class="switch" id="messageRotationSwitch"
+                       name="allowMessageRotation" value="true"
+                       checked="@Model.AllowMessageRotation" data-autosave />
+            </div>
+
+            <div id="variationsSection" class="@(Model.AllowMessageRotation ? null : "hidden")">
+                @for (int i = 0; i < Model.Variations.Count; i++)
+                {
+                    var variation = Model.Variations[i];
+                    <div class="variation-item">
+                        <div class="list-main">
+                            <div class="variation-subject">@variation.Subject</div>
+                            <div class="variation-body">@variation.Body</div>
+                        </div>
+                        <button type="submit" formaction="/SendEmails/RemoveVariation"
+                                name="index" value="@i" class="btn-toolbar">Remove</button>
+                    </div>
+                }
+
+                @if (Model.Variations.Count == 0)
+                {
+                    <p class="section-subtitle" style="text-align: center; margin: 4px 0 8px;">
+                        No variations yet. Add at least one - otherwise your main email above is used for everyone.
+                    </p>
+                }
+
+                <button type="button" id="addVariationBtn" class="btn btn-secondary btn-block">
+                    @(Model.Variations.Count == 0 ? "Add First Variation" : "Add Another Variation")
+                </button>
+
+                <div id="variationEditor" class="@(Model.ShowVariationEditor ? null : "hidden")">
+                    <label class="caption" for="varSubjectInput">VARIATION SUBJECT</label>
+                    <input type="text" id="varSubjectInput" name="varSubject" value="@Model.VarSubject"
+                           placeholder="Another angle for the same offer..." />
+                    <label class="caption" for="varBodyInput" style="margin-top: 8px;">VARIATION MESSAGE</label>
+                    <textarea id="varBodyInput" name="varBody" rows="4" style="min-height: 110px;"
+                              placeholder="Hey [name], different intro here but same [channel] personalization...">@Model.VarBody</textarea>
+                    <div class="btn-row" style="margin-top: 8px;">
+                        <button type="submit" formaction="/SendEmails/SaveVariation" class="btn btn-primary">Save Variation</button>
+                        <button type="button" id="cancelVariationBtn" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* 4 - REVIEW AND SEND *@
+    <section class="card">
+        <div class="card-header">
+            <span class="card-title">4 - REVIEW AND SEND</span>
+            <span class="card-chevron">&#x25BE;</span>
+        </div>
+        <div class="card-divider"></div>
+        <div class="card-body">
+            <p class="section-subtitle">@Model.SendSummary</p>
+            <div class="btn-row" style="grid-template-columns: 1fr auto;">
+                <button type="submit" class="btn btn-primary" data-busy-target="this">Send Campaign</button>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+            {
+                <p class="status">@Model.StatusMessage</p>
+            }
+        </div>
+    </section>
+</form>

@@ -32,9 +32,18 @@ public class LlmSettings
     /// <summary>
     /// Hard cap (seconds) on a single inference HTTP call. A stuck generation can
     /// never block an extraction indefinitely - it is cancelled and reported as an
-    /// error.
+    /// error. Sized to survive a cold model load on the VPS plus CPU-bound
+    /// generation (llama3:8B has no GPU there), which routinely exceeds 120s.
     /// </summary>
-    public int InferenceTimeoutSeconds { get; set; } = 120;
+    public int InferenceTimeoutSeconds { get; set; } = 300;
+
+    /// <summary>
+    /// How long (minutes) the Ollama server keeps the model loaded after a call
+    /// (sent as keep_alive). Ollama's default is 5 minutes; past that every
+    /// request pays a full multi-GB model reload before generating, which is the
+    /// main cause of inference timeouts. 0 = unload immediately, -1 = never unload.
+    /// </summary>
+    public int ModelKeepAliveMinutes { get; set; } = 60;
 
     // ---- Legacy on-device (LLamaSharp) settings, kept so old appsettings.json
     // files still bind without errors. They are ignored by the Ollama LLMService. ----
