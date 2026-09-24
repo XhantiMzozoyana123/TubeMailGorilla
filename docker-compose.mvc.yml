@@ -29,6 +29,7 @@ services:
       # ---- Storage provider ----
       # Set to "Sqlite" to use SQLite. Any other value (or blank) falls back to MySQL.
       DataStorage__Provider: ${DATA_STORAGE_PROVIDER}
+      DataStorage__Directory: /app/data
 
       # ---- SQLite connection string (used only when DataStorage__Provider=Sqlite) ----
       # The path here must match the mounted volume destination below.

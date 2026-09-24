@@ -34,6 +34,9 @@ RUN dotnet publish "TubeMailGorilla.Mvc.csproj" \
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 
+# Ensure data directory and default App_Data exist and are owned by the non-root app user
+RUN mkdir -p /app/data /app/App_Data && chown -R 1654:1654 /app
+
 # Non-root user for security (UID 1654 = the standard `app` user in the dotnet images).
 USER 1654:1654
 
