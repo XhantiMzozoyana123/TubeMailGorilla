@@ -18,9 +18,27 @@
                     <!-- Single search -->
                     <VerticalStackLayout Spacing="6">
                         <Label Text="KEYWORD" Style="{StaticResource CaptionStyle}" />
-                        <Entry x:Name="KeywordEntry"
-                               Placeholder="e.g. marketing, tech review, fitness coach"
-                               Margin="0" />
+                        <Border x:Name="KeywordInputBorder"
+                                BackgroundColor="{StaticResource SurfaceVariant}"
+                                Stroke="{StaticResource Border}"
+                                StrokeThickness="1"
+                                Padding="14,0"
+                                StrokeShape="RoundRectangle 10">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer />
+                            </Border.GestureRecognizers>
+                            <Entry x:Name="KeywordEntry"
+                                   Placeholder="e.g. marketing, tech review, fitness coach"
+                                   BackgroundColor="Transparent"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   PlaceholderColor="{StaticResource TextSecondary}"
+                                   FontFamily="PlusJakartaSans"
+                                   FontSize="15"
+                                   HeightRequest="44"
+                                   Margin="0"
+                                   Focused="OnKeywordEntryFocused"
+                                   Unfocused="OnKeywordEntryUnfocused" />
+                        </Border>
 
                         <Label Text="PAGE LIMIT (MAX RESULTS)" Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" />
                         <Entry x:Name="PageLimitEntry"

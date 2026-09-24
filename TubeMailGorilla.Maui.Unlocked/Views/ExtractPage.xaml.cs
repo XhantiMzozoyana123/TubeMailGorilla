@@ -19,6 +19,18 @@ public partial class ExtractPage : ContentPage
         _llm = ServiceHelper.GetService<LLMService>();
     }
 
+    private void OnKeywordEntryFocused(object? sender, FocusEventArgs e)
+    {
+        KeywordInputBorder.Stroke = Resources["Primary"] as Color ?? Colors.Orange;
+        KeywordInputBorder.StrokeThickness = 2;
+    }
+
+    private void OnKeywordEntryUnfocused(object? sender, FocusEventArgs e)
+    {
+        KeywordInputBorder.Stroke = Resources["Border"] as Color ?? Colors.Gray;
+        KeywordInputBorder.StrokeThickness = 1;
+    }
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();

@@ -115,8 +115,8 @@ public class ExtractService
                         ExtractedAt = DateTime.Now
                     };
 
-                    await _db.AddContactAsync(contact);
-                    result.EmailsFound++;
+                    if (await _db.AddContactAsync(contact) > 0)
+                        result.EmailsFound++;
                 }
                 catch
                 {
@@ -178,8 +178,7 @@ public class ExtractService
                 ExtractedAt = DateTime.Now
             };
 
-            await _db.AddContactAsync(contact);
-            return 1;
+            return await _db.AddContactAsync(contact) > 0 ? 1 : 0;
         }
         catch
         {
