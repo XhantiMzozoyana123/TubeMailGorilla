@@ -31,7 +31,7 @@
     <div class="card-body">
         <form method="post" asp-controller="Extract" asp-action="Run" class="js-busy">
             <label class="caption" for="keyword">KEYWORD</label>
-            <input id="keyword" name="keyword" value="@Model.Keyword"
+            <input id="keyword" name="keyword" type="text" value="@Model.Keyword"
                    placeholder="e.g. marketing, tech review, fitness coach" />
 
             <label class="caption" for="pageViewLimit" style="margin-top: 8px;">PAGE LIMIT (MAX RESULTS)</label>

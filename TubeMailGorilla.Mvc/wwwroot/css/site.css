@@ -184,6 +184,11 @@ body {
 
 /* ----------------------------------------------------------------- fields */
 
+/* An <input> with no type attribute is text in behaviour but does NOT match
+   input[type="text"] - the attribute selector only sees what is in the DOM.
+   `input:not([type])` catches those so a field can never silently fall through
+   to browser-default styling. Keep it first so the typed rules still win. */
+input:not([type]),
 input[type="text"], input[type="email"], input[type="password"],
 input[type="number"], input[type="search"], input[type="url"],
 textarea, select {
