@@ -55,6 +55,47 @@
                     explicit height (a nested CollectionView measured without
                     one renders nothing).
                 -->
+                <!-- The three lead actions, in one row.
+
+                     They were previously split: Generate sat down in ICEBREAKERS
+                     and Improve sat on its own above it, so the eye had to travel
+                     between two blocks to find what you can do with a lead. They
+                     are one workflow, so they sit together.
+
+                     Three equal columns rather than a HorizontalStackLayout: the
+                     labels differ a lot in length, and auto-sizing would leave
+                     the first button stretched and the last one cramped. Equal
+                     columns keep the row reading as a single control. -->
+                <Grid Margin="0,16,0,0"
+                      ColumnDefinitions="*,*,*"
+                      ColumnSpacing="8"
+                      RowDefinitions="Auto,Auto"
+                      RowSpacing="6">
+                    <Button x:Name="ActionIcebreakerButton"
+                            Grid.Row="0" Grid.Column="0"
+                            Text="&#x2728; Icebreaker"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Clicked="OnGenerateIcebreakerClicked" />
+                    <Button x:Name="ActionImprovementsButton"
+                            Grid.Row="0" Grid.Column="1"
+                            Text="&#x1F50D; Video Review"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Clicked="OnIdentifyImprovementsClicked" />
+                    <Button x:Name="ActionDownloadButton"
+                            Grid.Row="0" Grid.Column="2"
+                            Text="&#x2B07; Save ZIP"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Clicked="OnDownloadSnapshotsClicked" />
+
+                    <Label x:Name="ActionRowHintLabel"
+                           Grid.Row="1" Grid.ColumnSpan="3"
+                           FontSize="11"
+                           LineBreakMode="WordWrap"
+                           TextColor="{StaticResource TextTertiary}"
+                           HorizontalTextAlignment="Center" />
+                </Grid>
+
+                <!-- Video snapshots. -->
                 <Label Text="VIDEO SNAPSHOTS" Style="{StaticResource SectionTitleStyle}" Margin="0,20,0,4" />
                 <Label x:Name="SnapshotsHintLabel"
                        Text="A frame every 10 seconds of the video. Swipe to move through it."
@@ -140,15 +181,10 @@
                        TextColor="{StaticResource TextTertiary}"
                        IsVisible="False" />
 
-                <!-- The AI review lives OUTSIDE the snapshot panel on purpose: it
-                     works from the transcript and metadata as well as the frames,
-                     so it must stay available for a lead that has no snapshots. -->
-                <Button x:Name="ImprovementsButton"
-                        Margin="0,16,0,0"
-                        Text="Identify Areas of Improvement"
-                        Style="{StaticResource PrimaryButtonStyle}"
-                        Clicked="OnIdentifyImprovementsClicked"
-                        IsVisible="False" />
+                <!-- The AI review result lives outside the snapshot panel on purpose:
+                     it works from the transcript and metadata as well as the frames,
+                     so it must stay available for a lead that has no snapshots.
+                     The button itself now lives in the action row above. -->
 
                 <!-- AI video review results. -->
                 <Grid x:Name="ImprovementsPanel" IsVisible="False" Margin="0,20,0,0">
@@ -186,14 +222,8 @@
                 <Editor x:Name="CustomAIPromptEditor"
                         Placeholder="Example: Mention the storytelling in their latest video and keep it under 20 words."
                         HeightRequest="90" />
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                    <Button x:Name="GenerateIcebreakerButton"
-                            Grid.Column="0"
-                            Text="&#x2728; Generate"
-                            Style="{StaticResource PrimaryButtonStyle}"
-                            Clicked="OnGenerateIcebreakerClicked" />
+                <Grid ColumnDefinitions="*" Margin="0,8,0,0">
                     <Button x:Name="CustomAIPromptButton"
-                            Grid.Column="1"
                             Text="Custom AI Prompt"
                             Style="{StaticResource SecondaryButtonStyle}"
                             Clicked="OnCustomAIPromptClicked" />

@@ -66,12 +66,17 @@ public partial class ContactDetailsPage : ContentPage
         SnapshotsHintLabel.IsVisible = hasSnapshots;
         NoSnapshotsLabel.IsVisible = !hasSnapshots;
 
-        // Both buttons need a video URL, and that is independent of whether any
-        // snapshots exist, so it is decided here rather than in
-        // UpdateSnapshotIndicator (which is skipped when there are none).
+        // The watch and video-review buttons need a video URL, and that is
+        // independent of whether any snapshots exist, so it is decided here
+        // rather than in UpdateSnapshotIndicator (which is skipped when there
+        // are none). The ZIP button needs actual frames, not just a URL.
         var hasVideo = !string.IsNullOrWhiteSpace(_videoUrl);
         SnapshotWatchButton.IsVisible = hasSnapshots && hasVideo;
-        ImprovementsButton.IsVisible = hasVideo;
+        ActionImprovementsButton.IsVisible = hasVideo;
+        ActionDownloadButton.IsEnabled = hasSnapshots;
+        ActionRowHintLabel.Text = hasSnapshots
+            ? $"{_snapshots.Count} snapshot{(_snapshots.Count == 1 ? "" : "s")} captured - Save ZIP exports them all."
+            : "No snapshots captured for this lead yet.";
 
         if (!hasSnapshots) return;
 
@@ -104,8 +109,8 @@ public partial class ContactDetailsPage : ContentPage
 
         _isGeneratingImprovements = true;
 
-        ImprovementsButton.IsEnabled = false;
-        ImprovementsButton.Text = "Analysing…";
+        ActionImprovementsButton.IsEnabled = false;
+        ActionImprovementsButton.Text = "Analysing…";
         ImprovementsPanel.IsVisible = true;
         ImprovementsIndicator.IsRunning = true;
         ImprovementsIndicator.IsVisible = true;
@@ -160,8 +165,8 @@ public partial class ContactDetailsPage : ContentPage
         finally
         {
             _isGeneratingImprovements = false;
-            ImprovementsButton.IsEnabled = true;
-            ImprovementsButton.Text = "Identify Areas of Improvement";
+            ActionImprovementsButton.IsEnabled = true;
+            ActionImprovementsButton.Text = "&#x1F50D; Video Review";
             ImprovementsIndicator.IsRunning = false;
             ImprovementsIndicator.IsVisible = false;
         }
@@ -246,6 +251,65 @@ public partial class ContactDetailsPage : ContentPage
     }
 
     /// <summary>
+    /// Packs this lead's snapshots into a ZIP and hands it to the share sheet,
+    /// where the user can save it to Files/Drive or attach it to an email.
+    /// MAUI has no "download to disk" verb, so the share sheet is the native
+    /// equivalent - and it avoids inventing a file path and hoping the platform
+    /// can write to it.
+    /// </summary>
+    private async void OnDownloadSnapshotsClicked(object? sender, EventArgs e)
+    {
+        if (BindingContext is not EmailContact contact) return;
+
+        if (_snapshots.Count == 0)
+        {
+            await DisplayAlert("No snapshots",
+                "This lead has no captured frames to export. They are captured during extraction.",
+                "OK");
+            return;
+        }
+
+        var original = ActionDownloadButton.Text;
+        ActionDownloadButton.IsEnabled = false;
+        ActionDownloadButton.Text = "Packing…";
+
+        try
+        {
+            var archive = SnapshotZipService.Build(contact);
+            if (archive is null)
+            {
+                await DisplayAlert("Could not export",
+                    "None of this lead's stored snapshots could be read. Re-run extraction to capture them again.",
+                    "OK");
+                return;
+            }
+
+            var (data, fileName) = archive.Value;
+
+            // Written to the cache directory first: the share sheet needs a real
+            // file path, and cache is the only location guaranteed writable and
+            // disposable on every platform.
+            var path = Path.Combine(FileSystem.CacheDirectory, fileName);
+            await File.WriteAllBytesAsync(path, data);
+
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = $"{contact.DisplayName} - video snapshots",
+                File = new ShareFile(path)
+            });
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Could not export", ex.Message, "OK");
+        }
+        finally
+        {
+            ActionDownloadButton.IsEnabled = true;
+            ActionDownloadButton.Text = original;
+        }
+    }
+
+    /// <summary>
     /// Loads previously generated icebreakers for this lead so they can be
     /// reviewed (and regenerated) while editing the contact.
     /// </summary>
@@ -312,9 +376,9 @@ public partial class ContactDetailsPage : ContentPage
         }
 
         _isGeneratingIcebreaker = true;
-        GenerateIcebreakerButton.IsEnabled = false;
+        ActionIcebreakerButton.IsEnabled = false;
         CustomAIPromptButton.IsEnabled = false;
-        GenerateIcebreakerButton.Text = "Generating…";
+        ActionIcebreakerButton.Text = "Generating…";
         CustomAIPromptButton.Text = "Writing…";
 
         try
@@ -346,9 +410,9 @@ public partial class ContactDetailsPage : ContentPage
         finally
         {
             _isGeneratingIcebreaker = false;
-            GenerateIcebreakerButton.IsEnabled = true;
+            ActionIcebreakerButton.IsEnabled = true;
             CustomAIPromptButton.IsEnabled = true;
-            GenerateIcebreakerButton.Text = "✨ Generate";
+            ActionIcebreakerButton.Text = "&#x2728; Icebreaker";
             CustomAIPromptButton.Text = "Custom AI Prompt";
         }
     }
