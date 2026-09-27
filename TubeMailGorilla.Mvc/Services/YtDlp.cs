@@ -21,9 +21,17 @@ public static class YtDlp
     private const string UnixExecutable = "yt-dlp";
 
     private static string? _path;
+    private static string _expectedPath = string.Empty;
 
     /// <summary>The resolved binary path (or bare name for a PATH lookup).</summary>
     public static string ResolvedPath => _path ?? (OperatingSystem.IsWindows() ? WindowsExecutable : UnixExecutable);
+
+    /// <summary>
+    /// Absolute path the app looked in first. Surfaced in the UI error so the
+    /// message names a real folder the user can drop the binary into, rather
+    /// than a relative "Tools/yt-dlp" that resolves somewhere unexpected.
+    /// </summary>
+    public static string ExpectedPath => _expectedPath;
 
     /// <summary>True when a usable binary is actually present (absolute path or on PATH).</summary>
     public static bool IsAvailable
@@ -46,14 +54,43 @@ public static class YtDlp
         if (!string.IsNullOrWhiteSpace(configuredPath))
         {
             _path = configuredPath.Trim();
+            _expectedPath = configuredPath.Trim();
             return;
         }
 
         var exeName = OperatingSystem.IsWindows() ? WindowsExecutable : UnixExecutable;
-        var bundled = Path.Combine(contentRoot, "Tools", exeName);
 
-        // Prefer the deployment-provided copy, then whatever PATH resolves to.
-        _path = File.Exists(bundled) ? bundled : FindOnPath(exeName) ?? exeName;
+        // Candidate folders, in order:
+        //   <contentRoot>/Tools       - the project's own Tools folder, and where a
+        //                               deployed copy would be placed
+        //   <contentRoot>/../Tools     - the REPO Tools folder. The MVC content root
+        //                               is the project directory, so a developer
+        //                               following the repo's top-level Tools
+        //                               convention would otherwise be invisible
+        //                               here, which is exactly the confusion this
+        //                               extra probe removes.
+        var candidates = new[]
+        {
+            Path.Combine(contentRoot, "Tools", exeName),
+            Path.Combine(contentRoot, "..", "Tools", exeName)
+        };
+
+        // Remember the primary location so the UI can name it in the error.
+        _expectedPath = Path.GetFullPath(candidates[0]);
+
+        foreach (var candidate in candidates)
+        {
+            var full = Path.GetFullPath(candidate);
+            if (File.Exists(full))
+            {
+                _path = full;
+                return;
+            }
+        }
+
+        // Prefer whatever PATH resolves to, else the bare name (a PATH lookup at
+        // spawn time, so a system-wide install still works).
+        _path = FindOnPath(exeName) ?? exeName;
     }
 
     private static string? FindOnPath(string fileName)
@@ -105,9 +142,17 @@ public static class Ffmpeg
     private const string UnixExecutable = "ffmpeg";
 
     private static string? _path;
+    private static string _expectedPath = string.Empty;
 
     /// <summary>The resolved binary path (or bare name for a PATH lookup).</summary>
     public static string ResolvedPath => _path ?? (OperatingSystem.IsWindows() ? WindowsExecutable : UnixExecutable);
+
+    /// <summary>
+    /// Absolute path the app looked in first. Surfaced in the UI error so the
+    /// message names a real folder the user can drop the binary into, rather
+    /// than a relative "Tools/yt-dlp" that resolves somewhere unexpected.
+    /// </summary>
+    public static string ExpectedPath => _expectedPath;
 
     /// <summary>True when a usable binary is actually present (absolute path or on PATH).</summary>
     public static bool IsAvailable
@@ -130,6 +175,7 @@ public static class Ffmpeg
         if (!string.IsNullOrWhiteSpace(configuredPath))
         {
             _path = configuredPath.Trim();
+            _expectedPath = configuredPath.Trim();
             return;
         }
 

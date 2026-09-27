@@ -391,4 +391,10 @@ TubeMailGorilla.Mvc/App_Data/
 *.db3
 mvc-run*.log
 mvc-run*.pid
-
+# yt-dlp / ffmpeg binaries for the MVC site. The Docker image installs both
+# (see TubeMailGorilla.Mvc/Dockerfile); for local `dotnet run` they are dropped
+# into Tools/ instead. Large binaries, so they are never committed.
+Tools/yt-dlp
+Tools/yt-dlp.exe
+Tools/ffmpeg
+Tools/ffmpeg.exe

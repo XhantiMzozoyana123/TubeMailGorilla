@@ -276,5 +276,6 @@ public class ExtractController : Controller
         model.Entitlements = await _payments.GetEntitlementsAsync();
         model.Contacts = await _db.GetContactsAsync();
         model.YtDlpAvailable = YtDlp.IsAvailable;
+        model.YtDlpExpectedPath = YtDlp.ExpectedPath;
     }
 }

@@ -16,8 +16,14 @@
 @if (!Model.YtDlpAvailable)
 {
     <div class="alert alert-error">
-        yt-dlp was not found, so YouTube search and transcripts cannot run. Install it on the server
-        (set <code>YtDlp:Path</code> in appsettings.json) or drop the binary in <code>Tools/yt-dlp</code>.
+        <p><strong>yt-dlp was not found</strong>, so YouTube search and transcripts cannot run.</p>
+        <p>Put the binary here:</p>
+        <p><code>@Model.YtDlpExpectedPath</code></p>
+        <p>
+            Or install yt-dlp so it is on your PATH, or set <code>YtDlp:Path</code> in
+            <code>appsettings.json</code> to its full path. The Docker image installs yt-dlp
+            automatically, so this only affects local development.
+        </p>
     </div>
 }
 

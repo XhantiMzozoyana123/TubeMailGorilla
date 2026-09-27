@@ -24,6 +24,9 @@ public class ExtractViewModel
     public TimeSpan Elapsed { get; set; }
 
     public bool YtDlpAvailable { get; set; }
+
+    /// <summary>Absolute path the app searched, so the error names a real folder.</summary>
+    public string YtDlpExpectedPath { get; set; } = string.Empty;
     public EntitlementInfo? Entitlements { get; set; }
     public List<EmailContact> Contacts { get; set; } = new();
 
