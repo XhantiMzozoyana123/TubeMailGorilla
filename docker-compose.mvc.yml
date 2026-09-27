@@ -33,7 +33,13 @@ services:
 
       # ---- SQLite connection string (used only when DataStorage__Provider=Sqlite) ----
       # The path here must match the mounted volume destination below.
-      DataStorage__ConnectionString: "Data Source=/app/data/tubemailgorilla.db"
+      #
+      # NOTE the ConnectionStrings__ prefix: DependencyInjection.cs reads this with
+      # GetConnectionString("DataStorage"), which resolves the section
+      # ConnectionStrings:DataStorage - NOT the bare DataStorage section. Setting
+      # DataStorage__ConnectionString here would be silently ignored and the app
+      # would fall back to its hardcoded default path.
+      ConnectionStrings__DataStorage: "Data Source=/app/data/tubemailgorilla.db"
 
       # ---- Auth ----
       JwtSettings__Secret: ${JWT_SECRET}
