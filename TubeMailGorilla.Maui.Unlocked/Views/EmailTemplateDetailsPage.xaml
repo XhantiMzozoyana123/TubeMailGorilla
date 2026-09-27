@@ -3,10 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="TubeMailGorilla.Maui.Unlocked.Views.EmailTemplateDetailsPage"
              Shell.NavBarIsVisible="True"
-             Title="Email Template">
+             Title="">
     <Grid Padding="20" RowDefinitions="Auto,*,Auto">
         <VerticalStackLayout Grid.Row="0" Spacing="4">
-            <Label Text="EMAIL TEMPLATE" Style="{StaticResource SectionTitleStyle}" />
+            <!-- Section title removed: the nav bar already labels this page. -->
             <Label Text="Name this template and fill in the subject and body used when sending campaigns."
                    Style="{StaticResource DescriptionStyle}" />
         </VerticalStackLayout>

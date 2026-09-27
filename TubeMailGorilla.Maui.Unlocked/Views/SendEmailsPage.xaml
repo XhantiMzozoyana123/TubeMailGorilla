@@ -136,6 +136,11 @@
                         <Button x:Name="AddVariationButton" Text="+ Add Variation" Style="{StaticResource SecondaryButtonStyle}" Margin="0" Clicked="OnAddVariationClicked" />
                         <Label x:Name="EmptyVariationsLabel" Text="No variations yet. Add at least one - otherwise your main email above is used for everyone." Style="{StaticResource SectionSubtitleStyle}" HorizontalOptions="Center" Margin="0,4" />
                         <VerticalStackLayout x:Name="VariationEditor" Spacing="6" IsVisible="False">
+                            <Label Text="START FROM A TEMPLATE (OPTIONAL)" Style="{StaticResource CaptionStyle}" />
+                            <Picker x:Name="VariationTemplatePicker"
+                                    Title="Select a template..."
+                                    SelectedIndexChanged="OnVariationTemplateSelected" />
+                            <Label x:Name="VariationTemplateStatusLabel" Style="{StaticResource StatusStyle}" Margin="0" Text="" />
                             <Label Text="VARIATION SUBJECT" Style="{StaticResource CaptionStyle}" />
                             <Entry x:Name="VarSubjectEntry" Placeholder="Another angle for the same offer..." Margin="0" />
                             <Label Text="VARIATION MESSAGE" Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" />

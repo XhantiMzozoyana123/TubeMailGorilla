@@ -28,11 +28,22 @@ public static class MauiProgram
         builder.Services.AddSingleton<YouTubeSearchService>();
         builder.Services.AddSingleton<YouTubeTranscriptService>();
         builder.Services.AddSingleton<CaptionService>();
+        builder.Services.AddSingleton<VideoSnapshotService>();
         builder.Services.AddSingleton<ExtractService>();
 
         builder.Services.AddHttpClient();
 
-        builder.Services.AddSingleton<HttpClient>();
+        // The shared HttpClient must not carry HttpClient's default 100 second
+        // timeout. LLMService applies its own per-request budget
+        // (InferenceTimeoutSeconds, currently 300s) through a
+        // CancellationTokenSource, and a CPU-only Ollama host needs ~190s just
+        // to answer the longer video-review prompt. A 100s ceiling here silently
+        // killed those calls first and the "Inference timed out after 300s"
+        // error message then blamed the wrong limit.
+        builder.Services.AddSingleton(_ => new HttpClient
+        {
+            Timeout = Timeout.InfiniteTimeSpan
+        });
         builder.Services.AddSingleton<IConfiguration>(sp =>
         {
             var configuration = new ConfigurationBuilder()

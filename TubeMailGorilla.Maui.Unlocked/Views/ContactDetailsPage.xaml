@@ -2,25 +2,29 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:TubeMailGorilla.Maui.Unlocked.Models"
-             x:Class="TubeMailGorilla.Maui.Unlocked.Views.ContactDetailsPage"
-             Shell.NavBarIsVisible="True"
-             Title="Contact Details">
-    <!-- Shell hides navigation bars app-wide, so this page opts back in: it is
-         pushed onto the stack and needs a title + back button to get out of. -->
-    <Grid Padding="20" RowDefinitions="Auto,*,Auto">
+             x:Class="TubeMailGorilla.Maui.Unlocked.Views.ContactDetailsPage">
+    <!-- No nav bar and no "Contact Details" title: AppShell hides nav bars
+         app-wide (see AppShell.xaml), and opting this one back in left either an
+         ugly heading or an empty blank strip. The page matches every other page
+         in the app instead, and the back affordance is an ordinary button at the
+         top of the content. -->
+    <Grid Padding="20" RowDefinitions="*,Auto">
 
-        <!-- Header -->
-        <VerticalStackLayout Grid.Row="0" Spacing="4">
-            <Label Text="CONTACT DETAILS" Style="{StaticResource SectionTitleStyle}" />
-            <Label Text="Edit the name or email below, then Save. Delete removes this contact."
-                   Style="{StaticResource DescriptionStyle}" />
-        </VerticalStackLayout>
-
-        <ScrollView Grid.Row="1" HorizontalOptions="FillAndExpand">
+        <ScrollView Grid.Row="0" HorizontalOptions="FillAndExpand">
             <VerticalStackLayout Spacing="0">
 
+                <Button x:Name="BackButton"
+                        Text="←  Back to contacts"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        Padding="0"
+                        Margin="0,0,0,8"
+                        HorizontalOptions="Start"
+                        FontSize="13"
+                        TextColor="{StaticResource Primary}"
+                        Clicked="OnBackClicked" />
+
                 <!-- Contact info (editable) -->
-                <Label Text="CONTACT INFO" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,4" />
                 <Entry x:Name="NameEntry" Placeholder="Name" />
                 <Entry x:Name="EmailEntry" Placeholder="Email" Keyboard="Email" />
 
@@ -42,14 +46,158 @@
                     </VerticalStackLayout>
                 </Frame>
 
-                <!-- AI Icebreakers -->
-                <Label Text="AI ICEBREAKERS" Style="{StaticResource SectionTitleStyle}" />
-                <Label Text="Personalized first lines generated from this lead's channel and video. Pick the best one for your email."
+                <!--
+                    Video snapshots captured during extraction. A CarouselView
+                    (not a BindableLayout) is used deliberately: it is the only
+                    MAUI layout that handles both horizontal paging and lazy
+                    image loading, which matters once a lead carries a dozen
+                    base64 JPEGs. It sits inside a ScrollView, so it is given an
+                    explicit height (a nested CollectionView measured without
+                    one renders nothing).
+                -->
+                <Label Text="VIDEO SNAPSHOTS" Style="{StaticResource SectionTitleStyle}" Margin="0,20,0,4" />
+                <Label x:Name="SnapshotsHintLabel"
+                       Text="A frame every 10 seconds of the video. Swipe to move through it."
                        Style="{StaticResource DescriptionStyle}" />
-                <Button x:Name="GenerateIcebreakerButton"
-                        Text="&#x2728; Generate Icebreaker"
+
+                <Grid x:Name="SnapshotsPanel" IsVisible="False" Margin="0,8,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <CarouselView x:Name="SnapshotsCarousel"
+                                   Grid.Row="0"
+                                   HeightRequest="190"
+                                   IsSwipeEnabled="True"
+                                   IsBounceEnabled="False"
+                                   PositionChanged="OnSnapshotPositionChanged">
+                        <CarouselView.ItemTemplate>
+                            <DataTemplate x:DataType="models:VideoSnapshotItem">
+                                <Border Padding="0"
+                                        StrokeThickness="0"
+                                        BackgroundColor="Transparent">
+                                    <Grid>
+                                        <Image Source="{Binding Image, Converter={StaticResource Base64ToImageSource}}"
+                                               Aspect="AspectFit" />
+                                        <Label Text="{Binding TimestampLabel}"
+                                               HorizontalOptions="End"
+                                               VerticalOptions="Start"
+                                               Margin="0,6,6,0"
+                                               Padding="6,2"
+                                               FontSize="11"
+                                               FontFamily="JetBrainsMono"
+                                               TextColor="White"
+                                               BackgroundColor="#CC000000" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CarouselView.ItemTemplate>
+                    </CarouselView>
+
+                    <!-- Position indicator + paging buttons: the carousel is swipe
+                         first, and these make every snapshot reachable with a
+                         mouse or keyboard too. -->
+                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,8,0,0">
+                        <Button x:Name="PreviousSnapshotButton"
+                                Grid.Column="0"
+                                Text="◀"
+                                WidthRequest="44"
+                                Padding="0"
+                                FontSize="14"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Clicked="OnPreviousSnapshotClicked" />
+                        <Label x:Name="SnapshotCounterLabel"
+                               Grid.Column="1"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               FontSize="12"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <Button x:Name="NextSnapshotButton"
+                                Grid.Column="2"
+                                Text="▶"
+                                WidthRequest="44"
+                                Padding="0"
+                                FontSize="14"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Clicked="OnNextSnapshotClicked" />
+                    </Grid>
+
+                    <!-- Jump to the moment the frame on screen was captured. -->
+                    <Button x:Name="SnapshotWatchButton"
+                            Grid.Row="2"
+                            Margin="0,8,0,0"
+                            Text="Watch from this moment"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Clicked="OnWatchSnapshotClicked"
+                            IsVisible="False" />
+                </Grid>
+
+                <Label x:Name="NoSnapshotsLabel"
+                       Text="This lead has no snapshots. They are captured during extraction, so only leads found after that ran will have them."
+                       FontSize="12"
+                       TextColor="{StaticResource TextTertiary}"
+                       IsVisible="False" />
+
+                <!-- The AI review lives OUTSIDE the snapshot panel on purpose: it
+                     works from the transcript and metadata as well as the frames,
+                     so it must stay available for a lead that has no snapshots. -->
+                <Button x:Name="ImprovementsButton"
+                        Margin="0,16,0,0"
+                        Text="Identify Areas of Improvement"
                         Style="{StaticResource PrimaryButtonStyle}"
-                        Clicked="OnGenerateIcebreakerClicked" />
+                        Clicked="OnIdentifyImprovementsClicked"
+                        IsVisible="False" />
+
+                <!-- AI video review results. -->
+                <Grid x:Name="ImprovementsPanel" IsVisible="False" Margin="0,20,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Label Text="AREAS OF IMPROVEMENT" Style="{StaticResource SectionTitleStyle}" />
+                    <Label Text="Editing notes aimed at raising watch time and engagement on this video."
+                           Style="{StaticResource DescriptionStyle}" />
+
+                    <VerticalStackLayout Grid.Row="2" Spacing="8" Margin="0,8,0,0">
+                        <ActivityIndicator x:Name="ImprovementsIndicator"
+                                           IsRunning="False"
+                                           IsVisible="False"
+                                           HorizontalOptions="Center" />
+                        <Label x:Name="ImprovementsStatusLabel"
+                               IsVisible="False"
+                               FontSize="12"
+                               TextColor="{StaticResource TextTertiary}" />
+                        <Label x:Name="ImprovementsLabel"
+                               IsVisible="False"
+                               FontSize="13"
+                               LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <!-- AI Icebreakers -->
+                <Label Text="ICEBREAKERS" Style="{StaticResource SectionTitleStyle}" />
+                <Label Text="Edit the text directly, save your changes, or use Custom AI Prompt to generate a new personalized version."
+                       Style="{StaticResource DescriptionStyle}" />
+                <Label Text="CUSTOM AI PROMPT" Style="{StaticResource CaptionStyle}" Margin="0,8,0,4" />
+                <Editor x:Name="CustomAIPromptEditor"
+                        Placeholder="Example: Mention the storytelling in their latest video and keep it under 20 words."
+                        HeightRequest="90" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <Button x:Name="GenerateIcebreakerButton"
+                            Grid.Column="0"
+                            Text="&#x2728; Generate"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Clicked="OnGenerateIcebreakerClicked" />
+                    <Button x:Name="CustomAIPromptButton"
+                            Grid.Column="1"
+                            Text="Custom AI Prompt"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Clicked="OnCustomAIPromptClicked" />
+                </Grid>
 
                 <!--
                     The icebreakers are laid out with BindableLayout instead of a
@@ -69,13 +217,19 @@
                                    BorderColor="{StaticResource Border}"
                                    CornerRadius="8"
                                    HasShadow="False">
-                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                    <Label Grid.Column="0"
-                                           Text="{Binding Text}"
-                                           FontSize="13"
-                                           LineBreakMode="WordWrap"
-                                           TextColor="{StaticResource TextPrimary}" />
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                                    <Editor Grid.Column="0"
+                                           Text="{Binding Text, Mode=TwoWay}"
+                                           Placeholder="Write or edit this icebreaker"
+                                           HeightRequest="72"
+                                           Margin="0"
+                                           AutoSize="TextChanges" />
                                     <Button Grid.Column="1"
+                                            Text="Save"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Clicked="OnSaveOpenerClicked"
+                                            VerticalOptions="Center" />
+                                    <Button Grid.Column="2"
                                             Text="Delete"
                                             Style="{StaticResource CompactDangerButtonStyle}"
                                             Clicked="OnDeleteOpenerClicked"
@@ -95,7 +249,7 @@
         </ScrollView>
 
         <!-- Save / Delete buttons -->
-        <HorizontalStackLayout Grid.Row="2" Spacing="12" HorizontalOptions="Center">
+        <HorizontalStackLayout Grid.Row="1" Spacing="12" HorizontalOptions="Center">
             <Button Text="Save" Style="{StaticResource PrimaryButtonStyle}" Clicked="OnSave" />
             <Button Text="Delete" Style="{StaticResource DangerButtonStyle}" Clicked="OnDelete" />
         </HorizontalStackLayout>

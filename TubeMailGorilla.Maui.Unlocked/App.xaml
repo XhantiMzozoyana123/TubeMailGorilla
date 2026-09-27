@@ -10,6 +10,7 @@
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <converters:FieldToDescriptionConverter x:Key="FieldToDescription" xmlns:converters="clr-namespace:TubeMailGorilla.Maui.Unlocked.Converters" />
+            <converters:Base64ToImageSourceConverter x:Key="Base64ToImageSource" xmlns:converters="clr-namespace:TubeMailGorilla.Maui.Unlocked.Converters" />
 
         </ResourceDictionary>
     </Application.Resources>

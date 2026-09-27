@@ -258,6 +258,8 @@ public partial class SendEmailsPage : ContentPage
         _editingVariationIndex = -1;
         VarSubjectEntry.Text = string.Empty;
         VarBodyEditor.Text = string.Empty;
+        VariationTemplatePicker.SelectedIndex = 0;
+        VariationTemplateStatusLabel.Text = string.Empty;
         VariationEditor.IsVisible = true;
         VarSubjectEntry.Focus();
     }
@@ -268,7 +270,30 @@ public partial class SendEmailsPage : ContentPage
     private void CloseVariationEditor()
     {
         VariationEditor.IsVisible = false;
+        VariationTemplatePicker.SelectedIndex = 0;
+        VariationTemplateStatusLabel.Text = string.Empty;
         _editingVariationIndex = -1;
+    }
+
+    private async void OnVariationTemplateSelected(object? sender, EventArgs e)
+    {
+        var index = VariationTemplatePicker.SelectedIndex - 1;
+        if (index < 0 || index >= _templates.Count)
+        {
+            VariationTemplateStatusLabel.Text = string.Empty;
+            return;
+        }
+
+        if (!await EnsureTemplatesAllowedAsync("using email templates"))
+        {
+            VariationTemplatePicker.SelectedIndex = 0;
+            return;
+        }
+
+        var template = _templates[index];
+        VarSubjectEntry.Text = template.Subject ?? string.Empty;
+        VarBodyEditor.Text = template.Body ?? string.Empty;
+        VariationTemplateStatusLabel.Text = $"Loaded \"{template.Name}\" into this variation. You can edit it before saving.";
     }
 
     private void OnSaveVariationClicked(object? sender, EventArgs e)
@@ -336,10 +361,16 @@ public partial class SendEmailsPage : ContentPage
 
             TemplatePicker.Items.Clear();
             TemplatePicker.Items.Add("No template - write from scratch");
+            VariationTemplatePicker.Items.Clear();
+            VariationTemplatePicker.Items.Add("No template - write from scratch");
             foreach (var t in _templates)
+            {
                 TemplatePicker.Items.Add(t.Name);
+                VariationTemplatePicker.Items.Add(t.Name);
+            }
 
             TemplatePicker.SelectedIndex = 0;
+            VariationTemplatePicker.SelectedIndex = 0;
             TemplateStatusLabel.Text = _templates.Count == 0
                 ? "You have no saved templates yet. Create them on the Email Templates page."
                 : $"{_templates.Count} template{(_templates.Count == 1 ? "" : "s")} available.";
@@ -486,7 +517,6 @@ public partial class SendEmailsPage : ContentPage
             var parameters = await _db.GetMessageParametersAsync();
             var sent = 0;
             var failed = 0;
-            var skipped = 0;
 
             // Message rotation: if enabled and variations exist, each email
             // takes its turn across the recipients.
@@ -507,14 +537,12 @@ public partial class SendEmailsPage : ContentPage
                 var contact = contacts[i];
                 StatusLabel.Text = $"Sending {i + 1}/{contacts.Count}… ({contact.Email})";
 
-                // A lead without an icebreaker is skipped - every email must
-                // open with its personalized first line.
-                if (!latestOpenerByContact.TryGetValue(contact.Id, out var icebreaker))
-                {
-                    skipped++;
-                    SendProgressBar.Progress = (double)(i + 1) / contacts.Count;
-                    continue;
-                }
+                // A missing icebreaker must not exclude the lead from the campaign.
+                // The [icebreaker] token will resolve to an empty value for this
+                // recipient, while every other personalization value still works.
+                var icebreaker = latestOpenerByContact.TryGetValue(contact.Id, out var opener)
+                    ? opener
+                    : string.Empty;
 
                 // Select sender (rotate if enabled; otherwise use the configured default account)
                 Sender? senderAccount;
@@ -580,7 +608,7 @@ public partial class SendEmailsPage : ContentPage
                 SendProgressBar.Progress = (double)(i + 1) / contacts.Count;
             }
 
-            StatusLabel.Text = $"All done. Sent: {sent}, Failed: {failed}, Skipped (no icebreaker/blocked): {skipped}";
+            StatusLabel.Text = $"All done. Sent: {sent}, Failed: {failed}";
         }
         catch (Exception ex)
         {

@@ -64,14 +64,18 @@ public class DatabaseService
         return await _connection!.ExecuteAsync(
             """
             INSERT OR IGNORE INTO EmailContact
-                (Email, Name, Channel, VideoTitle, VideoDescription, ExtractedAt, IsBlocked, IsEmailer, LastEmailed, UpdatedAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (Email, Name, Channel, VideoTitle, VideoDescription, VideoUrl, VideoSnapshotJson, VideoSnapshotTimestampsJson, ExtractedAt, IsBlocked, IsEmailer, LastEmailed, UpdatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             contact.Email,
             contact.Name,
             contact.Channel,
             contact.VideoTitle,
             contact.VideoDescription,
+            contact.VideoUrl,
+            // The list properties serialize into these columns; read them back.
+            contact.HasVideoSnapshots ? contact.VideoSnapshotJson : null,
+            contact.HasVideoSnapshots ? contact.VideoSnapshotTimestampsJson : null,
             contact.ExtractedAt,
             contact.IsBlocked,
             contact.IsEmailer,

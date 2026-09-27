@@ -17,6 +17,26 @@ public class LlmSettings
     /// <summary>Name of the model to request on the Ollama server.</summary>
     public string OllamaModel { get; set; } = "llama3:latest";
 
+    /// <summary>
+    /// OPTIONAL vision model used when a lead's video snapshots need to be
+    /// looked at (the "Identify Areas of Improvement" analysis). Leave empty to
+    /// run that analysis from the transcript and video metadata only, which is
+    /// what happens with the default text-only llama3.
+    ///
+    /// To enable it, pull a small vision model on the server, e.g.
+    /// <c>ollama pull moondream</c> (~1.7GB, the smallest practical option),
+    /// and set this to "moondream:latest". Larger choices such as llava are
+    /// considerably slower on a CPU-only host.
+    /// </summary>
+    public string OllamaVisionModel { get; set; } = "";
+
+    /// <summary>
+    /// How many snapshot frames may be attached to a single vision request.
+    /// Each frame is roughly 20KB of base64 and the host has no GPU, so a small
+    /// evenly spread sample is the only practical number.
+    /// </summary>
+    public int MaxImagesPerRequest { get; set; } = 4;
+
     /// <summary>Maximum number of tokens the model may generate per call.</summary>
     public int MaxTokens { get; set; } = 512;
 

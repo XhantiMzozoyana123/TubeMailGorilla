@@ -29,6 +29,22 @@ public class LLMService
         "output NOTHING at all - an empty response. Do NOT write BLANK, UNKNOWN, N/A, or NONE. " +
         "Do NOT substitute related content. Do NOT guess. Empty means empty.";
 
+    /// <summary>
+    /// Used for advisory tasks (editing / engagement critique). The extraction
+    /// system prompt above is actively wrong for those: it bans bullets, lists
+    /// and multi-line output, and forces an empty answer when the data is not a
+    /// single explicit value. An advisor needs the exact opposite behaviour.
+    /// </summary>
+    private const string ADVISORY_SYSTEM_PROMPT =
+        "You are a senior YouTube editor and retention strategist. " +
+        "You give specific, concrete, actionable editing advice about a video. " +
+        "Rules: " +
+        "- Ground every point in the material you are given. " +
+        "- Be specific and practical, never vague platitudes like 'make it better' or 'add energy'. " +
+        "- Do not invent details you were not told; if something is unknown, say so briefly. " +
+        "- Write plain text. No markdown headers, no bold/asterisks, no emoji. " +
+        "- Keep it tight and skimmable.";
+
     private readonly LlmSettings _settings;
     private readonly HttpClient _http;
     private readonly SemaphoreSlim _inferenceLock = new(1, 1);
@@ -70,8 +86,65 @@ public class LLMService
         }
     }
 
+    /// <summary>
+    /// Runs an advisory completion (editing / engagement critique) under the
+    /// advisory persona rather than the strict extraction one, and attaches the
+    /// snapshot frames when a vision model is configured.
+    ///
+    /// Kept separate from <see cref="GenerateTextAsync"/> so no caller has to
+    /// know that advisory work needs a different system prompt - using the
+    /// extraction persona here would return an empty string, because that prompt
+    /// bans lists and multi-line output.
+    /// </summary>
+    public Task<string> GenerateAdvisoryAsync(
+        string prompt,
+        int maxTokens,
+        IReadOnlyList<string>? base64Images = null)
+        => GenerateTextAsync(prompt, maxTokens, ADVISORY_SYSTEM_PROMPT, base64Images);
+
     /// <summary>True once the Ollama server has answered a health check.</summary>
     public bool IsReady { get; private set; }
+
+    /// <summary>
+    /// The vision model to use, or empty when none is configured. A vision model
+    /// is OPTIONAL: the app is fully functional without one, the analysis just
+    /// works from the transcript and video metadata instead of the frames.
+    /// </summary>
+    public string VisionModel => (_settings.OllamaVisionModel ?? string.Empty).Trim();
+
+    /// <summary>
+    /// True when a vision model is configured, i.e. the request can carry
+    /// images. The default model (llama3) is text-only, so this is false unless
+    /// a vision model such as "moondream" or "llava" has been pulled on the
+    /// server and named in appsettings.json.
+    /// </summary>
+    public bool SupportsVision => VisionModel.Length > 0;
+
+    /// <summary>
+    /// Picks the frames to send to a vision model. Sending all of them is
+    /// impractical: a 10 minute lead has 30 base64 JPEGs (~20KB each), which is
+    /// a large upload to a CPU-only VPS and will blow the inference timeout.
+    /// A small, evenly spread sample keeps the request bounded and still
+    /// covers the whole video.
+    /// </summary>
+    private List<string>? ResolveImages(IReadOnlyList<string>? base64Images)
+    {
+        if (!SupportsVision || base64Images is null || base64Images.Count == 0)
+            return null;
+
+        var max = Math.Max(1, _settings.MaxImagesPerRequest);
+
+        if (base64Images.Count <= max)
+            return base64Images.ToList();
+
+        var picked = new List<string>(max);
+        var step = (double)(base64Images.Count - 1) / (max - 1);
+
+        for (var i = 0; i < max; i++)
+            picked.Add(base64Images[(int)Math.Round(i * step)]);
+
+        return picked;
+    }
 
     /// <summary>Compat only - the remote server never downloads. Always false.</summary>
     public bool IsDownloading => false;
@@ -120,8 +193,17 @@ public class LLMService
     /// (AIService deliberately drops those). maxTokens caps generation for short
     /// outputs (e.g. icebreakers) so they finish well inside the inference
     /// timeout; null uses the configured MaxTokens.
+    ///
+    /// systemPrompt overrides the default extraction persona - required for
+    /// advisory calls, where the extraction rules would suppress any real
+    /// answer. base64Images are only sent when the configured model actually
+    /// supports vision; see <see cref="SupportsVision"/>.
     /// </summary>
-    public async Task<string> GenerateTextAsync(string prompt, int? maxTokens = null)
+    public async Task<string> GenerateTextAsync(
+        string prompt,
+        int? maxTokens = null,
+        string? systemPrompt = null,
+        IReadOnlyList<string>? base64Images = null)
     {
         await _inferenceLock.WaitAsync();
         try
@@ -135,7 +217,7 @@ public class LLMService
             var request = new OllamaGenerateRequest
             {
                 Model = _settings.OllamaModel,
-                System = SYSTEM_PROMPT,
+                System = systemPrompt ?? SYSTEM_PROMPT,
                 Prompt = prompt,
                 Stream = false,
                 KeepAlive = FormatKeepAlive(),
@@ -145,6 +227,15 @@ public class LLMService
                     NumPredict = maxTokens ?? _settings.MaxTokens
                 }
             };
+
+            // Images are only attached for a vision-capable model. llama3
+            // silently ignores them, so sending them would be pure payload.
+            var images = ResolveImages(base64Images);
+            if (images is { Count: > 0 })
+            {
+                request.Model = VisionModel;
+                request.Images = images;
+            }
 
             // A stuck remote generation must never freeze an extraction, so a hard
             // timeout cancels the HTTP call.
@@ -170,7 +261,14 @@ public class LLMService
             }
             catch (OperationCanceledException)
             {
-                return $"LLM Error: Inference timed out after {_settings.InferenceTimeoutSeconds}s.";
+                // Distinguish "our budget expired" from "the HttpClient's own
+                // timeout fired first" - they look identical otherwise, and the
+                // second one points at a misconfigured HttpClient rather than a
+                // slow model.
+                var byCaller = !timeout.IsCancellationRequested;
+                return byCaller
+                    ? $"LLM Error: Inference exceeded the {_settings.InferenceTimeoutSeconds}s budget."
+                    : "LLM Error: Inference timed out after {_settings.InferenceTimeoutSeconds}s.";
             }
         }
         catch (Exception ex)
@@ -227,6 +325,9 @@ public class LLMService
         [JsonPropertyName("keep_alive")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? KeepAlive { get; set; }
+        [JsonPropertyName("images")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<string>? Images { get; set; }
         [JsonPropertyName("options")]
         public OllamaOptions? Options { get; set; }
     }
