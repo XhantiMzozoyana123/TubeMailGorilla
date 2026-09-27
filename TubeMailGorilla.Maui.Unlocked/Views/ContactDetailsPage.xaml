@@ -8,9 +8,18 @@
          ugly heading or an empty blank strip. The page matches every other page
          in the app instead, and the back affordance is an ordinary button at the
          top of the content. -->
-    <Grid Padding="20" RowDefinitions="*,Auto">
+    <Grid Padding="16" RowDefinitions="*,Auto">
 
         <ScrollView Grid.Row="0" HorizontalOptions="FillAndExpand">
+            <!--
+                Every block of content is wrapped in a CardStyle Frame. This used
+                to be one long stack with headings floating between loose fields,
+                which made it hard to see where one thing ended and the next
+                began. CardStyle already carries the app's surface colour, 1px
+                border, 12px corner radius and 20px padding, so grouping the
+                content this way costs no new styling and keeps the page in step
+                with every other screen.
+            -->
             <VerticalStackLayout Spacing="0">
 
                 <Button x:Name="BackButton"
@@ -24,14 +33,27 @@
                         TextColor="{StaticResource Primary}"
                         Clicked="OnBackClicked" />
 
-                <!-- Contact info (editable) -->
-                <Entry x:Name="NameEntry" Placeholder="Name" />
-                <Entry x:Name="EmailEntry" Placeholder="Email" Keyboard="Email" />
+                <!-- ============================ CONTACT INFO ============================ -->
+                <Frame Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="10">
 
-                <!-- Lead context (read-only) -->
-                <Label Text="LEAD CONTEXT" Style="{StaticResource SectionTitleStyle}" Margin="0,20,0,4" />
-                <Frame Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,16" CornerRadius="8">
-                    <VerticalStackLayout Spacing="6">
+                        <Label Text="CONTACT INFO" Style="{StaticResource SectionTitleStyle}" />
+
+                        <Label Text="NAME" Style="{StaticResource CaptionStyle}" Margin="0" />
+                        <Entry x:Name="NameEntry" Placeholder="Full name" />
+
+                        <Label Text="EMAIL" Style="{StaticResource CaptionStyle}" Margin="0" />
+                        <Entry x:Name="EmailEntry" Placeholder="Email address" Keyboard="Email" />
+
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- ============================ LEAD CONTEXT ============================ -->
+                <Frame Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="8">
+
+                        <Label Text="LEAD CONTEXT" Style="{StaticResource SectionTitleStyle}" />
+
                         <Label Text="{Binding Channel, StringFormat='Channel: {0}', TargetNullValue='Channel: (unknown)'}"
                                FontSize="13" TextColor="{StaticResource TextSecondary}" />
                         <Label Text="{Binding VideoTitle, StringFormat='Latest video: {0}', TargetNullValue='Video: (unknown)'}"
@@ -43,6 +65,7 @@
                                FontSize="12" TextColor="{StaticResource TextTertiary}" />
                         <Label Text="{Binding IsEmailer, StringFormat='Newsletter sender: {0}'}"
                                FontSize="12" TextColor="{StaticResource TextTertiary}" />
+
                     </VerticalStackLayout>
                 </Frame>
 
@@ -55,51 +78,60 @@
                     explicit height (a nested CollectionView measured without
                     one renders nothing).
                 -->
-                <!-- The three lead actions, in one row.
+                <!-- ================================ ACTIONS ================================ -->
+                <Frame Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="10">
 
-                     They were previously split: Generate sat down in ICEBREAKERS
-                     and Improve sat on its own above it, so the eye had to travel
-                     between two blocks to find what you can do with a lead. They
-                     are one workflow, so they sit together.
+                        <Label Text="ACTIONS" Style="{StaticResource SectionTitleStyle}" />
 
-                     Three equal columns rather than a HorizontalStackLayout: the
-                     labels differ a lot in length, and auto-sizing would leave
-                     the first button stretched and the last one cramped. Equal
-                     columns keep the row reading as a single control. -->
-                <Grid Margin="0,16,0,0"
-                      ColumnDefinitions="*,*,*"
-                      ColumnSpacing="8"
-                      RowDefinitions="Auto,Auto"
-                      RowSpacing="6">
-                    <Button x:Name="ActionIcebreakerButton"
-                            Grid.Row="0" Grid.Column="0"
-                            Text="&#x2728; Icebreaker"
-                            Style="{StaticResource PrimaryButtonStyle}"
-                            Clicked="OnGenerateIcebreakerClicked" />
-                    <Button x:Name="ActionImprovementsButton"
-                            Grid.Row="0" Grid.Column="1"
-                            Text="&#x1F50D; Video Review"
-                            Style="{StaticResource PrimaryButtonStyle}"
-                            Clicked="OnIdentifyImprovementsClicked" />
-                    <Button x:Name="ActionDownloadButton"
-                            Grid.Row="0" Grid.Column="2"
-                            Text="&#x2B07; Save ZIP"
-                            Style="{StaticResource SecondaryButtonStyle}"
-                            Clicked="OnDownloadSnapshotsClicked" />
+                        <!--
+                            The three things you can do with a lead. They were
+                            previously split: Generate sat down in ICEBREAKERS
+                            and Improve sat on its own above it, so the eye had to
+                            travel between two blocks to find them. They are one
+                            workflow, so they sit together.
 
-                    <Label x:Name="ActionRowHintLabel"
-                           Grid.Row="1" Grid.ColumnSpan="3"
-                           FontSize="11"
-                           LineBreakMode="WordWrap"
-                           TextColor="{StaticResource TextTertiary}"
-                           HorizontalTextAlignment="Center" />
-                </Grid>
+                            Three equal columns rather than a
+                            HorizontalStackLayout: the labels differ a lot in
+                            length and auto-sizing would stretch the first button
+                            and cram the last, so the row would stop reading as a
+                            single control.
+                        -->
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                            <Button x:Name="ActionIcebreakerButton"
+                                    Grid.Column="0"
+                                    Text="&#x2728; Icebreaker"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Clicked="OnGenerateIcebreakerClicked" />
+                            <Button x:Name="ActionImprovementsButton"
+                                    Grid.Column="1"
+                                    Text="&#x1F50D; Video Review"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Clicked="OnIdentifyImprovementsClicked" />
+                            <Button x:Name="ActionDownloadButton"
+                                    Grid.Column="2"
+                                    Text="&#x2B07; Save ZIP"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Clicked="OnDownloadSnapshotsClicked" />
+                        </Grid>
 
-                <!-- Video snapshots. -->
-                <Label Text="VIDEO SNAPSHOTS" Style="{StaticResource SectionTitleStyle}" Margin="0,20,0,4" />
-                <Label x:Name="SnapshotsHintLabel"
-                       Text="A frame every 10 seconds of the video. Swipe to move through it."
-                       Style="{StaticResource DescriptionStyle}" />
+                        <Label x:Name="ActionRowHintLabel"
+                               FontSize="11"
+                               LineBreakMode="WordWrap"
+                               TextColor="{StaticResource TextTertiary}"
+                               HorizontalTextAlignment="Center" />
+
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- ============================ VIDEO SNAPSHOTS ============================ -->
+                <Frame Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="10">
+
+                    <Label Text="VIDEO SNAPSHOTS" Style="{StaticResource SectionTitleStyle}" Margin="0" />
+                    <Label x:Name="SnapshotsHintLabel"
+                           Text="A frame every 10 seconds of the video. Swipe to move through it."
+                           Style="{StaticResource DescriptionStyle}" />
 
                 <Grid x:Name="SnapshotsPanel" IsVisible="False" Margin="0,8,0,0">
                     <Grid.RowDefinitions>
@@ -175,54 +207,60 @@
                             IsVisible="False" />
                 </Grid>
 
-                <Label x:Name="NoSnapshotsLabel"
-                       Text="This lead has no snapshots. They are captured during extraction, so only leads found after that ran will have them."
-                       FontSize="12"
-                       TextColor="{StaticResource TextTertiary}"
-                       IsVisible="False" />
+                    <Label x:Name="NoSnapshotsLabel"
+                           Text="This lead has no snapshots. They are captured during extraction, so only leads found after that ran will have them."
+                           FontSize="12"
+                           TextColor="{StaticResource TextTertiary}"
+                           LineBreakMode="WordWrap"
+                           IsVisible="False" />
 
-                <!-- The AI review result lives outside the snapshot panel on purpose:
-                     it works from the transcript and metadata as well as the frames,
-                     so it must stay available for a lead that has no snapshots.
-                     The button itself now lives in the action row above. -->
-
-                <!-- AI video review results. -->
-                <Grid x:Name="ImprovementsPanel" IsVisible="False" Margin="0,20,0,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <Label Text="AREAS OF IMPROVEMENT" Style="{StaticResource SectionTitleStyle}" />
-                    <Label Text="Editing notes aimed at raising watch time and engagement on this video."
-                           Style="{StaticResource DescriptionStyle}" />
-
-                    <VerticalStackLayout Grid.Row="2" Spacing="8" Margin="0,8,0,0">
-                        <ActivityIndicator x:Name="ImprovementsIndicator"
-                                           IsRunning="False"
-                                           IsVisible="False"
-                                           HorizontalOptions="Center" />
-                        <Label x:Name="ImprovementsStatusLabel"
-                               IsVisible="False"
-                               FontSize="12"
-                               TextColor="{StaticResource TextTertiary}" />
-                        <Label x:Name="ImprovementsLabel"
-                               IsVisible="False"
-                               FontSize="13"
-                               LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
-                </Grid>
+                </Frame>
 
-                <!-- AI Icebreakers -->
-                <Label Text="ICEBREAKERS" Style="{StaticResource SectionTitleStyle}" />
+                <!-- ======================= AREAS OF IMPROVEMENT ======================= -->
+                <!--
+                    Its own card and deliberately NOT nested inside the snapshots
+                    card: the review works from the transcript and metadata as well
+                    as the frames, so it has to stay available for a lead that has
+                    no snapshots at all.
+                -->
+                <Frame Style="{StaticResource CardStyle}" x:Name="ImprovementsCard" IsVisible="False">
+                    <VerticalStackLayout Spacing="10">
+
+                        <Label Text="AREAS OF IMPROVEMENT" Style="{StaticResource SectionTitleStyle}" Margin="0" />
+                        <Label Text="Editing notes aimed at raising watch time and engagement on this video."
+                               Style="{StaticResource DescriptionStyle}" />
+
+                        <VerticalStackLayout x:Name="ImprovementsPanel" IsVisible="False" Spacing="8">
+                            <ActivityIndicator x:Name="ImprovementsIndicator"
+                                               IsRunning="False"
+                                               IsVisible="False"
+                                               HorizontalOptions="Center" />
+                            <Label x:Name="ImprovementsStatusLabel"
+                                   IsVisible="False"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextTertiary}" />
+                            <Label x:Name="ImprovementsLabel"
+                                   IsVisible="False"
+                                   FontSize="13"
+                                   LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- ============================== ICEBREAKERS ============================== -->
+                <Frame Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="10">
+
+                <Label Text="ICEBREAKERS" Style="{StaticResource SectionTitleStyle}" Margin="0" />
                 <Label Text="Edit the text directly, save your changes, or use Custom AI Prompt to generate a new personalized version."
                        Style="{StaticResource DescriptionStyle}" />
-                <Label Text="CUSTOM AI PROMPT" Style="{StaticResource CaptionStyle}" Margin="0,8,0,4" />
+                <Label Text="CUSTOM AI PROMPT" Style="{StaticResource CaptionStyle}" Margin="0" />
                 <Editor x:Name="CustomAIPromptEditor"
                         Placeholder="Example: Mention the storytelling in their latest video and keep it under 20 words."
                         HeightRequest="90" />
-                <Grid ColumnDefinitions="*" Margin="0,8,0,0">
+                <Grid ColumnDefinitions="*">
                     <Button x:Name="CustomAIPromptButton"
                             Text="Custom AI Prompt"
                             Style="{StaticResource SecondaryButtonStyle}"
@@ -275,14 +313,35 @@
                        FontSize="12"
                        TextColor="{StaticResource TextTertiary}" />
 
+                    </VerticalStackLayout>
+                </Frame>
+
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- Save / Delete buttons -->
-        <HorizontalStackLayout Grid.Row="1" Spacing="12" HorizontalOptions="Center">
-            <Button Text="Save" Style="{StaticResource PrimaryButtonStyle}" Clicked="OnSave" />
-            <Button Text="Delete" Style="{StaticResource DangerButtonStyle}" Clicked="OnDelete" />
-        </HorizontalStackLayout>
+        <!--
+            Save / Delete live in a fixed bar outside the scroll area, in their own
+            bordered frame, so they stay reachable however long the page grows and
+            read as a page-level action rather than another section of content.
+        -->
+        <Frame Grid.Row="1"
+               Margin="0,8,0,0"
+               Padding="12"
+               BackgroundColor="{StaticResource Surface}"
+               BorderColor="{StaticResource Border}"
+               CornerRadius="12"
+               HasShadow="False">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button Grid.Column="0"
+                        Text="Save"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Clicked="OnSave" />
+                <Button Grid.Column="1"
+                        Text="Delete"
+                        Style="{StaticResource DangerButtonStyle}"
+                        Clicked="OnDelete" />
+            </Grid>
+        </Frame>
 
     </Grid>
 </ContentPage>

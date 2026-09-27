@@ -111,6 +111,10 @@ public partial class ContactDetailsPage : ContentPage
 
         ActionImprovementsButton.IsEnabled = false;
         ActionImprovementsButton.Text = "Analysing…";
+        // The whole card starts hidden, so reveal it as well as the panel:
+        // otherwise the results would be written into a collapsed card and the
+        // user would see nothing happen.
+        ImprovementsCard.IsVisible = true;
         ImprovementsPanel.IsVisible = true;
         ImprovementsIndicator.IsRunning = true;
         ImprovementsIndicator.IsVisible = true;
@@ -166,7 +170,7 @@ public partial class ContactDetailsPage : ContentPage
         {
             _isGeneratingImprovements = false;
             ActionImprovementsButton.IsEnabled = true;
-            ActionImprovementsButton.Text = "&#x1F50D; Video Review";
+            ActionImprovementsButton.Text = $"{(char)0xD83D}{(char)0xDD0D} Video Review";
             ImprovementsIndicator.IsRunning = false;
             ImprovementsIndicator.IsVisible = false;
         }
@@ -412,7 +416,7 @@ public partial class ContactDetailsPage : ContentPage
             _isGeneratingIcebreaker = false;
             ActionIcebreakerButton.IsEnabled = true;
             CustomAIPromptButton.IsEnabled = true;
-            ActionIcebreakerButton.Text = "&#x2728; Icebreaker";
+            ActionIcebreakerButton.Text = "✨ Icebreaker";
             CustomAIPromptButton.Text = "Custom AI Prompt";
         }
     }
