@@ -135,47 +135,79 @@ try
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await db.Database.MigrateAsync();
 
-    var adminEmail = builder.Configuration["AdminSeed:Email"] ?? "admin@tubemailgorilla.com";
-    var adminPassword = builder.Configuration["AdminSeed:Password"] ?? "Adm1nGorilla!";
+    // Seed the admin account only when a password is explicitly configured.
+    //
+    // This used to fall back to a hardcoded literal, so an operator who simply
+    // forgot AdminSeed__Password got a working admin account with a password that
+    // is in public git history. Silently provisioning a privileged account is
+    // the wrong default: skip seeding and say so, and let the deployment decide.
+    var adminEmail = builder.Configuration["AdminSeed:Email"];
+    var adminPassword = builder.Configuration["AdminSeed:Password"];
 
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-
-    const string adminRoleName = "Admin";
-    if (!await roleManager.RoleExistsAsync(adminRoleName))
+    if (string.IsNullOrWhiteSpace(adminPassword))
     {
-        await roleManager.CreateAsync(new IdentityRole(adminRoleName));
+        app.Logger.LogWarning(
+            "AdminSeed:Password is not configured, so no admin account was created. " +
+            "Set AdminSeed__Password (ADMIN_SEED_PASSWORD in .env) and restart to seed one.");
     }
-
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
-    if (adminUser is null)
+    else
     {
-        adminUser = new ApplicationUser
-        {
-            UserName = adminEmail,
-            Email = adminEmail,
-            EmailConfirmed = true,
-            FullName = "Administrator"
-        };
 
-        var createResult = await userManager.CreateAsync(adminUser, adminPassword);
-        if (!createResult.Succeeded)
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+        const string adminRoleName = "Admin";
+        if (!await roleManager.RoleExistsAsync(adminRoleName))
         {
-            throw new InvalidOperationException(
-                "Failed to seed the admin account: " + string.Join("; ", createResult.Errors.Select(e => e.Description)));
+            await roleManager.CreateAsync(new IdentityRole(adminRoleName));
         }
-    }
 
-    if (!await userManager.IsInRoleAsync(adminUser, adminRoleName))
-    {
-        await userManager.AddToRoleAsync(adminUser, adminRoleName);
-    }
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        if (adminUser is null)
+        {
+            adminUser = new ApplicationUser
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                EmailConfirmed = true,
+                FullName = "Administrator"
+            };
 
-    var adminClaims = await userManager.GetClaimsAsync(adminUser);
-    if (!adminClaims.Any(c => c.Type == SubscriptionClaim.Type && c.Value == SubscriptionClaim.Value))
-    {
-        await userManager.AddClaimAsync(adminUser, new Claim(SubscriptionClaim.Type, SubscriptionClaim.Value));
-    }
+            var createResult = await userManager.CreateAsync(adminUser, adminPassword);
+            if (!createResult.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    "Failed to seed the admin account: " + string.Join("; ", createResult.Errors.Select(e => e.Description)));
+            }
+        }
+
+        if (!await userManager.IsInRoleAsync(adminUser, adminRoleName))
+        {
+            await userManager.AddToRoleAsync(adminUser, adminRoleName);
+        }
+
+        // The subscription claim is a leftover from the subscription build. On
+        // SQLite it can fail: the InitialCreate migration declared
+        // AspNetUserClaims.Id as an int identity column while the CLR entity
+        // (IdentityUserClaim<string>) uses a string key, and reading it back
+        // throws an InvalidCastException. That must not abort the rest of the
+        // bootstrap, because the admin account has already been created by this
+        // point and the unlocked site never reads this claim.
+        try
+        {
+            var adminClaims = await userManager.GetClaimsAsync(adminUser);
+            if (!adminClaims.Any(c => c.Type == SubscriptionClaim.Type && c.Value == SubscriptionClaim.Value))
+            {
+                await userManager.AddClaimAsync(adminUser, new Claim(SubscriptionClaim.Type, SubscriptionClaim.Value));
+            }
+        }
+        catch (Exception claimEx)
+        {
+            app.Logger.LogWarning(claimEx,
+                "Could not attach the subscription claim to the admin account. This only " +
+                "affects the subscription edition; the unlocked site does not read it.");
+        }
+        }
 }
 catch (Exception ex)
 {
