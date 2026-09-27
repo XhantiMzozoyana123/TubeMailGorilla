@@ -21,6 +21,11 @@
          The lead/template/sender store uses Microsoft.Data.Sqlite (already pulled in
          by Microsoft.EntityFrameworkCore.Sqlite) so no second SQLite stack is added. -->
     <PackageReference Include="MailKit" Version="4.17.0" />
+
+
+    <!-- Used by VideoSnapshotService to download a lead's video before
+         ffmpeg samples its frames. Same version as the desktop edition. -->
+    <PackageReference Include="YoutubeExplode" Version="6.6.2" />
   </ItemGroup>
 
 </Project>

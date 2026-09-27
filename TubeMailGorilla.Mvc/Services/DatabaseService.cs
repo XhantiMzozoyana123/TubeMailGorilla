@@ -27,7 +27,7 @@ public partial class DatabaseService
     private const string TemplatesTable = "EmailTemplate";
     private const string ParametersTable = "MessageParameter";
 
-    private const string ContactCols = "Id, Email, Name, Channel, VideoTitle, VideoDescription, ExtractedAt, IsBlocked, IsEmailer, LastEmailed, UpdatedAt";
+    private const string ContactCols = "Id, Email, Name, Channel, VideoTitle, VideoDescription, VideoUrl, VideoSnapshotJson, VideoSnapshotTimestampsJson, ExtractedAt, IsBlocked, IsEmailer, LastEmailed, UpdatedAt";
     private const string BlockerCols = "Id, BlockedEmail, Reason, CreatedAt";
     private const string OpenerCols = "Id, EmailerId, Text, CreatedAt";
     private const string InboxCols = "Id, EmailerId, Subject, Body, IsRead, ReceivedAt, RepliedAt";
@@ -73,7 +73,7 @@ public partial class DatabaseService
 
             await using var command = connection.CreateCommand();
             command.CommandText = $"""
-                CREATE TABLE IF NOT EXISTS "{Contacts}" ("Id" INTEGER NOT NULL CONSTRAINT "PK_EmailContact" PRIMARY KEY AUTOINCREMENT, "Email" TEXT NOT NULL, "Name" TEXT, "Channel" TEXT, "VideoTitle" TEXT, "VideoDescription" TEXT, "ExtractedAt" INTEGER NOT NULL, "IsBlocked" INTEGER NOT NULL DEFAULT 0, "IsEmailer" INTEGER NOT NULL DEFAULT 0, "LastEmailed" INTEGER, "UpdatedAt" INTEGER NOT NULL);
+                CREATE TABLE IF NOT EXISTS "{Contacts}" ("Id" INTEGER NOT NULL CONSTRAINT "PK_EmailContact" PRIMARY KEY AUTOINCREMENT, "Email" TEXT NOT NULL, "Name" TEXT, "Channel" TEXT, "VideoTitle" TEXT, "VideoDescription" TEXT, "VideoUrl" TEXT, "VideoSnapshotJson" TEXT, "VideoSnapshotTimestampsJson" TEXT, "ExtractedAt" INTEGER NOT NULL, "IsBlocked" INTEGER NOT NULL DEFAULT 0, "IsEmailer" INTEGER NOT NULL DEFAULT 0, "LastEmailed" INTEGER, "UpdatedAt" INTEGER NOT NULL);
                 CREATE TABLE IF NOT EXISTS "{BlockersTable}" ("Id" INTEGER NOT NULL CONSTRAINT "PK_Blocker" PRIMARY KEY AUTOINCREMENT, "BlockedEmail" TEXT NOT NULL, "Reason" TEXT, "CreatedAt" INTEGER NOT NULL);
                 CREATE TABLE IF NOT EXISTS "{OpenersTable}" ("Id" INTEGER NOT NULL CONSTRAINT "PK_Opener" PRIMARY KEY AUTOINCREMENT, "EmailerId" INTEGER NOT NULL, "Text" TEXT NOT NULL, "CreatedAt" INTEGER NOT NULL);
                 CREATE TABLE IF NOT EXISTS "{InboxTable}" ("Id" INTEGER NOT NULL CONSTRAINT "PK_Inboxer" PRIMARY KEY AUTOINCREMENT, "EmailerId" INTEGER NOT NULL, "Subject" TEXT, "Body" TEXT, "IsRead" INTEGER NOT NULL DEFAULT 0, "ReceivedAt" INTEGER NOT NULL, "RepliedAt" INTEGER);
@@ -84,11 +84,58 @@ public partial class DatabaseService
                 """;
             await command.ExecuteNonQueryAsync();
 
+            // An existing database predates the snapshot columns. CREATE TABLE IF NOT
+            // EXISTS is a no-op for it, so add anything missing - SQLite has no
+            // "ADD COLUMN IF NOT EXISTS", hence the PRAGMA check.
+            await AddMissingContactColumnsAsync(connection);
+
+            // Runs outside the schema block because it opens its own connection. 
+
             _initialized = true;
         }
         finally
         {
             _initLock.Release();
+        }
+
+        // Enforce one row per email address. Separate from InitializeAsync's locked
+        // section because it opens its own connection (OpenAsync -> InitializeAsync).
+        await EnsureUniqueContactEmailsAsync();
+    }
+
+    /// <summary>
+    /// Brings an already-created EmailContact table up to the current column set.
+    /// Runs on every startup: the PRAGMA lookup is one cheap query per column and
+    /// the ALTER is skipped entirely once the column exists.
+    /// </summary>
+    private static async Task AddMissingContactColumnsAsync(SqliteConnection connection)
+    {
+        var expected = new (string Name, string Definition)[]
+        {
+            ("VideoUrl", "TEXT"),
+            ("VideoSnapshotJson", "TEXT"),
+            ("VideoSnapshotTimestampsJson", "TEXT")
+        };
+
+        await using var columns = connection.CreateCommand();
+        columns.CommandText = $"PRAGMA table_info({Contacts});";
+
+        var present = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using (var reader = await columns.ExecuteReaderAsync())
+        {
+            while (await reader.ReadAsync())
+                present.Add(reader.GetString(1));
+        }
+
+        foreach (var (name, definition) in expected)
+        {
+            if (present.Contains(name)) continue;
+
+            await using var alter = connection.CreateCommand();
+            // SQLite cannot add a NOT NULL column without a default, and every
+            // one of these is nullable, so the bare type is enough.
+            alter.CommandText = $"ALTER TABLE {Contacts} ADD COLUMN \"{name}\" {definition};";
+            await alter.ExecuteNonQueryAsync();
         }
     }
 

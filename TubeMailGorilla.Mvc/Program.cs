@@ -60,6 +60,8 @@ builder.Services.AddSingleton(new DatabaseService(
 // yt-dlp binary location - both resolved once at startup.
 WebPreferences.Configure(Path.Combine(unlockedDataDirectory, "websettings.json"));
 YtDlp.Configure(builder.Configuration["YtDlp:Path"], builder.Environment.ContentRootPath);
+// ffmpeg decodes video frames for lead snapshots - see VideoSnapshotService.
+Ffmpeg.Configure(builder.Configuration["Ffmpeg:Path"], builder.Environment.ContentRootPath);
 
 // Ollama inference is remote, so the HttpClient timeout is managed per call.
 builder.Services.AddSingleton(new HttpClient { Timeout = Timeout.InfiniteTimeSpan });
@@ -73,6 +75,7 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddSingleton<YouTubeSearchService>();
 builder.Services.AddSingleton<YouTubeTranscriptService>();
 builder.Services.AddSingleton<CaptionService>();
+builder.Services.AddSingleton<VideoSnapshotService>();
 builder.Services.AddSingleton<AIService>();
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddSingleton<ExtractService>();

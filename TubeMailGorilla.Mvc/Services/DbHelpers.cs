@@ -59,12 +59,15 @@ internal static class DbHelpers
     internal static int Flag(bool value) => value ? 1 : 0;
     internal static object Value(string? value) => (object?)value ?? DBNull.Value;
 
+    // Column order must match DatabaseService.ContactCols.
     internal static EmailContact ReadContact(SqliteDataReader r) => new()
     {
         Id = r.GetInt32(0), Email = r.GetString(1), Name = Text(r, 2), Channel = Text(r, 3),
-        VideoTitle = Text(r, 4), VideoDescription = Text(r, 5), ExtractedAt = Time(r, 6),
-        IsBlocked = r.GetInt64(7) != 0, IsEmailer = r.GetInt64(8) != 0,
-        LastEmailed = NullableTime(r, 9), UpdatedAt = Time(r, 10)
+        VideoTitle = Text(r, 4), VideoDescription = Text(r, 5), VideoUrl = Text(r, 6),
+        VideoSnapshotJson = Text(r, 7), VideoSnapshotTimestampsJson = Text(r, 8),
+        ExtractedAt = Time(r, 9),
+        IsBlocked = r.GetInt64(10) != 0, IsEmailer = r.GetInt64(11) != 0,
+        LastEmailed = NullableTime(r, 12), UpdatedAt = Time(r, 13)
     };
 
     internal static Blocker ReadBlocker(SqliteDataReader r) => new()

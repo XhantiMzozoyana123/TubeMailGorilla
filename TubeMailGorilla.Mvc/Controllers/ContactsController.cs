@@ -15,12 +15,18 @@ public class ContactsController : Controller
     private readonly DatabaseService _db;
     private readonly AIService _ai;
     private readonly ValidationService _validation;
+    private readonly YouTubeTranscriptService _transcript;
 
-    public ContactsController(DatabaseService db, AIService ai, ValidationService validation)
+    public ContactsController(
+        DatabaseService db,
+        AIService ai,
+        ValidationService validation,
+        YouTubeTranscriptService transcript)
     {
         _db = db;
         _ai = ai;
         _validation = validation;
+        _transcript = transcript;
     }
 
     private const string SortNewestFirst = "newest";
@@ -43,6 +49,7 @@ public class ContactsController : Controller
             if (contact is null) return RedirectToAction(nameof(Index));
             model.Contact = contact;
             model.Openers = await _db.GetOpenersForLeadAsync(contact.Id);
+            model.Snapshots = BuildSnapshots(contact);
         }
         else
         {
@@ -163,14 +170,18 @@ public class ContactsController : Controller
     }
 
     /// <summary>Generates one icebreaker for the open contact (details page).</summary>
+    /// <param name="instructions">
+    /// Optional custom instructions from the user (e.g. "mention my editing style"),
+    /// which supplement the lead context but never override the safety rules.
+    /// </param>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> GenerateIcebreaker(int id)
+    public async Task<IActionResult> GenerateIcebreaker(int id, string? instructions)
     {
         var contact = await _db.GetContactAsync(id);
         if (contact is null) return RedirectToAction(nameof(Index));
 
-        var icebreaker = await _ai.GenerateIcebreakerAsync(contact);
+        var icebreaker = await _ai.GenerateIcebreakerAsync(contact, instructions ?? string.Empty);
         if (string.IsNullOrWhiteSpace(icebreaker))
         {
             TempData["StatusError"] = "The AI service timed out or could not be reached. Check your connection and try again.";
@@ -188,6 +199,54 @@ public class ContactsController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    /// <summary>
+    /// Analyses the lead's video and returns concrete editing notes aimed at
+    /// raising watch time. Needs the snapshots and/or the transcript, so it is
+    /// a separate opt-in action rather than part of extraction.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> VideoImprovements(int id)
+    {
+        var contact = await _db.GetContactAsync(id);
+        if (contact is null) return RedirectToAction(nameof(Index));
+
+        string transcript = string.Empty;
+        if (!string.IsNullOrWhiteSpace(contact.VideoUrl))
+        {
+            try
+            {
+                var cues = await _transcript.ExtractTranscriptCuesAsync(contact.VideoUrl);
+                transcript = string.Join(" ", cues.Select(c => c.Text).Distinct());
+            }
+            catch
+            {
+                // No transcript is survivable: the analysis falls back to the
+                // snapshots and the video metadata.
+            }
+        }
+
+        var advice = await _ai.GenerateVideoImprovementsAsync(contact, transcript, contact.VideoSnapshot);
+        if (string.IsNullOrWhiteSpace(advice))
+        {
+            TempData["StatusError"] = "The AI service could not produce an analysis. It may have timed out - try again.";
+        }
+        else
+        {
+            TempData["StatusMessage"] = "Analysis ready.";
+        }
+
+        // The result is shown inline, so render the details view directly
+        // rather than redirecting (which would lose the text in TempData).
+        var model = new ContactDetailsViewModel
+        {
+            Contact = contact,
+            Openers = await _db.GetOpenersForLeadAsync(contact.Id),
+            Snapshots = BuildSnapshots(contact),
+            VideoAdvice = advice
+        };
+        return View(nameof(Details), model);
+    }
     /// <summary>Removes one saved icebreaker from the contact details page.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -198,6 +257,52 @@ public class ContactsController : Controller
     }
 
     // ------------------------------------------------------------------ helpers
+
+    /// <summary>
+    /// Pairs each stored snapshot with the moment it was captured at, so the
+    /// view can label a frame and link back to that point in the video.
+    /// </summary>
+    private static List<ContactDetailsViewModel.VideoSnapshotItem> BuildSnapshots(EmailContact contact)
+    {
+        var images = contact.VideoSnapshot;
+        var stamps = contact.VideoSnapshotTimestamps;
+        var items = new List<ContactDetailsViewModel.VideoSnapshotItem>(images.Count);
+
+        for (var i = 0; i < images.Count; i++)
+        {
+            if (string.IsNullOrWhiteSpace(images[i])) continue;
+
+            var seconds = i < stamps.Count ? stamps[i] : 0d;
+            items.Add(new ContactDetailsViewModel.VideoSnapshotItem(
+                images[i],
+                TranscriptCue.FormatTimestamp(seconds),
+                seconds,
+                BuildSeekUrl(contact.VideoUrl, seconds)));
+        }
+
+        return items;
+    }
+
+    /// <summary>
+    /// Appends a start offset to a YouTube watch/short URL so a frame links
+    /// straight to the moment it was captured. Returns null when the URL is
+    /// unusable, rather than emitting a link that goes nowhere.
+    /// </summary>
+    private static string? BuildSeekUrl(string? videoUrl, double seconds)
+    {
+        if (string.IsNullOrWhiteSpace(videoUrl)) return null;
+        if (seconds <= 0) return videoUrl;
+
+        // A bare video id needs the watch prefix; anything else is left alone
+        // apart from the query separator.
+        var url = videoUrl.Contains("://", StringComparison.Ordinal)
+            ? videoUrl
+            : "https://www.youtube.com/watch?v=" + videoUrl;
+
+        var separator = url.Contains("?", StringComparison.Ordinal) ? "&" : "?";
+        var wholeSeconds = (int)Math.Round(seconds);
+        return $"{url}{separator}t={wholeSeconds}s";
+    }
 
     /// <summary>Rebuilds the filtered/sorted list so bulk actions target
     /// exactly the rows the user is looking at.</summary>

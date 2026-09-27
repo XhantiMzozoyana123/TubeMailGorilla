@@ -34,6 +34,16 @@ RUN dotnet publish "TubeMailGorilla.Mvc.csproj" \
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 
+# ffmpeg decodes the video frames behind a lead's snapshots (VideoSnapshotService).
+# The desktop edition uses its platform decoder instead - Media Foundation on
+# Windows, AVFoundation on macOS - but this image runs on Linux, where neither
+# exists, so ffmpeg is installed here. No bundled binary, no extra build step:
+# VideoSnapshotService detects it on PATH (see Ffmpeg.Configure) and simply
+# skips snapshots when it is absent, so the site still works without it.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 # Ensure data directory and default App_Data exist and are owned by the non-root app user
 RUN mkdir -p /app/data /app/App_Data && chown -R 1654:1654 /app
 

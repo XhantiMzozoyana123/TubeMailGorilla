@@ -553,3 +553,54 @@ h2 { font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 600; color
     .btn-row { grid-template-columns: 1fr; }
     .tab { font-size: 10px; padding: 8px 1px 9px; }
 }
+
+
+/* ---------------------------------------------------------------- */
+/* Lead video snapshots (Contacts > Details)
+/* ---------------------------------------------------------------- */
+.snapshot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin: 0 0 16px;
+}
+
+.snapshot-item {
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+}
+
+.snapshot-item img {
+    display: block;
+    width: 100%;
+    /* 16:9 matches the captured frame size, so the grid stays tidy. */
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background: var(--surface-variant);
+}
+
+.snapshot-item figcaption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.snapshot-time {
+    font-family: "JetBrains Mono", monospace;
+}
+
+.snapshot-item figcaption a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.snapshot-item figcaption a:hover {
+    text-decoration: underline;
+}

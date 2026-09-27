@@ -187,7 +187,11 @@ public class SendEmailsController : Controller
                     EmailTo = contact.Email,
                     ToName = contact.Name ?? contact.Email,
                     Subject = EmailService.Personalize(messageSubject, contact, parameters, icebreaker),
-                    Body = EmailService.Personalize(messageBody, contact, parameters, icebreaker),
+                    // Personalise first, then convert to HTML: the mail is sent with
+                    // IsBodyHtml = true, so a plain-text body would otherwise arrive as one
+                    // unbroken block with no line breaks.
+                    Body = EmailService.ToHtmlBody(
+                        EmailService.Personalize(messageBody, contact, parameters, icebreaker)),
                     SmtpHost = senderAccount.SmtpHost,
                     SmtpPort = senderAccount.SmtpPort,
                     SmtpUser = senderAccount.SmtpUser,

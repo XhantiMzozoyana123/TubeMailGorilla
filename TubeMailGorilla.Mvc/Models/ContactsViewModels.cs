@@ -35,7 +35,51 @@ public class ContactDetailsViewModel
     /// <summary>Saved AI icebreakers (Openers) for this lead.</summary>
     public List<Opener> Openers { get; set; } = new();
 
+    /// <summary>
+    /// The lead's video snapshots, index-aligned with the seek position each
+    /// frame was captured at. Empty when the lead has none.
+    /// </summary>
+    public List<VideoSnapshotItem> Snapshots { get; set; } = new();
+
+    /// <summary>Latest "areas of improvement" analysis, or null when none was run yet.</summary>
+    public string? VideoAdvice { get; set; }
+
     public bool IsNew => Contact.Id == 0;
+
+    /// <summary>
+    /// One snapshot as the details page shows it: the base64 JPEG plus the
+    /// transcript timestamp and seconds it was captured at. Kept separate from
+    /// the stored <see cref="EmailContact"/> shape so the view has exactly what
+    /// it binds to.
+    /// </summary>
+    public class VideoSnapshotItem
+    {
+        public VideoSnapshotItem(string image, string timestampLabel, double seconds, string? videoUrl)
+        {
+            Image = image;
+            TimestampLabel = timestampLabel;
+            Seconds = seconds;
+            VideoUrl = videoUrl;
+        }
+
+        /// <summary>Base64 JPEG data (no data-URI prefix).</summary>
+        public string Image { get; }
+
+        /// <summary>"00:00:10" - when in the video this frame came from.</summary>
+        public string TimestampLabel { get; }
+
+        /// <summary>The same moment in seconds, used to seek the source video.</summary>
+        public double Seconds { get; }
+
+        /// <summary>
+        /// The source video, with the seek position applied, or null when unknown.
+        /// Built on demand so the view can just print the href.
+        /// </summary>
+        public string? VideoUrl { get; }
+
+        /// <summary>Data URI for an &lt;img src&gt;.</summary>
+        public string DataUri => "data:image/jpeg;base64," + Image;
+    }
 
     public string? StatusMessage { get; set; }
     public string? Error { get; set; }

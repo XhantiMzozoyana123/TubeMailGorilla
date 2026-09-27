@@ -52,6 +52,9 @@
 {
     <form method="post" asp-controller="Contacts" asp-action="GenerateIcebreaker" class="js-busy">
         <input type="hidden" name="id" value="@contact.Id" />
+        <input type="text" name="instructions"
+               placeholder="Optional: custom instructions (e.g. mention my editing style)"
+               maxlength="400" />
         <button type="submit" class="btn btn-primary btn-block" data-busy-target="this">
             &#x2728; Generate Icebreaker
         </button>
@@ -72,6 +75,49 @@
 @if (Model.Openers.Count == 0)
 {
     <p class="list-meta">No icebreakers yet. Generate one above.</p>
+}
+
+@* Video snapshots + AI video review *@
+@if (!Model.IsNew && (Model.Snapshots.Count > 0 || !string.IsNullOrWhiteSpace(contact.VideoUrl)))
+{
+    <h2 class="section-title" style="margin-top: 20px;">VIDEO REVIEW</h2>
+    <p class="description">
+        Still frames captured every 10 seconds of this lead's video, so you can see the content
+        before you pitch. Use "Identify Areas of Improvement" for concrete editing notes.
+    </p>
+
+    @if (Model.Snapshots.Count > 0)
+    {
+        <div class="snapshot-grid">
+            @foreach (var shot in Model.Snapshots)
+            {
+                <figure class="snapshot-item">
+                    <img src="@shot.DataUri" alt="Frame at @shot.TimestampLabel" loading="lazy" />
+                    <figcaption>
+                        <span class="snapshot-time">@shot.TimestampLabel</span>
+                        @if (!string.IsNullOrWhiteSpace(shot.VideoUrl))
+                        {
+                            <a href="@shot.VideoUrl" target="_blank" rel="noopener">Watch</a>
+                        }
+                    </figcaption>
+                </figure>
+            }
+        </div>
+    }
+
+    <form method="post" asp-controller="Contacts" asp-action="VideoImprovements" class="js-busy">
+        <input type="hidden" name="id" value="@contact.Id" />
+        <button type="submit" class="btn btn-primary btn-block" data-busy-target="this">
+            &#x1F50D; Identify Areas of Improvement
+        </button>
+    </form>
+
+    @if (!string.IsNullOrWhiteSpace(Model.VideoAdvice))
+    {
+        <div class="info-card" style="margin-top: 12px;">
+            <p style="white-space: pre-line;">@Model.VideoAdvice</p>
+        </div>
+    }
 }
 
 @if (!Model.IsNew)
