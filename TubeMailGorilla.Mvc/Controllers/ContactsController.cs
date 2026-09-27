@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TubeMailGorilla.Mvc.Models;
@@ -254,6 +255,128 @@ public class ContactsController : Controller
     {
         await _db.DeleteOpenerAsync(openerId);
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>
+    /// Streams the lead's video snapshots as a single ZIP archive.
+    ///
+    /// A GET rather than a POST because it is a download, not a state change -
+    /// that way the browser handles it natively (progress, save dialog) with no
+    /// JavaScript. Alongside the frames it includes a small manifest so the
+    /// archive is self-describing once it leaves the site: which timestamp each
+    /// frame came from, and the source video seek link.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> DownloadSnapshots(int id)
+    {
+        var contact = await _db.GetContactAsync(id);
+        if (contact is null) return RedirectToAction(nameof(Index));
+
+        var images = contact.VideoSnapshot;
+        if (images.Count == 0)
+        {
+            TempData["StatusError"] = "This lead has no snapshots to download.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var stamps = contact.VideoSnapshotTimestamps;
+
+        // NOT disposed here: MVC reads this stream after the action returns, so
+        // disposing it produced "ObjectDisposedException: Cannot access a closed
+        // Stream" and a 500 on every download. It is left to the GC.
+        var buffer = new MemoryStream();
+        using (var archive = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            var written = 0;
+
+            for (var i = 0; i < images.Count; i++)
+            {
+                if (string.IsNullOrWhiteSpace(images[i])) continue;
+
+                var seconds = i < stamps.Count ? stamps[i] : 0d;
+                var entry = archive.CreateEntry(
+                    // Colons are illegal in filenames on Windows and need escaping in
+                    // zip entry names, so the hh:mm:ss label is flattened.
+                    string.Format("snapshot_{0:D2}_{1}.jpg", i, Flatten(TranscriptCue.FormatTimestamp(seconds))),
+                    CompressionLevel.Fastest);
+
+                byte[] jpeg;
+                try
+                {
+                    // Stored as bare base64, but tolerate a data-URI prefix.
+                    var payload = images[i].StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                        ? images[i][(images[i].IndexOf(',') + 1)..]
+                        : images[i];
+                    jpeg = Convert.FromBase64String(payload);
+                }
+                catch
+                {
+                    // A single corrupt frame must not sink the whole download.
+                    continue;
+                }
+
+                await using var stream = entry.Open();
+                await stream.WriteAsync(jpeg);
+                written++;
+            }
+
+            if (written == 0)
+            {
+                TempData["StatusError"] = "None of the stored snapshots could be read.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            // Manifest: makes the archive useful without the web UI alongside it.
+            var manifest = archive.CreateEntry("README.txt", CompressionLevel.Fastest);
+            await using var manifestStream = manifest.Open();
+            await using var writer = new StreamWriter(manifestStream);
+
+            await writer.WriteLineAsync("TubeMailGorilla - lead video snapshots");
+            await writer.WriteLineAsync();
+            await writer.WriteLineAsync($"Lead:     {contact.DisplayName} <{contact.Email}>");
+            await writer.WriteLineAsync($"Channel:  {contact.Channel}");
+            await writer.WriteLineAsync($"Video:    {contact.VideoTitle}");
+            await writer.WriteLineAsync($"Captured: {contact.ExtractedAt:g}");
+            if (!string.IsNullOrWhiteSpace(contact.VideoUrl))
+                await writer.WriteLineAsync($"Source:   {BuildSeekUrl(contact.VideoUrl, 0)}");
+            await writer.WriteLineAsync();
+            await writer.WriteLineAsync("Frames (one per 10 seconds of the video):");
+            for (var i = 0; i < written; i++)
+            {
+                var seconds = i < stamps.Count ? stamps[i] : 0d;
+                await writer.WriteLineAsync(
+                    $"  snapshot_{i:D2}_{Flatten(TranscriptCue.FormatTimestamp(seconds))}.jpg");
+            }
+        }
+
+        buffer.Position = 0;
+        var fileName = BuildZipFileName(contact);
+        return File(buffer, "application/zip", fileName);
+    }
+
+    /// <summary>
+    /// A safe, readable download name. Channel names come from scraped YouTube
+    /// metadata, so anything that is illegal in a filename has to go - an
+    /// unfiltered value ends up in a Content-Disposition header.
+    /// </summary>
+    /// <summary>"00:01:24" -> "00-01-24", for use inside a filename.</summary>
+    private static string Flatten(string timestamp) => timestamp.Replace(':', '-');
+
+    private static string BuildZipFileName(EmailContact contact)
+    {
+        var source = !string.IsNullOrWhiteSpace(contact.Channel)
+            ? contact.Channel
+            : contact.Email;
+
+        var safe = new string(source
+            .Select(ch => char.IsLetterOrDigit(ch) || ch is ' ' or '-' or '_' ? ch : '-')
+            .ToArray())
+            .Trim('-', ' ');
+
+        if (safe.Length == 0) safe = "lead";
+        if (safe.Length > 60) safe = safe[..60].Trim('-', ' ');
+
+        return $"{safe}-snapshots.zip";
     }
 
     // ------------------------------------------------------------------ helpers

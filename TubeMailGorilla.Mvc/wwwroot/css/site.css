@@ -609,3 +609,60 @@ h2 { font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 600; color
 .snapshot-item figcaption a:hover {
     text-decoration: underline;
 }
+
+/* ---------------------------------------------------------------- */
+/* Lead action row (Contacts > Details)
+/*
+/* The three per-lead actions sit in one row. Grid rather than flex so the
+   three columns stay exactly equal regardless of label length - "Identify
+   Areas of Improvement" is much longer than the other two, and flex would
+   leave the first button stretched and the third cramped. */
+/* ---------------------------------------------------------------- */
+.action-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 0 24px;
+}
+
+/* The form wrapping one of the buttons must not add its own grid gap row. */
+.action-row .action-form {
+    display: contents;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 46px;
+    /* Long labels wrap to two lines rather than overflowing or truncating. */
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
+    padding: 8px 10px;
+}
+
+.action-btn .action-icon {
+    flex: 0 0 auto;
+    font-size: 15px;
+    line-height: 1;
+}
+
+.action-btn .action-label {
+    min-width: 0;
+}
+
+.action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Below ~640px three columns get too narrow to read, so stack instead of
+   letting the labels wrap to four or five lines. */
+@media (max-width: 640px) {
+    .action-row {
+        grid-template-columns: 1fr;
+    }
+}

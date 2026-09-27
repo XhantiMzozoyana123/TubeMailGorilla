@@ -42,24 +42,67 @@
     <p>Newsletter sender: @contact.IsEmailer</p>
 </div>
 
+@* ---------------------------------------------------------------------
+   Action row - the three things you can do with a lead, side by side.
+
+   These used to be scattered: the icebreaker button sat in ICEBREAKERS and
+   the video button in VIDEO REVIEW, so the eye had to jump between two
+   sections to find them. They are one workflow, so they live in one row.
+
+   The optional icebreaker instructions sit directly above the row because
+   they only apply to the first button, and a detached field that changes
+   one specific action is confusing.
+   --------------------------------------------------------------------- *@
+@if (!Model.IsNew)
+{
+    <form method="post" asp-controller="Contacts" asp-action="GenerateIcebreaker" id="icebreakerForm">
+        <input type="hidden" name="id" value="@contact.Id" />
+        <input type="text" name="instructions" id="icebreakerInstructions"
+               placeholder="Optional icebreaker instructions (e.g. mention my editing style)"
+               maxlength="400" />
+    </form>
+
+    <div class="action-row">
+        <button type="submit" form="icebreakerForm" class="btn btn-primary action-btn js-busy"
+                data-busy-target="this">
+            <span class="action-icon">&#x2728;</span>
+            <span class="action-label">Generate Icebreaker</span>
+        </button>
+
+        <form method="post" asp-controller="Contacts" asp-action="VideoImprovements" class="action-form js-busy">
+            <input type="hidden" name="id" value="@contact.Id" />
+            <button type="submit" class="btn btn-primary action-btn" data-busy-target="this">
+                <span class="action-icon">&#x1F50D;</span>
+                <span class="action-label">Identify Areas of Improvement</span>
+            </button>
+        </form>
+
+        @if (Model.Snapshots.Count > 0)
+        {
+            <a class="btn btn-secondary action-btn"
+               asp-controller="Contacts" asp-action="DownloadSnapshots" asp-route-id="@contact.Id">
+                <span class="action-icon">&#x2B07;</span>
+                <span class="action-label">Download Snapshots (ZIP)</span>
+            </a>
+        }
+        else
+        {
+            @* No frames captured, so there is nothing to download. Shown disabled
+               rather than hidden so the row stays visually balanced. *@
+            <button type="button" class="btn btn-secondary action-btn" disabled
+                    title="No snapshots were captured for this lead.">
+                <span class="action-icon">&#x2B07;</span>
+                <span class="action-label">Download Snapshots (ZIP)</span>
+            </button>
+        }
+    </div>
+}
+
 @* AI Icebreakers *@
 <h2 class="section-title">AI ICEBREAKERS</h2>
 <p class="description">
     Personalized first lines generated from this lead's channel and video. Pick the best one for your email.
 </p>
-
-@if (!Model.IsNew)
-{
-    <form method="post" asp-controller="Contacts" asp-action="GenerateIcebreaker" class="js-busy">
-        <input type="hidden" name="id" value="@contact.Id" />
-        <input type="text" name="instructions"
-               placeholder="Optional: custom instructions (e.g. mention my editing style)"
-               maxlength="400" />
-        <button type="submit" class="btn btn-primary btn-block" data-busy-target="this">
-            &#x2728; Generate Icebreaker
-        </button>
-    </form>
-}
 
 @foreach (var opener in Model.Openers)
 {
@@ -104,13 +147,6 @@
             }
         </div>
     }
-
-    <form method="post" asp-controller="Contacts" asp-action="VideoImprovements" class="js-busy">
-        <input type="hidden" name="id" value="@contact.Id" />
-        <button type="submit" class="btn btn-primary btn-block" data-busy-target="this">
-            &#x1F50D; Identify Areas of Improvement
-        </button>
-    </form>
 
     @if (!string.IsNullOrWhiteSpace(Model.VideoAdvice))
     {
