@@ -25,6 +25,15 @@ public class ExtractViewModel
 
     public bool YtDlpAvailable { get; set; }
 
+    /// <summary>Hangfire job id of the run this page is tracking, if any.</summary>
+    public string? JobId { get; set; }
+
+    /// <summary>Live status of the tracked job, for the progress panel.</summary>
+    public ExtractionRunStatus? ActiveJob { get; set; }
+
+    /// <summary>Most recent runs, so progress survives a page refresh.</summary>
+    public List<ExtractionRunStatus> RecentJobs { get; set; } = new();
+
     /// <summary>Absolute path the app searched, so the error names a real folder.</summary>
     public string YtDlpExpectedPath { get; set; } = string.Empty;
     public EntitlementInfo? Entitlements { get; set; }

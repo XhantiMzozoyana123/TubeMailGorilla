@@ -57,6 +57,46 @@
             }
         </form>
 
+        @* Background run progress. Extraction now runs on the Hangfire server,
+           so this polls a status endpoint instead of blocking the request. *@
+        @if (Model.ActiveJob is not null)
+        {
+            <div class="info-card" id="extraction-progress"
+                 data-job-id="@Model.ActiveJob.JobId"
+                 data-active="@Model.ActiveJob.IsActive.ToString().ToLowerInvariant()"
+                 style="margin-top: 12px;">
+                <p>
+                    <strong>@Model.ActiveJob.Keyword</strong>
+                    &mdash; <span data-field="state">@Model.ActiveJob.State</span>
+                    (<span data-field="elapsed">@Model.ActiveJob.ElapsedLabel</span>)
+                </p>
+                <p data-field="message">@Model.ActiveJob.Message</p>
+                <p class="list-meta">
+                    Videos: <span data-field="videos">@Model.ActiveJob.TotalVideos</span>
+                    &middot; Leads: <span data-field="emails">@Model.ActiveJob.EmailsFound</span>
+                    &middot; Errors: <span data-field="errors">@Model.ActiveJob.Errors</span>
+                </p>
+                <p class="list-meta"><a href="/hangfire" target="_blank" rel="noopener">Open the job dashboard</a></p>
+            </div>
+        }
+
+        @if (Model.RecentJobs.Count > 0)
+        {
+            <div class="info-card" style="margin-top: 12px;">
+                <p class="list-meta" style="margin-bottom: 6px;">RECENT RUNS</p>
+                @foreach (var run in Model.RecentJobs)
+                {
+                    <p class="list-meta">
+                        @run.Keyword &mdash; @run.State &mdash; @run.ElapsedLabel
+                        @if (run.TotalVideos > 0)
+                        {
+                            <span> (videos: @run.TotalVideos, leads: @run.EmailsFound)</span>
+                        }
+                    </p>
+                }
+            </div>
+        }
+
         <hr class="divider" />
 
         <label class="caption">BULK EXTRACT FROM CSV (OPTIONAL)</label>

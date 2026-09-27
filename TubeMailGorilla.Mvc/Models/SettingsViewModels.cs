@@ -12,6 +12,18 @@ public class SettingsViewModel
     /// <summary>Default page limit offered on the Extract page.</summary>
     public int DefaultPageLimit { get; set; } = 5;
 
+    // SCHEDULED EXTRACTION card ---------------------------------------------
+    /// <summary>Keyword the recurring jobs search for.</summary>
+    public string CronKeyword { get; set; } = string.Empty;
+
+    /// <summary>Daily run time as "HH:mm" (UTC), or empty to disable.</summary>
+    public string CronDailyTime { get; set; } = string.Empty;
+
+    /// <summary>Whether the every-5-minutes schedule is on.</summary>
+    public bool CronHourlyEnabled { get; set; }
+
+    public bool CronConfigured => CronDailyTime.Length > 0 || CronHourlyEnabled;
+
     // EMAIL SHORTCODES card -------------------------------------------------
     public List<MessageParameter> Parameters { get; set; } = new();
     public int SelectedParameterId { get; set; }

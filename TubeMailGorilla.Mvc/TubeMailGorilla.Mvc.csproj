@@ -15,6 +15,8 @@
 
   <ItemGroup>
     <!-- Used only for the MVC site's optional SQLite storage path. -->
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.25" />
+    <PackageReference Include="Hangfire.MemoryStorage" Version="1.8.1.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
 
     <!-- Ported from TubeMailGorilla.Maui.Unlocked: IMAP inbox reading in EmailService.

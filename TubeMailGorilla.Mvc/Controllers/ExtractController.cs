@@ -21,19 +21,22 @@ public class ExtractController : Controller
     private readonly LLMService _llm;
     private readonly ValidationService _validation;
     private readonly PaymentService _payments;
+    private readonly ExtractionJobScheduler _scheduler;
 
     public ExtractController(
         ExtractService extract,
         DatabaseService db,
         LLMService llm,
         ValidationService validation,
-        PaymentService payments)
+        PaymentService payments,
+        ExtractionJobScheduler scheduler)
     {
         _extract = extract;
         _db = db;
         _llm = llm;
         _validation = validation;
         _payments = payments;
+        _scheduler = scheduler;
     }
 
     [HttpGet]
@@ -80,23 +83,28 @@ public class ExtractController : Controller
         await _llm.EnsureReadyAsync();
         model.LlmStatus = _llm.Status;
 
-        var stopwatch = Stopwatch.StartNew();
+        // Hand the work to the background server and return immediately. A single
+        // run takes tens of minutes (video download + ffmpeg + Ollama per video),
+        // so doing it inline meant the browser timed out long before the work
+        // finished - even though the server kept going. The page now polls
+        // /extract/status/{jobId} instead.
         try
         {
-            var result = await _extract.ExtractByKeywordAsync(
+            model.JobId = _scheduler.Enqueue(
                 keyword.Trim(), model.PageViewLimit, gmailOnly, validateEmails);
 
-            model.TotalVideos = result.TotalVideos;
-            model.EmailsFound = result.EmailsFound;
-            model.Errors = result.Errors;
-            model.StatusMessage = "Done.";
+            model.StatusMessage =
+                "Queued in the background - you can leave this page open or close it. " +
+                "Progress updates below and on the /hangfire dashboard.";
         }
         catch (Exception ex)
         {
-            model.Error = $"Extraction failed: {ex.Message}";
+            model.Error = $"Could not queue the extraction: {ex.Message}";
         }
 
-        model.Elapsed = stopwatch.Elapsed;
+        model.ActiveJob = ExtractionRunStore.Get(model.JobId ?? string.Empty);
+        model.RecentJobs = ExtractionRunStore.Recent();
+
         await PopulateAsync(model);
         return View(nameof(Index), model);
     }
@@ -277,5 +285,12 @@ public class ExtractController : Controller
         model.Contacts = await _db.GetContactsAsync();
         model.YtDlpAvailable = YtDlp.IsAvailable;
         model.YtDlpExpectedPath = YtDlp.ExpectedPath;
+
+        // Populated on every load, not just after a POST, so refreshing the page
+        // (or coming back to it later) still shows the running job's progress.
+        model.ActiveJob = ExtractionRunStore.Current;
+        model.RecentJobs = ExtractionRunStore.Recent();
+        if (model.ActiveJob is not null)
+            model.JobId = model.ActiveJob.JobId;
     }
 }

@@ -33,6 +33,46 @@
     </div>
 </section>
 
+@* SCHEDULED EXTRACTION card *@
+<section class="card">
+    <div class="card-header">
+        <span class="card-title">SCHEDULED EXTRACTION</span>
+        <span class="card-chevron">&#x25BE;</span>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+        <p class="description">
+            Run extraction on a schedule instead of clicking Start. Jobs run in the background,
+            so a run continues even if you close the browser.
+        </p>
+
+        <form method="post" asp-controller="Settings" asp-action="SaveSchedule">
+            <label class="caption" for="cronKeyword">KEYWORD</label>
+            <input type="text" id="cronKeyword" name="cronKeyword"
+                   value="@Model.CronKeyword"
+                   placeholder="e.g. fitness coach" />
+
+            <label class="caption" for="cronDailyTime">DAILY AT (UTC, 24h, blank to disable)</label>
+            <input type="text" id="cronDailyTime" name="cronDailyTime"
+                   value="@Model.CronDailyTime"
+                   placeholder="e.g. 03:00" />
+
+            <div class="setting-row">
+                <span class="setting-label">Also run every 5 minutes</span>
+                <input type="checkbox" class="switch" name="cronHourly" value="true"
+                       checked="@Model.CronHourlyEnabled" />
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Save schedule</button>
+        </form>
+
+        <p class="list-meta" style="margin-top: 12px;">
+            Runs can take tens of minutes each. Watch them on the
+            <a href="/hangfire" target="_blank" rel="noopener">job dashboard</a>.
+        </p>
+    </div>
+</section>
+
 @* EMAIL SHORTCODES card *@
 <section class="card">
     <div class="card-header">

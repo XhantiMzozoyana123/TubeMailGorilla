@@ -145,3 +145,65 @@
         sortSelect.addEventListener('change', function () { filterForm.submit(); });
     }
 })();
+
+/* -----------------------------------------------------------------------
+   Extraction progress polling.
+
+   Extraction runs on the Hangfire background server, so the request that
+   started it returned immediately. Poll the status endpoint until the job
+   leaves the queued/running state.
+   --------------------------------------------------------------------- */
+(function () {
+    var panel = document.getElementById('extraction-progress');
+    if (!panel) return;
+
+    var jobId = panel.getAttribute('data-job-id');
+    if (!jobId) return;
+
+    var active = panel.getAttribute('data-active') === 'true';
+    if (!active) return;
+
+    // 5s is a compromise: extraction moves in minutes, not seconds, and this
+    // keeps a long-running job from hammering the endpoint.
+    var POLL_MS = 5000;
+    var timer = null;
+
+    function field(name) {
+        return panel.querySelector('[data-field="' + name + '"]');
+    }
+
+    function setText(name, value) {
+        var el = field(name);
+        if (el && value !== null && value !== undefined) el.textContent = value;
+    }
+
+    function poll() {
+        fetch('/extract/status/' + encodeURIComponent(jobId), { cache: 'no-store' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (!data) { schedule(); return; }
+
+                setText('state', data.State);
+                setText('message', data.Message);
+                setText('elapsed', data.ElapsedLabel);
+                setText('videos', data.TotalVideos);
+                setText('emails', data.EmailsFound);
+                setText('errors', data.Errors);
+
+                if (data.IsActive) { schedule(); return; }
+
+                // Finished. Reload once so the RESULTS card and the leads list
+                // reflect the run, rather than patching the DOM by hand.
+                clearTimeout(timer);
+                window.location.reload();
+            })
+            .catch(function () { schedule(); });   // transient failure: keep trying
+    }
+
+    function schedule() {
+        clearTimeout(timer);
+        timer = setTimeout(poll, POLL_MS);
+    }
+
+    schedule();
+})();

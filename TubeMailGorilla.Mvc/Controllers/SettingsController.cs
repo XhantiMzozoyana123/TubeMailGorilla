@@ -14,8 +14,46 @@ namespace TubeMailGorilla.Mvc.Controllers;
 public class SettingsController : Controller
 {
     private readonly DatabaseService _db;
+    private readonly ExtractionJobScheduler _scheduler;
 
-    public SettingsController(DatabaseService db) => _db = db;
+    public SettingsController(DatabaseService db, ExtractionJobScheduler scheduler)
+    {
+        _db = db;
+        _scheduler = scheduler;
+    }
+
+    /// <summary>SCHEDULED EXTRACTION card - saves the cron settings.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveSchedule(string cronKeyword, string cronDailyTime, bool cronHourly)
+    {
+        var keyword = (cronKeyword ?? string.Empty).Trim();
+        var time = (cronDailyTime ?? string.Empty).Trim();
+        var pageLimit = WebPreferences.Get("ExtractDefaultPageLimit", 5);
+
+        // Persist the keyword alongside the schedules so a restart can re-apply them.
+        WebPreferences.Set("ExtractCronKeyword", keyword);
+
+        if (time.Length == 0 && !cronHourly && keyword.Length == 0)
+        {
+            // Everything cleared: drop both recurring jobs.
+            _scheduler.SetDailySchedule(null, string.Empty, pageLimit);
+            _scheduler.SetHourlySchedule(false, string.Empty, pageLimit);
+            TempData["StatusMessage"] = "Scheduled extraction turned off.";
+        }
+        else if (keyword.Length == 0)
+        {
+            TempData["StatusError"] = "Enter a keyword before turning on a schedule.";
+        }
+        else
+        {
+            _scheduler.SetDailySchedule(time, keyword, pageLimit);
+            _scheduler.SetHourlySchedule(cronHourly, keyword, pageLimit);
+            TempData["StatusMessage"] = "Schedule saved.";
+        }
+
+        return await Index();
+    }
 
     [HttpGet]
     public async Task<IActionResult> Index() => View(await BuildModelAsync());
@@ -163,6 +201,9 @@ public class SettingsController : Controller
             GmailOnly = SendSettings.ExtractGmailOnly,
             ValidateEmails = SendSettings.ExtractValidateEmails,
             DefaultPageLimit = WebPreferences.Get("ExtractDefaultPageLimit", 5),
+            CronKeyword = WebPreferences.Get("ExtractCronKeyword", string.Empty),
+            CronDailyTime = WebPreferences.Get("ExtractCronDailyTime", string.Empty),
+            CronHourlyEnabled = WebPreferences.Get("ExtractCronHourly", false),
             Parameters = await _db.GetMessageParametersAsync(),
             Senders = await _db.GetAllSendersAsync(),
             EditionLabel = $"Edition: {edition.Name} - every feature included",

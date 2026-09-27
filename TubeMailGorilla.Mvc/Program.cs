@@ -1,3 +1,9 @@
+using Hangfire;
+using Hangfire.Annotations;
+using Hangfire.Dashboard;
+using Hangfire.MemoryStorage;
+using Hangfire.Server;
+using Hangfire.Storage;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -81,6 +87,34 @@ builder.Services.AddSingleton<EmailService>();
 builder.Services.AddSingleton<ExtractService>();
 builder.Services.AddSingleton<ValidationService>();
 builder.Services.AddSingleton<PaymentService>();
+
+// ---------------------------------------------------------------------------
+// Hangfire background processing
+//
+// Extraction moved off the request thread because a single run routinely takes
+// tens of minutes (video download + ffmpeg + several Ollama calls per video),
+// which reliably blew past the browser / reverse-proxy timeout. Jobs now run on
+// a background server and the Extract page polls their progress.
+//
+// Storage is in-memory. There is no maintained Hangfire provider for SQLite
+// (the only one, Hangfire.SQLite, was last published in 2017 and is broken:
+// jobs enqueue and persist, but the worker never dequeues them, because its
+// schema predates the FetchedAt column the modern worker polls on). MySQL
+// storage is available if durability across restarts is ever needed, and the
+// app already supports MySQL. In-memory is a reasonable fit here because the
+// site runs as a single container: there is no second instance that would need
+// to see another's queue, and the recurring schedule is persisted separately in
+// WebPreferences and re-applied on startup.
+// ---------------------------------------------------------------------------
+builder.Services.AddHangfire(config =>
+{
+    config
+        .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+        .UseSimpleAssemblyNameTypeSerializer()
+        .UseMemoryStorage();
+});
+builder.Services.AddSingleton<ExtractionJobRunner>();
+builder.Services.AddSingleton<ExtractionJobScheduler>();
 
 
 // Storage provider logic is now handled within AddInfrastructure in the
@@ -216,6 +250,33 @@ catch (Exception ex)
         "sign-in, registration and subscription pages will not work until the database is reachable.");
 }
 
+// Re-apply the persisted schedule at startup. Recurring jobs live in the
+// Hangfire database, so this is usually redundant - but if that file is ever
+// reset the operator's cron would otherwise vanish with no trace.
+try
+{
+    using var scope = app.Services.CreateScope();
+    var scheduler = scope.ServiceProvider.GetRequiredService<ExtractionJobScheduler>();
+
+    var cronKeyword = WebPreferences.Get("ExtractCronKeyword", string.Empty);
+    var cronPageLimit = WebPreferences.Get("ExtractDefaultPageLimit", 5);
+    var cronDailyTime = WebPreferences.Get("ExtractCronDailyTime", string.Empty);
+    var cronHourly = WebPreferences.Get("ExtractCronHourly", false);
+
+    if (!string.IsNullOrWhiteSpace(cronKeyword))
+    {
+        scheduler.SetDailySchedule(cronDailyTime, cronKeyword, cronPageLimit);
+        scheduler.SetHourlySchedule(cronHourly, cronKeyword, cronPageLimit);
+        app.Logger.LogInformation(
+            "Re-applied extraction schedule (daily='{Daily}', every5min={Hourly}) for '{Keyword}'.",
+            cronDailyTime, cronHourly, cronKeyword);
+    }
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Could not re-apply the scheduled extraction settings.");
+}
+
 // -----------------------------------------------------------------------
 // HTTP request pipeline
 // -----------------------------------------------------------------------
@@ -228,6 +289,36 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+// Start the background job server. This is what actually executes queued
+// extractions - without it jobs sit in the queue forever and the Extract page
+// shows "Queued" indefinitely.
+app.UseHangfireServer(new BackgroundJobServerOptions
+{
+    // One worker on purpose. The heavy part of extraction (yt-dlp, ffmpeg, video
+    // download) is process- and bandwidth-bound, and VideoSnapshotService already
+    // serialises capture with a global lock, so extra workers would only contend.
+    WorkerCount = 1,
+    // Jobs are enqueued onto the "extraction" queue, so the worker has to be
+    // told to listen there - it only polls the "default" queue otherwise, and the
+    // job would sit queued forever.
+    Queues = new[] { ExtractionJobScheduler.QueueName },
+    // An extraction legitimately runs for tens of minutes. Hangfire's default
+    // would abandon and retry it long before a video download plus several
+    // Ollama calls finish, which is the timeout this change exists to remove.
+    ShutdownTimeout = TimeSpan.FromMinutes(30),
+    HeartbeatInterval = TimeSpan.FromSeconds(30)
+});
+
+// Dashboard for job history, retries and the recurring schedules.
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    // NOT behind [Authorize] on purpose: every MVC page in the unlocked edition
+    // is [AllowAnonymous], so authorising this would be a no-op or force the
+    // dashboard open. Exposing job history on a public site is a real trade -
+    // if you add sign-in later, protect this route. It is served on the same
+    // port as the site, so your reverse-proxy rules apply.
+});
+
 app.UseRouting();
 
 app.UseAuthentication();
@@ -236,5 +327,25 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Extract}/{action=Index}/{id?}");
+
+// JSON status endpoint the Extract page polls for a running job.
+app.MapGet("/extract/status/{jobId}", (string jobId) =>
+{
+    var status = ExtractionRunStore.Get(jobId);
+    return status is null
+        ? Results.NotFound(new { error = "Unknown job." })
+        : Results.Ok(new
+        {
+            status.JobId,
+            status.Keyword,
+            status.State,
+            status.Message,
+            status.TotalVideos,
+            status.EmailsFound,
+            status.Errors,
+            status.ElapsedLabel,
+            IsActive = status.IsActive
+        });
+});
 
 app.Run();
