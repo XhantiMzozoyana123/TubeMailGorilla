@@ -11,14 +11,16 @@ public class ExtractService
     private readonly YouTubeTranscriptService _transcript;
     private readonly AIService _ai;
     private readonly EmailService _email;
+    private readonly VideoSnapshotService _snapshots;
 
-    public ExtractService(DatabaseService db, YouTubeSearchService ytSearch, YouTubeTranscriptService transcript, AIService ai, EmailService email)
+    public ExtractService(DatabaseService db, YouTubeSearchService ytSearch, YouTubeTranscriptService transcript, AIService ai, EmailService email, VideoSnapshotService snapshots)
     {
         _db = db;
         _ytSearch = ytSearch;
         _transcript = transcript;
         _ai = ai;
         _email = email;
+        _snapshots = snapshots;
     }
 
     /// <summary>
@@ -48,11 +50,15 @@ public class ExtractService
                     // Get description
                     string description = await GetYouTubeVideoDescription(video.Url);
 
-                    // Get captions
+                    // Get the transcript WITH its timestamps. Those cue times are
+                    // the seek positions the video snapshots are taken at, so
+                    // this replaces the plain-text transcript call.
+                    var cues = new List<TranscriptCue>();
                     string subtitles = string.Empty;
                     try
                     {
-                        subtitles = await _transcript.ExtractTranscriptAsync(video.Url);
+                        cues = await _transcript.ExtractTranscriptCuesAsync(video.Url);
+                        subtitles = string.Join(" ", cues.Select(c => c.Text).Distinct());
                     }
                     catch { }
 
@@ -98,6 +104,19 @@ public class ExtractService
                         Status = EmailerStatus.New.ToString()
                     };
 
+                    // Snapshot the video on a fixed 10s cadence, so the lead can be
+                    // reviewed frame-by-frame later. Best-effort: a video we cannot
+                    // download or decode still produces a lead, just without images.
+                    var snapshots = new List<VideoSnapshot>();
+                    try
+                    {
+                        snapshots = await _snapshots.CaptureAsync(video.Url);
+                    }
+                    catch { }
+
+                    emailer.VideoSnapshot = snapshots.Select(s => s.Base64Image).ToList();
+                    emailer.VideoSnapshotTimestamps = snapshots.Select(s => s.Seconds).ToList();
+
                     try
                     {
                         await _ai.ExtractAllAsync(emailer);
@@ -112,13 +131,16 @@ public class ExtractService
                         Channel = emailer.Channel,
                         VideoTitle = emailer.VideoTitle,
                         VideoDescription = emailer.VideoDescription,
+                        VideoUrl = emailer.VideoUrl,
+                        VideoSnapshot = emailer.VideoSnapshot,
+                        VideoSnapshotTimestamps = emailer.VideoSnapshotTimestamps,
                         ExtractedAt = DateTime.Now
                     };
 
-                    await _db.AddContactAsync(contact);
-                    result.EmailsFound++;
+                    if (await _db.AddContactAsync(contact) > 0)
+                        result.EmailsFound++;
                 }
-                catch
+                catch(Exception ex)
                 {
                     result.Errors++;
                 }
@@ -141,10 +163,12 @@ public class ExtractService
         {
             string description = await GetYouTubeVideoDescription(videoUrl);
 
+            var cues = new List<TranscriptCue>();
             string subtitles = string.Empty;
             try
             {
-                subtitles = await _transcript.ExtractTranscriptAsync(videoUrl);
+                cues = await _transcript.ExtractTranscriptCuesAsync(videoUrl);
+                subtitles = string.Join(" ", cues.Select(c => c.Text).Distinct());
             }
             catch { }
 
@@ -166,6 +190,16 @@ public class ExtractService
                 Status = EmailerStatus.New.ToString()
             };
 
+            var snapshots = new List<VideoSnapshot>();
+            try
+            {
+                snapshots = await _snapshots.CaptureAsync(videoUrl);
+            }
+            catch { }
+
+            emailer.VideoSnapshot = snapshots.Select(s => s.Base64Image).ToList();
+            emailer.VideoSnapshotTimestamps = snapshots.Select(s => s.Seconds).ToList();
+
             await _ai.ExtractAllAsync(emailer);
 
             var contact = new EmailContact
@@ -175,11 +209,13 @@ public class ExtractService
                 Channel = emailer.Channel,
                 VideoTitle = emailer.VideoTitle,
                 VideoDescription = emailer.VideoDescription,
+                VideoUrl = emailer.VideoUrl,
+                VideoSnapshot = emailer.VideoSnapshot,
+                VideoSnapshotTimestamps = emailer.VideoSnapshotTimestamps,
                 ExtractedAt = DateTime.Now
             };
 
-            await _db.AddContactAsync(contact);
-            return 1;
+            return await _db.AddContactAsync(contact) > 0 ? 1 : 0;
         }
         catch
         {

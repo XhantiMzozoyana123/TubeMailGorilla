@@ -165,13 +165,18 @@ public partial class SettingsPage : ContentPage
         }
     }
 
+    /// <summary>
+    /// Shows the plan the signed-in account is actually on, straight from the
+    /// local catalog. The server remains the authority for what is actually
+    /// allowed - this is only what the user sees.
+    /// </summary>
     private void UpdateSubscriptionInfo()
     {
         var current = Subscriptions.Current;
         if (current is null)
         {
             SubscriptionLabel.Text = "Current plan: Free";
-            SubscriptionDescLabel.Text = "Up to 100 leads, 50 emails/month";
+            SubscriptionDescLabel.Text = current?.Description ?? "Up to 100 leads, 50 emails/month";
         }
         else
         {
@@ -220,6 +225,25 @@ public partial class SettingsPage : ContentPage
         }
     }
 
+    /// <summary>Opens the subscription checkout / management page in the browser.</summary>
+    private async void OnManageSubscriptionClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var payments = ServiceHelper.GetService<PaymentService>();
+            await Browser.Default.OpenAsync(payments.GetUpgradeWebsiteUrl(), BrowserLaunchMode.SystemPreferred);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", ex.Message, "OK");
+        }
+    }
+
+    /// <summary>
+    /// Clears the server session and the local token, then swaps the whole window
+    /// for a fresh login screen. A brand-new window is used because mutating
+    /// <c>Window.Page</c> in place does not reliably re-render on Windows.
+    /// </summary>
     private async void OnLogoutClicked(object? sender, EventArgs e)
     {
         var confirm = await DisplayAlert(
@@ -245,8 +269,6 @@ public partial class SettingsPage : ContentPage
         // Clear app-specific session data as well
         SendSettings.ClearSession();
 
-        // Show a fresh login screen by opening a brand-new window (reliable
-        // on Windows) and closing the current one.
         App.ShowLoginScreen();
     }
 }

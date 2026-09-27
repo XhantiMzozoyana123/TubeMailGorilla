@@ -13,8 +13,15 @@ public class DatabaseService
         SQLite.SQLiteOpenFlags.Create |
         SQLite.SQLiteOpenFlags.SharedCache;
 
-    private static string DatabasePath =>
-        Path.Combine(FileSystem.AppDataDirectory, DatabaseFilename);
+    /// <summary>
+    /// The unlocked edition keeps its data in its own sub-folder so it can be
+    /// installed alongside the subscription edition without either app seeing
+    /// (or locking) the other's database.
+    /// </summary>
+    private static string DataDirectory =>
+        Path.Combine(FileSystem.AppDataDirectory, "TubeMailGorillaUnlocked");
+
+    private static string DatabasePath => Path.Combine(DataDirectory, DatabaseFilename);
 
     private SQLite.SQLiteAsyncConnection? _connection;
 
@@ -22,9 +29,11 @@ public class DatabaseService
     {
         if (_connection != null) return;
 
+        Directory.CreateDirectory(DataDirectory);
         _connection = new SQLite.SQLiteAsyncConnection(DatabasePath, Flags);
 
         await _connection.CreateTableAsync<EmailContact>();
+        await EnsureUniqueContactEmailsAsync();
         await _connection.CreateTableAsync<Blocker>();
         await _connection.CreateTableAsync<Opener>();
         await _connection.CreateTableAsync<Inboxer>();
@@ -48,18 +57,66 @@ public class DatabaseService
     public async Task<int> AddContactAsync(EmailContact contact)
     {
         await InitializeAsync();
-        return await _connection!.InsertAsync(contact);
+        contact.Email = NormalizeEmail(contact.Email);
+
+        // INSERT OR IGNORE makes duplicate rejection atomic when a unique index exists.
+        // The return value is zero when the contact was already stored.
+        return await _connection!.ExecuteAsync(
+            """
+            INSERT OR IGNORE INTO EmailContact
+                (Email, Name, Channel, VideoTitle, VideoDescription, VideoUrl, VideoSnapshotJson, VideoSnapshotTimestampsJson, ExtractedAt, IsBlocked, IsEmailer, LastEmailed, UpdatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            contact.Email,
+            contact.Name,
+            contact.Channel,
+            contact.VideoTitle,
+            contact.VideoDescription,
+            contact.VideoUrl,
+            // The list properties serialize into these columns; read them back.
+            contact.HasVideoSnapshots ? contact.VideoSnapshotJson : null,
+            contact.HasVideoSnapshots ? contact.VideoSnapshotTimestampsJson : null,
+            contact.ExtractedAt,
+            contact.IsBlocked,
+            contact.IsEmailer,
+            contact.LastEmailed,
+            contact.UpdatedAt);
     }
 
     public async Task<int> AddContactsAsync(IEnumerable<EmailContact> contacts)
     {
-        await InitializeAsync();
-        return await _connection!.InsertAllAsync(contacts);
+        var inserted = 0;
+        foreach (var contact in contacts)
+            inserted += await AddContactAsync(contact) > 0 ? 1 : 0;
+        return inserted;
     }
+
+    private async Task EnsureUniqueContactEmailsAsync()
+    {
+        // Keep the oldest row for each normalized email. This also handles databases
+        // created by older app versions that allowed duplicate extraction results.
+        await _connection!.ExecuteAsync(
+            """
+            DELETE FROM EmailContact
+            WHERE Id NOT IN (
+                SELECT MIN(Id)
+                FROM EmailContact
+                WHERE TRIM(COALESCE(Email, '')) <> ''
+                GROUP BY LOWER(TRIM(Email))
+            )
+            AND TRIM(COALESCE(Email, '')) <> ''
+            """);
+
+        await _connection.ExecuteAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS UX_EmailContact_NormalizedEmail ON EmailContact (LOWER(TRIM(Email)))");
+    }
+
+    private static string NormalizeEmail(string? email) => (email ?? string.Empty).Trim().ToLowerInvariant();
 
     public async Task<int> UpdateContactAsync(EmailContact contact)
     {
         await InitializeAsync();
+        contact.Email = NormalizeEmail(contact.Email);
         contact.UpdatedAt = DateTime.Now;
         return await _connection!.UpdateAsync(contact);
     }

@@ -178,9 +178,31 @@ public class EmailService
         };
 
         var result = text;
+
+        // Built-in names are always available, even when a user removed the
+        // corresponding Settings row. Custom/renamed shortcodes are applied
+        // afterwards and intentionally take precedence.
+        var aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["name"] = fields["name"],
+            ["full-name"] = fields["name"],
+            ["email"] = fields["email"],
+            ["channel"] = fields["channel"],
+            ["channel-name"] = fields["channel-name"],
+            ["first-name"] = fields["first-name"],
+            ["last-name"] = fields["last-name"],
+            ["video-title"] = fields["video-title"],
+            ["video-description"] = fields["video-description"],
+            ["icebreaker"] = fields["icebreaker"],
+            ["ice-breaker"] = fields["icebreaker"]
+        };
+
+        foreach (var alias in aliases)
+            result = result.Replace("[" + alias.Key + "]", alias.Value, StringComparison.OrdinalIgnoreCase);
+
         foreach (var p in parameters)
         {
-            var token = p.Token?.Trim() ?? string.Empty;
+            var token = p.Token?.Trim().Trim('[', ']') ?? string.Empty;
             if (token.Length == 0)
                 continue;
 
@@ -192,6 +214,26 @@ public class EmailService
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Produces a responsive HTML email from plain text. Blank lines become
+    /// paragraphs, while authored HTML is passed through unchanged.
+    /// </summary>
+    public static string ToHtmlBody(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+            return string.Empty;
+
+        if (Regex.IsMatch(body, @"<\s*(html|body|div|p|br|a|strong|em|ul|ol|li)\b", RegexOptions.IgnoreCase))
+            return body;
+
+        var paragraphs = Regex.Split(body.Replace("\r\n", "\n").Replace('\r', '\n'), @"\n\s*\n")
+            .Select(paragraph => Regex.Replace(paragraph.Trim(), @"\s*\n\s*", "<br>"))
+            .Where(paragraph => !string.IsNullOrWhiteSpace(paragraph))
+            .Select(paragraph => $"<p>{WebUtility.HtmlEncode(paragraph).Replace("&lt;br&gt;", "<br>")}</p>");
+
+        return string.Join(string.Empty, paragraphs);
     }
 
     private static string GetFirstName(string? name)

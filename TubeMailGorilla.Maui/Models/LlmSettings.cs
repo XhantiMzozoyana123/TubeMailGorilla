@@ -1,28 +1,41 @@
 namespace TubeMailGorilla.Maui.Models;
 
 /// <summary>
-/// Configuration for the local LLamaSharp-powered LLM used for data extraction.
-/// The model is downloaded once (on first use) from <see cref="ModelUrl"/> and cached
-/// in the machine's local application data folder so the app works fully offline.
+/// Configuration for the VPS-hosted Ollama LLM used for data extraction.
+/// The app sends prompts to Ollama's /api/generate endpoint - no model is
+/// downloaded or loaded locally, so extraction requires internet access to
+/// reach the Ollama server.
 /// </summary>
 public class LlmSettings
 {
     /// <summary>
-    /// Download location of the Llama 3 GGUF model (HuggingFace "resolve/main" URL).
-    /// Defaults to Llama 3.2 3B Instruct, Q4_K_M quantization (~1.9 GB) - a Llama 3
-    /// family model that runs well on CPU and follows extraction instructions reliably.
+    /// Base URL of the Ollama server (no trailing slash).
+    /// Defaults to the TubeMailGorilla VPS.
     /// </summary>
-    public string ModelUrl { get; set; } =
-        "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf";
+    public string OllamaBaseUrl { get; set; } = "http://46.202.170.203:11434";
 
-    /// <summary>Local file name the model is stored under (must match the URL's file).</summary>
-    public string ModelFileName { get; set; } = "Llama-3.2-3B-Instruct-Q4_K_M.gguf";
+    /// <summary>Name of the model to request on the Ollama server.</summary>
+    public string OllamaModel { get; set; } = "llama3:latest";
 
-    /// <summary>Maximum prompt context, in tokens, used when loading the model.</summary>
-    public uint ContextSize { get; set; } = 4096;
+    /// <summary>
+    /// OPTIONAL vision model used when a lead's video snapshots need to be
+    /// looked at (the "Identify Areas of Improvement" analysis). Leave empty to
+    /// run that analysis from the transcript and video metadata only, which is
+    /// what happens with the default text-only llama3.
+    ///
+    /// To enable it, pull a small vision model on the server, e.g.
+    /// <c>ollama pull moondream</c> (~1.7GB, the smallest practical option),
+    /// and set this to "moondream:latest". Larger choices such as llava are
+    /// considerably slower on a CPU-only host.
+    /// </summary>
+    public string OllamaVisionModel { get; set; } = "";
 
-    /// <summary>Layers offloaded to GPU (0 = run purely on CPU).</summary>
-    public int GpuLayerCount { get; set; } = 0;
+    /// <summary>
+    /// How many snapshot frames may be attached to a single vision request.
+    /// Each frame is roughly 20KB of base64 and the host has no GPU, so a small
+    /// evenly spread sample is the only practical number.
+    /// </summary>
+    public int MaxImagesPerRequest { get; set; } = 4;
 
     /// <summary>Maximum number of tokens the model may generate per call.</summary>
     public int MaxTokens { get; set; } = 512;
@@ -32,22 +45,32 @@ public class LlmSettings
 
     /// <summary>
     /// Hard cap on the prompt length (characters) sent to the model, so a long video
-    /// transcript never overflows the fixed context window.
+    /// transcript never overflows the remote model's context window.
     /// </summary>
     public int MaxInputCharacters { get; set; } = 8000;
 
     /// <summary>
-    /// Hard cap (seconds) on a single inference call. A stuck generation can never
-    /// block an extraction indefinitely - it is cancelled and reported as an error.
-    /// Sized for CPU-only inference of a few hundred tokens on a low-end machine.
+    /// Hard cap (seconds) on a single inference HTTP call. A stuck generation can
+    /// never block an extraction indefinitely - it is cancelled and reported as an
+    /// error. Sized to survive a cold model load on the VPS plus CPU-bound
+    /// generation (llama3:8B has no GPU there), which routinely exceeds 120s.
     /// </summary>
     public int InferenceTimeoutSeconds { get; set; } = 300;
 
     /// <summary>
-    /// Hard cap (seconds) on loading the GGUF weights into memory. LLamaSharp's
-    /// <c>LoadFromFileAsync</c> is not cancellable, so the load is raced against this
-    /// timeout; a silent/stuck load can otherwise freeze an extraction on a fixed
-    /// progress percentage for minutes.
+    /// How long (minutes) the Ollama server keeps the model loaded after a call
+    /// (sent as keep_alive). Ollama's default is 5 minutes; past that every
+    /// request pays a full multi-GB model reload before generating, which is the
+    /// main cause of inference timeouts. 0 = unload immediately, -1 = never unload.
     /// </summary>
+    public int ModelKeepAliveMinutes { get; set; } = 60;
+
+    // ---- Legacy on-device (LLamaSharp) settings, kept so old appsettings.json
+    // files still bind without errors. They are ignored by the Ollama LLMService. ----
+    public string ModelUrl { get; set; } =
+        "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf";
+    public string ModelFileName { get; set; } = "Llama-3.2-3B-Instruct-Q4_K_M.gguf";
+    public uint ContextSize { get; set; } = 4096;
+    public int GpuLayerCount { get; set; } = 0;
     public int ModelLoadTimeoutSeconds { get; set; } = 300;
 }

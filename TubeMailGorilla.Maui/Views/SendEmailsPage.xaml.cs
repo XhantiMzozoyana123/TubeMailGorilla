@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using TubeMailGorilla.Maui.Models;
 using TubeMailGorilla.Maui.Services;
 
@@ -16,17 +17,41 @@ public partial class SendEmailsPage : ContentPage
     private List<Sender> _activeAccounts = new();
     private bool _pickerInitializing;
 
-    // Message rotation variations
+    // Message rotation variations (bound to the variations list in XAML)
+    public ObservableCollection<MessageVariation> Variations { get; } = new();
     private List<MessageVariation> _variations = new();
     private int _editingVariationIndex = -1; // -1 = adding a new one
 
+    // Token insert chips (bound to the subject / body token bars in XAML)
+    public ObservableCollection<TokenOption> SubjectTokens { get; } = new();
+    public ObservableCollection<TokenOption> BodyTokens { get; } = new();
+    private FocusedField _focusedField = FocusedField.Body;
+
+    /// <summary>Last field that had focus (for tappable token insertion).</summary>
+    private View? _lastFocusedField;
+
+    /// <summary>Cached campaign stats for the review summary.</summary>
+    private int _leadCount;
+    private int _activeSenderCount;
+    private string _defaultSenderLabel = string.Empty;
+
     public SendEmailsPage()
     {
+        BindingContext = this;
         InitializeComponent();
         _db = ServiceHelper.GetService<DatabaseService>();
         _email = ServiceHelper.GetService<EmailService>();
         _payments = ServiceHelper.GetService<PaymentService>();
         _validator = ServiceHelper.GetService<ValidationService>();
+
+        // Composer chips are populated from the saved parameters in OnAppearing.
+        // Keep the built-ins as a safe fallback for the first render.
+        AddTokenOption(SubjectTokens, "[name]", "[name]");
+        AddTokenOption(SubjectTokens, "[channel]", "[channel]");
+        AddTokenOption(BodyTokens, "[name]", "[name]");
+        AddTokenOption(BodyTokens, "[channel]", "[channel]");
+        AddTokenOption(BodyTokens, "[email]", "[email]");
+        AddTokenOption(BodyTokens, "[icebreaker]", "[icebreaker]");
     }
 
     protected override async void OnAppearing()
@@ -37,6 +62,7 @@ public partial class SendEmailsPage : ContentPage
         await LoadStatsAsync();
         LoadTemplate();
         await LoadTemplatesIntoPickerAsync();
+        await LoadTokenOptionsAsync();
         await LoadSendingOptionsAsync();
     }
 
@@ -47,21 +73,56 @@ public partial class SendEmailsPage : ContentPage
             var contacts = await _db.GetContactsAsync();
             var senders = await _db.GetSendersAsync();
 
-            // FREE plan caps how many leads a single campaign may target.
-            var maxCampaign = _entitlements.MaxEmailsPerCampaign;
-            var effectiveCount = _entitlements.IsUnlimited(maxCampaign)
-                ? contacts.Count
-                : Math.Min(contacts.Count, maxCampaign);
+            UpdateSummary();
 
-            RecipientsValueLabel.Text = $"{effectiveCount} lead{(effectiveCount == 1 ? "" : "s")}" +
-                (_entitlements.IsUnlimited(maxCampaign) ? "" : $" (free limit {maxCampaign}/campaign)");
-            EmptyContactsPrompt.IsVisible = contacts.Count == 0;
+            // Note: RemotePlanLimits describes the current plan (limits messaging only).
         }
         catch (Exception ex)
         {
             RecipientsValueLabel.Text = "0";
             await DisplayAlert("Error", $"Could not load stats: {ex.Message}", "OK");
         }
+    }
+
+    private async Task LoadTokenOptionsAsync()
+    {
+        try
+        {
+            var parameters = await _db.GetMessageParametersAsync();
+            var savedTokens = parameters
+                .Select(p => p.Token?.Trim().Trim('[', ']') ?? string.Empty)
+                .Where(token => token.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(token => $"[{token}]")
+                .ToList();
+
+            var subjectTokens = savedTokens
+                .Concat(new[] { "[name]", "[channel]" })
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var bodyTokens = savedTokens
+                .Concat(new[] { "[name]", "[email]", "[channel]", "[video-title]", "[icebreaker]" })
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            SubjectTokens.Clear();
+            foreach (var token in subjectTokens)
+                AddTokenOption(SubjectTokens, token, token);
+            BodyTokens.Clear();
+            foreach (var token in bodyTokens)
+                AddTokenOption(BodyTokens, token, token);
+        }
+        catch (Exception ex)
+        {
+            TemplateStatusLabel.Text = $"Could not load email parameters: {ex.Message}";
+        }
+    }
+
+    private static void AddTokenOption(ObservableCollection<TokenOption> options, string label, string token)
+    {
+        if (options.Any(option => option.Token.Equals(token, StringComparison.OrdinalIgnoreCase)))
+            return;
+        options.Add(new TokenOption(label, token));
     }
 
     private void LoadTemplate()
@@ -121,31 +182,73 @@ public partial class SendEmailsPage : ContentPage
         SendSettings.AllowMessageRotation = e.Value;
         VariationsSection.IsVisible = e.Value;
         CloseVariationEditor();
+        UpdateReviewSummary();
+    }
+
+    /// <summary>
+    /// Inserts a token (e.g. [name]) into the last-focused field
+    /// (Subject or Message). Defaults to the Message editor.
+    /// </summary>
+    private void OnTokenClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button { Text: string token } || string.IsNullOrWhiteSpace(token))
+            return;
+
+        if (ReferenceEquals(_lastFocusedField, SubjectEntry))
+        {
+            SubjectEntry.Text = (SubjectEntry.Text ?? string.Empty) + token + " ";
+            SubjectEntry.Focus();
+        }
+        else
+        {
+            var body = BodyEditor.Text ?? string.Empty;
+            var cursor = Math.Clamp(BodyEditor.CursorPosition, 0, body.Length);
+            BodyEditor.Text = body.Insert(cursor, token + " ");
+            BodyEditor.Focus();
+        }
+    }
+
+    private void OnSubjectFocused(object? sender, FocusEventArgs e) => _lastFocusedField = SubjectEntry;
+
+    private void OnSubjectUnfocused(object? sender, FocusEventArgs e) { }
+
+    private void OnBodyFocused(object? sender, FocusEventArgs e) => _lastFocusedField = BodyEditor;
+
+    private void OnBodyUnfocused(object? sender, FocusEventArgs e) { }
+
+    private void UpdateSummary()
+    {
+        _leadCount = 0;
+        _activeSenderCount = 0;
+        _defaultSenderLabel = string.Empty;
+        UpdateReviewSummary();
+    }
+
+    private void UpdateReviewSummary()
+    {
+        if (SendSummaryLabel != null)
+            SendSummaryLabel.Text = "Review your message, then send.";
     }
 
     // ------------------------------------------------------------------
     //  MESSAGE VARIATIONS — the actual messages used when rotation is on.
     // ------------------------------------------------------------------
 
-    /// <summary>Read-only row model for the variations list.</summary>
-    private sealed record VariationRow(string Subject, string Preview);
-
     private void RefreshVariationsUi()
     {
         _variations = SendSettings.MessageVariations;
 
-        var rotationOn = MessageRotationSwitch.IsToggled;
+        Variations.Clear();
+        foreach (var v in _variations)
+            Variations.Add(v);
+
+        var rotationOn = MessageRotationSwitch?.IsToggled ?? false;
         VariationsSection.IsVisible = rotationOn;
 
         // The main subject/message form is unused while variations drive
         // the campaign, so hide it to keep the page focused.
         ComposeSection.IsVisible = !rotationOn;
 
-        VariationsList.ItemsSource = _variations
-            .Select(v => new VariationRow(
-                string.IsNullOrWhiteSpace(v.Subject) ? "(no subject)" : v.Subject,
-                v.Body.Length > 90 ? v.Body[..90] + "..." : v.Body))
-            .ToList();
         EmptyVariationsLabel.IsVisible = _variations.Count == 0;
         AddVariationButton.Text = _variations.Count == 0 ? "Add First Variation" : "Add Another Variation";
     }
@@ -155,22 +258,10 @@ public partial class SendEmailsPage : ContentPage
         _editingVariationIndex = -1;
         VarSubjectEntry.Text = string.Empty;
         VarBodyEditor.Text = string.Empty;
+        VariationTemplatePicker.SelectedIndex = 0;
+        VariationTemplateStatusLabel.Text = string.Empty;
         VariationEditor.IsVisible = true;
         VarSubjectEntry.Focus();
-    }
-
-    private async void OnVariationSelected(object? sender, SelectedItemChangedEventArgs e)
-    {
-        if (e.SelectedItem is not VariationRow row) return;
-        VariationsList.SelectedItem = null; // deselect immediately
-
-        var index = _variations.FindIndex(v => v.Subject == row.Subject);
-        if (index < 0) return;
-
-        _editingVariationIndex = index;
-        VarSubjectEntry.Text = _variations[index].Subject;
-        VarBodyEditor.Text = _variations[index].Body;
-        VariationEditor.IsVisible = true;
     }
 
     private void OnCancelVariationClicked(object? sender, EventArgs e)
@@ -179,7 +270,30 @@ public partial class SendEmailsPage : ContentPage
     private void CloseVariationEditor()
     {
         VariationEditor.IsVisible = false;
+        VariationTemplatePicker.SelectedIndex = 0;
+        VariationTemplateStatusLabel.Text = string.Empty;
         _editingVariationIndex = -1;
+    }
+
+    private async void OnVariationTemplateSelected(object? sender, EventArgs e)
+    {
+        var index = VariationTemplatePicker.SelectedIndex - 1;
+        if (index < 0 || index >= _templates.Count)
+        {
+            VariationTemplateStatusLabel.Text = string.Empty;
+            return;
+        }
+
+        if (!await EnsureTemplatesAllowedAsync("using email templates"))
+        {
+            VariationTemplatePicker.SelectedIndex = 0;
+            return;
+        }
+
+        var template = _templates[index];
+        VarSubjectEntry.Text = template.Subject ?? string.Empty;
+        VarBodyEditor.Text = template.Body ?? string.Empty;
+        VariationTemplateStatusLabel.Text = $"Loaded \"{template.Name}\" into this variation. You can edit it before saving.";
     }
 
     private void OnSaveVariationClicked(object? sender, EventArgs e)
@@ -201,18 +315,20 @@ public partial class SendEmailsPage : ContentPage
         SendSettings.MessageVariations = _variations;
         CloseVariationEditor();
         RefreshVariationsUi();
+        UpdateReviewSummary();
     }
 
-    private void OnDeleteVariationClicked(object? sender, EventArgs e)
+    private void OnRemoveVariationClicked(object? sender, EventArgs e)
     {
-        if ((sender as Button)?.CommandParameter is not VariationRow row) return;
+        if ((sender as Button)?.CommandParameter is not MessageVariation variation) return;
 
-        var index = _variations.FindIndex(v => v.Subject == row.Subject);
+        var index = _variations.IndexOf(variation);
         if (index < 0) return;
 
         _variations.RemoveAt(index);
         SendSettings.MessageVariations = _variations;
         RefreshVariationsUi();
+        UpdateReviewSummary();
     }
 
     private void OnDefaultAccountSelected(object? sender, EventArgs e)
@@ -245,10 +361,16 @@ public partial class SendEmailsPage : ContentPage
 
             TemplatePicker.Items.Clear();
             TemplatePicker.Items.Add("No template - write from scratch");
+            VariationTemplatePicker.Items.Clear();
+            VariationTemplatePicker.Items.Add("No template - write from scratch");
             foreach (var t in _templates)
+            {
                 TemplatePicker.Items.Add(t.Name);
+                VariationTemplatePicker.Items.Add(t.Name);
+            }
 
             TemplatePicker.SelectedIndex = 0;
+            VariationTemplatePicker.SelectedIndex = 0;
             TemplateStatusLabel.Text = _templates.Count == 0
                 ? "You have no saved templates yet. Create them on the Email Templates page."
                 : $"{_templates.Count} template{(_templates.Count == 1 ? "" : "s")} available.";
@@ -395,7 +517,6 @@ public partial class SendEmailsPage : ContentPage
             var parameters = await _db.GetMessageParametersAsync();
             var sent = 0;
             var failed = 0;
-            var skipped = 0;
 
             // Message rotation: if enabled and variations exist, each email
             // takes its turn across the recipients.
@@ -416,14 +537,12 @@ public partial class SendEmailsPage : ContentPage
                 var contact = contacts[i];
                 StatusLabel.Text = $"Sending {i + 1}/{contacts.Count}… ({contact.Email})";
 
-                // A lead without an icebreaker is skipped - every email must
-                // open with its personalized first line.
-                if (!latestOpenerByContact.TryGetValue(contact.Id, out var icebreaker))
-                {
-                    skipped++;
-                    SendProgressBar.Progress = (double)(i + 1) / contacts.Count;
-                    continue;
-                }
+                // A missing icebreaker must not exclude the lead from the campaign.
+                // The [icebreaker] token will resolve to an empty value for this
+                // recipient, while every other personalization value still works.
+                var icebreaker = latestOpenerByContact.TryGetValue(contact.Id, out var opener)
+                    ? opener
+                    : string.Empty;
 
                 // Select sender (rotate if enabled; otherwise use the configured default account)
                 Sender? senderAccount;
@@ -460,7 +579,8 @@ public partial class SendEmailsPage : ContentPage
                 }
 
                 var personalizedSubject = EmailService.Personalize(messageSubject, contact, parameters, icebreaker);
-                var personalizedBody = EmailService.Personalize(messageBody, contact, parameters, icebreaker);
+                var personalizedBody = EmailService.ToHtmlBody(
+                    EmailService.Personalize(messageBody, contact, parameters, icebreaker));
 
                 var message = new MessengerDto
                 {
@@ -488,7 +608,7 @@ public partial class SendEmailsPage : ContentPage
                 SendProgressBar.Progress = (double)(i + 1) / contacts.Count;
             }
 
-            StatusLabel.Text = $"All done. Sent: {sent}, Failed: {failed}, Skipped (no icebreaker/blocked): {skipped}";
+            StatusLabel.Text = $"All done. Sent: {sent}, Failed: {failed}";
         }
         catch (Exception ex)
         {

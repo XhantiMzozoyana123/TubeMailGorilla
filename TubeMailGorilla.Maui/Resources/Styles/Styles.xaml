@@ -152,6 +152,19 @@
         <Setter Property="BorderWidth" Value="2" />
     </Style>
 
+    <!-- Token chip: small tappable token button (e.g. [name] on Send page) -->
+    <Style TargetType="Button" x:Key="TokenChipStyle">
+        <Setter Property="BackgroundColor" Value="{StaticResource SurfaceVariant}" />
+        <Setter Property="TextColor" Value="{StaticResource Primary}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontFamily" Value="JetBrainsMono" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="Margin" Value="0,0,8,8" />
+        <Setter Property="MinimumHeightRequest" Value="30" />
+        <Setter Property="HeightRequest" Value="30" />
+    </Style>
+
     <!-- Danger -->
     <Style TargetType="Button" x:Key="DangerButtonStyle">
         <Setter Property="BackgroundColor" Value="{StaticResource DangerLight}" />

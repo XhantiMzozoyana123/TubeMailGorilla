@@ -140,6 +140,7 @@
                 <VerticalStackLayout Spacing="0">
                     <Label x:Name="SubscriptionLabel" FontSize="14" TextColor="{StaticResource TextSecondary}" />
                     <Label x:Name="SubscriptionDescLabel" FontSize="13" TextColor="{StaticResource TextTertiary}" Margin="0,0,0,8" />
+                    <Button Text="Manage Subscription" Style="{StaticResource ToolbarButtonStyle}" Clicked="OnManageSubscriptionClicked" />
                 </VerticalStackLayout>
                 </controls:CollapsibleCard.Body>
             </controls:CollapsibleCard>

@@ -101,5 +101,5 @@ namespace TubeMailGorilla.Maui.Services
                 Data = true
             };
         }
-        }
+    }
 }

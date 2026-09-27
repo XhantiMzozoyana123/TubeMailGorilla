@@ -5,6 +5,10 @@ using TubeMailGorilla.Maui.Services;
 
 namespace TubeMailGorilla.Maui.Views;
 
+/// <summary>
+/// Email template manager. Templates are a Pro feature, so the list is
+/// hidden behind an upsell for free accounts; the API is the authority.
+/// </summary>
 public partial class EmailTemplatesPage : ContentPage
 {
     private readonly DatabaseService _db;
@@ -31,8 +35,8 @@ public partial class EmailTemplatesPage : ContentPage
     }
 
     /// <summary>
-    /// Server-authoritative Pro check via GET /api/payments/entitlements.
-    /// Never trusts a local flag, so cancelling locks this page immediately.
+    /// Server-authoritative Pro check. Never trusts a local flag, so cancelling
+    /// the subscription locks this page on the very next visit.
     /// </summary>
     private async Task RefreshAccessAsync()
     {
