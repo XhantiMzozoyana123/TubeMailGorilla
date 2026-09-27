@@ -34,14 +34,34 @@ RUN dotnet publish "TubeMailGorilla.Mvc.csproj" \
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 
-# ffmpeg decodes the video frames behind a lead's snapshots (VideoSnapshotService).
-# The desktop edition uses its platform decoder instead - Media Foundation on
-# Windows, AVFoundation on macOS - but this image runs on Linux, where neither
-# exists, so ffmpeg is installed here. No bundled binary, no extra build step:
-# VideoSnapshotService detects it on PATH (see Ffmpeg.Configure) and simply
-# skips snapshots when it is absent, so the site still works without it.
+# Two external binaries the extraction pipeline shells out to. Neither ships in
+# the repo (both are large binaries, and .gitignore keeps them out), so they are
+# installed into the image here:
+#
+#   ffmpeg  - decodes the video frames behind a lead's snapshots
+#             (VideoSnapshotService). The desktop edition uses its platform
+#             decoder instead - Media Foundation on Windows, AVFoundation on
+#             macOS - but this image runs on Linux, where neither exists.
+#   yt-dlp  - fetches transcripts/subtitles and video metadata
+#             (YouTubeTranscriptService, ExtractService). It is a standalone
+#             binary, not an apt package, hence the direct download.
+#
+# Both are resolved from PATH at startup (Ffmpeg.Configure / YtDlp.Configure in
+# Program.cs). If either is missing the site still starts and degrades quietly:
+# snapshots are skipped and transcripts come back empty. That is a bad failure
+# mode - the site looks healthy while extraction returns nothing - so verify
+# both are present after the first build:
+#   docker compose -f docker-compose.mvc.yml exec mvc sh -c 'which ffmpeg yt-dlp'
+#
+# curl is already present in the base image; python3 is a runtime dependency of
+# the yt-dlp binary itself and is installed alongside it.
+ARG YTDLP_URL=https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp
+
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg \
+    && apt-get install -y --no-install-recommends ffmpeg python3 ca-certificates curl \
+    && curl -fsSL "${YTDLP_URL}" -o /usr/local/bin/yt-dlp \
+    && chmod +x /usr/local/bin/yt-dlp \
+    && yt-dlp --version \
     && rm -rf /var/lib/apt/lists/*
 
 # Ensure data directory and default App_Data exist and are owned by the non-root app user
