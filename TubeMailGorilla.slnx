@@ -5,4 +5,6 @@
   <Project Path="TubeMailGorilla.Infrastructure/TubeMailGorilla.Infrastructure.csproj" />
   <Project Path="TubeMailGorilla.Maui/TubeMailGorilla.Maui.csproj" />
   <Project Path="TubeMailGorilla.Maui.Unlocked/TubeMailGorilla.Maui.Unlocked.csproj" />
+  <Project Path="TubeMailGorilla.Mvc.Tests/TubeMailGorilla.Mvc.Tests.csproj" />
+  <Project Path="TubeMailGorilla.Mvc/TubeMailGorilla.Mvc.csproj" />
 </Solution>

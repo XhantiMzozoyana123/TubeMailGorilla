@@ -70,9 +70,46 @@ public partial class DatabaseService
         {
             var id = await DbHelpers.ScalarIntAsync(connection, "SELECT last_insert_rowid();");
             contact.Id = id;
+            return rows;
         }
 
-        return rows;
+        // Duplicate lead. The row is already there, so the insert above was
+        // ignored and everything carried by the fresh contact - notably the video
+        // snapshots just captured - was silently dropped. That left leads found
+        // before the snapshot feature with no frames and no way to backfill them,
+        // because every later extraction hit this same path.
+        //
+        // Backfill only the fields the snapshot feature added, and only when they
+        // are still empty, so a repeat extraction refreshes missing data without
+        // overwriting frames the user already has or the lead's own name/flags.
+        await BackfillSnapshotDataAsync(connection, contact);
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Copies video URL / snapshot columns onto an existing lead, but only where
+    /// the stored value is empty. No-op when the lead already has snapshots, so a
+    /// re-extraction is cheap and non-destructive.
+    /// </summary>
+    private async Task BackfillSnapshotDataAsync(SqliteConnection connection, EmailContact contact)
+    {
+        if (string.IsNullOrWhiteSpace(contact.VideoUrl) && !contact.HasVideoSnapshots)
+            return;
+
+        await DbHelpers.ExecuteAsync(connection,
+            $"UPDATE {Contacts} SET " +
+            $"VideoUrl = CASE WHEN TRIM(COALESCE(VideoUrl, '')) = '' THEN @VideoUrl ELSE VideoUrl END, " +
+            $"VideoSnapshotJson = CASE WHEN COALESCE(VideoSnapshotJson, '') = '' THEN @VideoSnapshotJson ELSE VideoSnapshotJson END, " +
+            $"VideoSnapshotTimestampsJson = CASE WHEN COALESCE(VideoSnapshotTimestampsJson, '') = '' THEN @VideoSnapshotTimestampsJson ELSE VideoSnapshotTimestampsJson END " +
+            $"WHERE LOWER(TRIM(Email)) = @Email",
+            c =>
+            {
+                c.Parameters.AddWithValue("@VideoUrl", DbHelpers.Value(contact.VideoUrl));
+                c.Parameters.AddWithValue("@VideoSnapshotJson", DbHelpers.Value(contact.VideoSnapshotJson));
+                c.Parameters.AddWithValue("@VideoSnapshotTimestampsJson", DbHelpers.Value(contact.VideoSnapshotTimestampsJson));
+                c.Parameters.AddWithValue("@Email", contact.Email);
+            });
     }
 
     public async Task<int> AddContactsAsync(IEnumerable<EmailContact> contacts)
