@@ -18,15 +18,23 @@ public class LlmSettings
     public string OllamaModel { get; set; } = "llama3:latest";
 
     /// <summary>
-    /// OPTIONAL vision model used when a lead's video snapshots need to be
-    /// looked at (the "Identify Areas of Improvement" analysis). Leave empty to
-    /// run that analysis from the transcript and video metadata only, which is
-    /// what happens with the default text-only llama3.
+    /// OPTIONAL vision model, used when a lead's video frames must actually be
+    /// looked at - the "Identify Areas of Improvement" analysis and the
+    /// <c>[snapshot_ai]</c> email token. Leave it empty and both fall back to
+    /// working from the transcript and video metadata instead, which is the
+    /// default state with the text-only llama3.
     ///
-    /// To enable it, pull a small vision model on the server, e.g.
-    /// <c>ollama pull moondream</c> (~1.7GB, the smallest practical option),
-    /// and set this to "moondream:latest". Larger choices such as llava are
-    /// considerably slower on a CPU-only host.
+    /// To enable it, pull a vision model on the server and name it here:
+    /// <code>ollama pull qwen3-vl:4b</code> then "qwen3-vl:4b".
+    ///
+    /// Size matters here: this host is CPU-only and RAM-constrained, so pick the
+    /// smallest model that reasons well enough. Qwen3-VL comes in 2b (1.9GB),
+    /// 4b (3.3GB) and 8b (6.1GB), all with image input and a 256K context. Start
+    /// at 4b; move to 8b only if frame selection or the edit prompt come out weak.
+    /// Qwen3-VL needs Ollama 0.12.7 or newer on the server.
+    ///
+    /// Note this model only SEES. It picks frames and writes an edit prompt; it
+    /// cannot render an image. Rendering is <see cref="IImageGenerationService"/>.
     /// </summary>
     public string OllamaVisionModel { get; set; } = "";
 
@@ -65,12 +73,50 @@ public class LlmSettings
     /// </summary>
     public int ModelKeepAliveMinutes { get; set; } = 60;
 
-    // ---- Legacy on-device (LLamaSharp) settings, kept so old appsettings.json
-    // files still bind without errors. They are ignored by the Ollama LLMService. ----
-    public string ModelUrl { get; set; } =
-        "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf";
-    public string ModelFileName { get; set; } = "Llama-3.2-3B-Instruct-Q4_K_M.gguf";
+    // ---- Local inference (LLamaSharp / llama.cpp) -----------------------------
+    // Inference runs on this machine against a local GGUF file. There is no
+    // remote server, so nothing here depends on the VPS.
+
+    /// <summary>
+    /// Absolute path to the chat GGUF used for text work. An empty value means
+    /// "use the default location under the app's data folder", so a normal
+    /// install needs no configuration.
+    /// </summary>
+    public string ChatModelPath { get; set; } = "";
+
+    /// <summary>
+    /// Absolute path to the multimodal (vision) GGUF, used by the
+    /// <c>[snapshot_ai]</c> token and the video analysis. This is a SEPARATE file
+    /// from the chat model - llama.cpp loads a vision projector and its language
+    /// model together, so a text-only chat GGUF cannot see images.
+    ///
+    /// Leave empty to run without vision; the affected features then fall back
+    /// to working from the transcript and metadata.
+    /// </summary>
+    public string VisionModelPath { get; set; } = "";
+
+    /// <summary>
+    /// Layers offloaded to the GPU. -1 means every layer the GPU can hold, which
+    /// is what you want on a card with enough VRAM (e.g. an RTX A2000 Ada).
+    /// Lower it if the model does not fit, or set 0 to run entirely on CPU.
+    /// </summary>
+    public int GpuLayerCount { get; set; } = -1;
+
+    /// <summary>Context window in tokens.</summary>
     public uint ContextSize { get; set; } = 4096;
-    public int GpuLayerCount { get; set; } = 0;
-    public int ModelLoadTimeoutSeconds { get; set; } = 300;
+
+    /// <summary>
+    /// Where downloaded models are cached, when empty. Defaults to a
+    /// "models" folder beside the app's data.
+    /// </summary>
+    public string ModelDirectory { get; set; } = "";
+
+    /// <summary>
+    /// Absolute path to the chat GGUF this app last downloaded, kept so a
+    /// first-run fetch does not have to happen again.
+    /// </summary>
+    public string ModelUrl { get; set; } = string.Empty;
+
+    /// <summary>File name the model is saved under in the model directory.</summary>
+    public string ModelFileName { get; set; } = "Llama-3.2-3B-Instruct-Q4_K_M.gguf";
 }

@@ -1,14 +1,36 @@
+using System.Text.RegularExpressions;
 using TubeMailGorilla.Maui.Unlocked.Models;
 
 namespace TubeMailGorilla.Maui.Unlocked.Services;
 
 public class AIService
 {
-    private readonly LLMService _llm;
+    // Display-size bounds for the [snapshot_ai] email image. An email is read on
+    // a phone first, so anything wider than 640px forces horizontal scrolling,
+    // and anything under 240px is too small to judge the creator's footage.
+    private const int MinImageWidth = 240;
+    private const int MaxImageWidth = 640;
+    private const int MinImageHeight = 135;
+    private const int MaxImageHeight = 360;
 
-    public AIService(LLMService llm)
+    // 16:9, matching the aspect ratio the snapshots are captured at.
+    private const int DefaultImageWidth = 480;
+    private const int DefaultImageHeight = 270;
+
+    private readonly LLMService _llm;
+    private readonly IImageGenerationService _imageGeneration;
+
+    /// <param name="llm">Used for reasoning: picking frames and writing the edit prompt.</param>
+    /// <param name="imageGeneration">
+    /// Renders the finished image. Optional on purpose - with no image model
+    /// configured the service falls back to compositing the lead's real frames,
+    /// so the token still produces an honest image. Defaults to the no-op
+    /// implementation rather than null so callers never have to null-check.
+    /// </param>
+    public AIService(LLMService llm, IImageGenerationService? imageGeneration = null)
     {
         _llm = llm;
+        _imageGeneration = imageGeneration ?? new NullImageGenerationService();
     }
 
     /// <summary>
@@ -64,7 +86,139 @@ Return ONLY the icebreaker text.";
     }
 
     /// <summary>
-    /// Analyses a lead's video and returns concrete editing notes aimed at
+    /// A frame the vision model picked for an email, together with the display
+    /// dimensions it chose for it.
+    ///
+    /// This is the payload of the <c>[snapshot_ai]</c> email token. It carries the
+    /// image data rather than markup so the HTML is built in one place (see
+    /// <c>EmailService.BuildSnapshotImageHtml</c>). The model is asked to choose
+    /// an image and a size, never to write HTML, and echoing a large base64 blob
+    /// back through a text model is unreliable anyway.
+    /// </summary>
+    public class SnapshotAiImage
+    {
+        public SnapshotAiImage(string base64Image, int width, int height, bool isGenerated = false)
+        {
+            Base64Image = base64Image;
+            Width = width;
+            Height = height;
+            IsGenerated = isGenerated;
+        }
+
+        /// <summary>Base64 image data (no data-URI prefix).</summary>
+        public string Base64Image { get; }
+
+        /// <summary>Display width in pixels, chosen by the model.</summary>
+        public int Width { get; }
+
+        /// <summary>Display height in pixels, chosen by the model.</summary>
+        public int Height { get; }
+
+        /// <summary>
+        /// True when an image model rendered this, false when the lead's real
+        /// frames were composited instead. The difference matters: a generated
+        /// image is only a truthful "here is my edit" when a model actually ran,
+        /// so callers may want to word the email differently for each.
+        /// </summary>
+        public bool IsGenerated { get; }
+
+        /// <summary>
+        /// The mime type for the data URI. A generated image is normally PNG;
+        /// the composited fallback is JPEG, which is what the frames are.
+        /// </summary>
+        public string MimeType => IsGenerated ? "image/png" : "image/jpeg";
+    }
+
+    /// <summary>
+    /// Picks the frames of a lead's video that best match what the caller wants
+    /// to show, and composites them into ONE base64 JPEG.
+    ///
+    /// The [snapshot_ai] token lets a template say in plain English what the image
+    /// is for - "show a before and after" or "pick the clips that need editing" -
+    /// and that instruction drives the vision model's choice. One instruction can
+    /// ask for a single frame, a before/after pair, or a grid of clips; the model
+    /// answers with a list of frame positions plus the layout to use.
+    ///
+    /// Only the *decision* comes back from the model. The frames are resolved
+    /// locally by position and drawn by <see cref="SnapshotImageComposer"/>,
+    /// because the stack cannot generate an image - it can only choose between
+    /// real ones. Every pixel in the result is genuinely from the lead's video.
+    ///
+    /// Returns null when there is nothing to show (no snapshots, no vision model
+    /// configured, or the call failed) so the token renders as nothing rather
+    /// than leaking an error into a cold email.
+    /// </summary>
+    public async Task<SnapshotAiImage?> GenerateSnapshotAiImageAsync(
+        EmailContact contact,
+        IReadOnlyList<string> snapshots,
+        string? instruction = null)
+    {
+        if (!_llm.SupportsVision)
+            return null;
+
+        var frames = snapshots?.Where(s => !string.IsNullOrWhiteSpace(s)).ToList()
+                    ?? new List<string>();
+        if (frames.Count == 0)
+            return null;
+
+        // Must be the exact list that goes over the wire, so the reported
+        // positions index frames the model actually saw.
+        var sent = _llm.SelectImageSample(frames);
+
+        var goal = string.IsNullOrWhiteSpace(instruction)
+            ? "Pick the frames that most clearly show what could be improved."
+            : TrimInstruction(instruction);
+
+        var prompt = $@"
+You are a video editor planning a proof-of-concept image for a cold email to a
+YouTube creator, from a freelance video editor offering their services.
+
+What the image must show: {goal}
+
+Video context:
+- Title: {(string.IsNullOrWhiteSpace(contact.VideoTitle) ? "unknown" : contact.VideoTitle)}
+- Channel: {(string.IsNullOrWhiteSpace(contact.Channel) ? "unknown" : contact.Channel)}
+
+You have been given {sent.Count} frame(s), numbered 1 to {sent.Count} in order.
+
+Do two things:
+
+1. Pick the frames to use in ""selectedSnapshots"". Put the weakest-looking frame
+   first and the strongest last.
+   - 1 frame when the goal asks for a single image.
+   - 2 frames when the goal asks for a before and after, or a comparison.
+   - Up to {SnapshotImageComposer.MaxFrames} frames when the goal asks for several clips.
+   - Only frames you can actually see. Never invent an index.
+
+2. Write ""editPrompt"": the image-editing instruction describing how those frames
+   should be turned into the finished image. Describe the edit, the look and the
+   layout. Do not mention frame numbers, the creator, or that these are
+   screenshots. Keep it under 40 words.
+
+Also choose the display size for the finished image.
+Rules:
+- Answer with ONE line of JSON and nothing else. No explanation, no prose.
+- Format:
+  {{""selectedSnapshots"": [1, 2], ""editPrompt"": ""<your edit instruction>"", ""width"": <px>, ""height"": <px>}}
+- width between 240 and {SnapshotImageComposer.MaxWidth}, height between 135 and 360.
+
+Return only that JSON object.";
+
+        try
+        {
+            var result = await _llm.GenerateAdvisoryAsync(
+                prompt,
+                maxTokens: 160,
+                base64Images: sent);
+
+            return await BuildImageAsync(result, frames, sent, _imageGeneration);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     /// raising watch time and engagement - the analysis a freelance editor
     /// would put in a review before quoting a retainer.
     ///
@@ -183,6 +337,175 @@ Reference the transcript where relevant. Skip a heading only if you genuinely ha
 
     private static string Truncate(string value, int maxLength) =>
         value.Length <= maxLength ? value : value[..maxLength];
+
+    /// <summary>
+    /// Turns the model's plan into the finished image.
+    ///
+    /// Preferred path: an image model renders the frames using the model's
+    /// editPrompt. Fallback path: no image model, or it failed, so the lead's
+    /// real frames are composited instead. The fallback is what ships today and
+    /// it is always honest - every pixel is genuinely from their video - whereas
+    /// a generated image is only truthful when the model is actually running.
+    ///
+    /// Small models wrap JSON in prose or a code fence even when told not to, so
+    /// values are read with regexes rather than a strict parse, and anything
+    /// unusable falls back to the first frame rather than failing the send.
+    /// </summary>
+    private static async Task<SnapshotAiImage?> BuildImageAsync(
+        string response,
+        IReadOnlyList<string> allFrames,
+        IReadOnlyList<string> sentFrames,
+        IImageGenerationService imageGeneration)
+    {
+        if (string.IsNullOrWhiteSpace(response))
+            return null;
+        if (response.StartsWith("LLM Error", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var json = ExtractFirstJsonObject(response);
+        var width = Math.Clamp(ReadInt(json ?? string.Empty, "width", DefaultImageWidth), MinImageWidth, MaxImageWidth);
+        var height = Math.Clamp(ReadInt(json ?? string.Empty, "height", DefaultImageHeight), MinImageHeight, MaxImageHeight);
+        var editPrompt = ReadString(json ?? string.Empty, "editPrompt");
+
+        var chosen = new List<string>();
+
+        if (json is not null)
+        {
+            foreach (var index in ReadIndexes(json))
+            {
+                // A position the model invented must not be honoured, and the
+                // set is capped so a greedy model cannot produce a huge strip.
+                if (index < 1 || index > sentFrames.Count)
+                    continue;
+                if (chosen.Contains(sentFrames[index - 1]))
+                    continue;
+
+                chosen.Add(sentFrames[index - 1]);
+                if (chosen.Count >= SnapshotImageComposer.MaxFrames)
+                    break;
+            }
+        }
+
+        // No usable answer at all: the first sampled frame is always valid, so
+        // the email still shows the creator's footage rather than nothing.
+        if (chosen.Count == 0)
+            chosen.Add(sentFrames.Count > 0 ? sentFrames[0] : allFrames.FirstOrDefault() ?? string.Empty);
+
+        if (imageGeneration.IsConfigured && !string.IsNullOrWhiteSpace(editPrompt))
+        {
+            try
+            {
+                var generated = await imageGeneration.GenerateAsync(chosen, editPrompt, width, height);
+                if (!string.IsNullOrWhiteSpace(generated))
+                    return new SnapshotAiImage(generated, width, height, isGenerated: true);
+            }
+            catch
+            {
+                // A failed generation must not cost the recipient their image;
+                // fall through to composing the real frames.
+            }
+        }
+
+        var composed = SnapshotImageComposer.ComposeBase64(chosen);
+        if (composed is null)
+            return null;
+
+        return new SnapshotAiImage(composed, width, height, isGenerated: false);
+    }
+
+    /// <summary>
+    /// A string value from the model's JSON, unescaped and trimmed. Small models
+    /// wrap generated text in quotes and escape inner quotes, so a plain split
+    /// is not enough.
+    /// </summary>
+    private static string ReadString(string json, string key)
+    {
+        var match = Regex.Match(
+            json, $"\"{key}\"\\s*:\\s*\"(?<value>(?:[^\"\\\\]|\\\\.)*)\"", RegexOptions.IgnoreCase);
+
+        if (!match.Success)
+            return string.Empty;
+
+        var value = match.Groups["value"].Value
+            .Replace("\\\"", "\"")
+            .Replace("\\\\", "\\")
+            .Replace("\\n", " ")
+            .Replace("\\r", " ");
+
+        return value.Trim();
+    }
+
+    /// <summary>
+    /// The frame numbers in the "indexes" array, in the order the model listed
+    /// them. Read positionally rather than via a JSON parser because a small
+    /// model may emit single quotes, a trailing comma, or the values unquoted.
+    /// </summary>
+    private static List<int> ReadIndexes(string json)
+    {
+        var indexes = new List<int>();
+
+        // Accepts both key spellings: "selectedSnapshots" is what the prompt
+        // asks for, "indexes" is what the model may echo back instead.
+        // Quotation marks are optional because a small model may emit
+        // "indexes", 'indexes', or indexes.
+        var array = Regex.Match(
+            json, "[\"']?(?:selectedSnapshots|indexes)[\"']?\\s*:\\s*\\[(?<items>[^\\]]*)\\]", RegexOptions.IgnoreCase);
+        if (!array.Success)
+            return indexes;
+
+        foreach (Match item in Regex.Matches(array.Groups["items"].Value, @"\d+"))
+        {
+            if (int.TryParse(item.Value, out var value))
+                indexes.Add(value);
+        }
+
+        return indexes;
+    }
+
+    /// <summary>
+    /// The first balanced {...} block in the response, so a model that prefixes
+    /// its answer with "Sure, here you go:" is still understood.
+    /// </summary>
+    private static string? ExtractFirstJsonObject(string text)
+    {
+        var start = text.IndexOf('{');
+        if (start < 0) return null;
+
+        var depth = 0;
+        for (var i = start; i < text.Length; i++)
+        {
+            if (text[i] == '{') depth++;
+            else if (text[i] == '}')
+            {
+                depth--;
+                if (depth == 0)
+                    return text[start..(i + 1)];
+            }
+        }
+
+        return null;
+    }
+
+    private static int ReadInt(string json, string key, int fallback)
+    {
+        var match = Regex.Match(
+            json, $"\"{key}\"\\s*:\\s*(\\d+)", RegexOptions.IgnoreCase);
+
+        return match.Success && int.TryParse(match.Groups[1].Value, out var value)
+            ? value
+            : fallback;
+    }
+
+    /// <summary>
+    /// Reduces a token instruction to a single short line. Tokens are written on
+    /// one line in the composer, but a pasted one can carry newlines, which would
+    /// otherwise break up the prompt the vision model reads.
+    /// </summary>
+    private static string TrimInstruction(string instruction)
+    {
+        var flat = instruction.Replace("\r\n", " ").Replace('\n', ' ').Replace('\r', ' ').Trim();
+        return Truncate(flat, 300);
+    }
 
     private static string? CleanIcebreaker(string input)
     {

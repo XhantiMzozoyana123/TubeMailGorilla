@@ -135,6 +135,18 @@ public partial class SettingsPage : ContentPage
             return;
         }
 
+        // These are built-in tokens backed by the lead's video rather than a
+        // contact field, and are resolved during send. Letting a shortcode take
+        // either name would silently disable the image in every email using it.
+        var reserved = new[] { EmailService.SnapshotAiToken, EmailService.SnapshotRandomToken };
+        if (reserved.Any(name =>
+                newToken.Equals(name.TrimStart('['), StringComparison.OrdinalIgnoreCase)))
+        {
+            await DisplayAlert("Name reserved",
+                $"{newToken} is a built-in token that embeds an image from the lead's video. Please pick a different name.", "OK");
+            return;
+        }
+
         try
         {
             selected.Token = newToken;

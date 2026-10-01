@@ -61,18 +61,26 @@ public static class MauiProgram
         builder.Services.AddSingleton<PaymentService>();
         builder.Services.AddSingleton<ValidationService>();
 
+        // Load the model in the background so it is ready before the first
+        // extraction. Local inference, so this reads a local GGUF rather than
+        // pinging a server.
         builder.Services.AddSingleton(sp =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
             var settings = new LlmSettings();
             config.GetSection(nameof(LlmSettings)).Bind(settings);
             var llm = new LLMService(settings);
-            // Begin the first-run model download in the background so it is ready to use
-            // by the time the user starts an extraction.
             llm.StartModelWarmup();
             return llm;
         });
-        builder.Services.AddSingleton(sp => new AIService(sp.GetRequiredService<LLMService>()));
+        // Image generation is an optional capability. Today no model is
+        // configured, so the no-op implementation is registered and AIService
+        // composes the lead's real frames instead. When a model is added, this
+        // is the only line that needs to change.
+        builder.Services.AddSingleton<IImageGenerationService, NullImageGenerationService>();
+        builder.Services.AddSingleton(sp => new AIService(
+            sp.GetRequiredService<LLMService>(),
+            sp.GetRequiredService<IImageGenerationService>()));
         builder.Services.AddSingleton(sp => new EmailService(sp.GetRequiredService<DatabaseService>()));
 
 #if DEBUG

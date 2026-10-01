@@ -10,6 +10,7 @@ public partial class SendEmailsPage : ContentPage
     private readonly EmailService _email;
     private readonly PaymentService _payments;
     private readonly ValidationService _validator;
+    private readonly AIService _ai;
     private EntitlementInfo _entitlements = new();
     private bool _isSending;
 
@@ -43,6 +44,7 @@ public partial class SendEmailsPage : ContentPage
         _email = ServiceHelper.GetService<EmailService>();
         _payments = ServiceHelper.GetService<PaymentService>();
         _validator = ServiceHelper.GetService<ValidationService>();
+        _ai = ServiceHelper.GetService<AIService>();
 
         // Composer chips are populated from the saved parameters in OnAppearing.
         // Keep the built-ins as a safe fallback for the first render.
@@ -52,6 +54,9 @@ public partial class SendEmailsPage : ContentPage
         AddTokenOption(BodyTokens, "[channel]", "[channel]");
         AddTokenOption(BodyTokens, "[email]", "[email]");
         AddTokenOption(BodyTokens, "[icebreaker]", "[icebreaker]");
+        AddTokenOption(BodyTokens, "[snapshot_random]", "[snapshot_random]");
+        AddTokenOption(BodyTokens, "[snapshot_ai={Select the frame that most needs editing.}]",
+            "[snapshot_ai={Select the frame that most needs editing.}]");
     }
 
     protected override async void OnAppearing()
@@ -100,8 +105,17 @@ public partial class SendEmailsPage : ContentPage
                 .Concat(new[] { "[name]", "[channel]" })
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
+            // Both snapshot tokens are built in, not saved user parameters: they
+            // are backed by the lead's video rather than a contact field.
+            // snapshot_random needs nothing configured; snapshot_ai takes an
+            // instruction, pre-filled so the chip is useful as-is.
             var bodyTokens = savedTokens
-                .Concat(new[] { "[name]", "[email]", "[channel]", "[video-title]", "[icebreaker]" })
+                .Concat(new[]
+                {
+                    "[name]", "[email]", "[channel]", "[video-title]", "[icebreaker]",
+                    "[snapshot_random]",
+                    "[snapshot_ai={Select the frame that most needs editing.}]"
+                })
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
@@ -579,8 +593,25 @@ public partial class SendEmailsPage : ContentPage
                 }
 
                 var personalizedSubject = EmailService.Personalize(messageSubject, contact, parameters, icebreaker);
-                var personalizedBody = EmailService.ToHtmlBody(
-                    EmailService.Personalize(messageBody, contact, parameters, icebreaker));
+                var bodyText = EmailService.Personalize(messageBody, contact, parameters, icebreaker);
+
+                // [snapshot_random] is resolved first and is free - the frame is
+                // already in the database, so there is no model call and nothing
+                // to wait for. [snapshot_ai] is the expensive one, so it runs
+                // only if the body actually asks for it.
+                if (EmailService.ContainsSnapshotRandomToken(bodyText))
+                {
+                    bodyText = EmailService.PersonalizeSnapshotRandom(bodyText, contact.VideoSnapshot);
+                }
+
+                if (EmailService.ContainsSnapshotAiToken(bodyText))
+                {
+                    StatusLabel.Text = $"Choosing a frame for {i + 1}/{contacts.Count}… ({contact.Email})";
+                    bodyText = await EmailService.PersonalizeSnapshotAiAsync(
+                        bodyText, contact, _ai, contact.VideoSnapshot);
+                }
+
+                var personalizedBody = EmailService.ToHtmlBody(bodyText);
 
                 var message = new MessengerDto
                 {

@@ -59,6 +59,17 @@
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+        <!-- Bitmap compositing for the [snapshot_ai] email image (see SnapshotImageComposer).
+             MAUI ships no imaging library of its own; SkiaSharp is the cross-platform one and
+             is already a transitive dependency of Microsoft.Maui.Graphics on most targets. -->
+        <PackageReference Include="SkiaSharp" Version="3.119.1" />
+        <!-- Local GGUF inference. Runs on the host's own GPU (see the
+             LlmSettings.llamasharp section) - no remote inference server.
+             The CUDA backend is what uses the NVIDIA card; the CPU backend is a
+             fallback so the app still runs on a machine without one. -->
+        <PackageReference Include="LLamaSharp" Version="0.27.0" />
+        <PackageReference Include="LLamaSharp.Backend.Cuda12" Version="0.27.0" />
+        <PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.27.0" />
         <PackageReference Include="sqlite-net-pcl" Version="1.8.116" />
         <PackageReference Include="YoutubeExplode" Version="6.6.2" />
         <PackageReference Include="YouTubeSearch" Version="2.2.6" />
