@@ -1,0 +1,27 @@
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:20: private readonly LLMService _llm;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:30: public AIService(LLMService llm, IImageGenerationService? imageGeneration = null)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:77: var result = await _llm.GenerateTextAsync(prompt, maxTokens: 160);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:156: if (!_llm.SupportsVision)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:166: var sent = _llm.SelectImageSample(frames);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:209: var result = await _llm.GenerateAdvisoryAsync(
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:252: var visionNote = _llm.SupportsVision
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:288: var result = await _llm.GenerateAdvisoryAsync(
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:533: var result = await _llm.GenerateTextAsync(prompt);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:547: var result = await _llm.GenerateTextAsync(prompt);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:561: var result = await _llm.GenerateTextAsync(prompt);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:575: var result = await _llm.GenerateTextAsync(prompt);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:602: var result = await _llm.GenerateTextAsync(prompt);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ExtractPage.xaml.cs:10: private readonly LLMService _llm;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ExtractPage.xaml.cs:19: _llm = ServiceHelper.GetService<LLMService>();
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ExtractPage.xaml.cs:66: StatusLabel.Text = $"AI model unavailable ({_llm.Status}) - continuing without AI fields.";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ExtractPage.xaml.cs:72: var llmStatus = _llm.Status;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ExtractPage.xaml.cs:221: BulkStatusLabel.Text = $"AI model unavailable ({_llm.Status}) - running without AI fields.";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ExtractPage.xaml.cs:377: if (_llm.IsReady)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ExtractPage.xaml.cs:380: var readyTask = _llm.EnsureReadyAsync();
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ExtractPage.xaml.cs:383: StatusLabel.Text = $"Preparing AI model ({_llm.Status})...";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ExtractPage.xaml.cs:386: return await readyTask && _llm.IsReady;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\MauiProgram.cs:37: // timeout. LLMService applies its own per-request budget
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\MauiProgram.cs:72: var llm = new LLMService(settings);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\MauiProgram.cs:73: llm.StartModelWarmup();
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\MauiProgram.cs:82: sp.GetRequiredService<LLMService>(),
+total: 26

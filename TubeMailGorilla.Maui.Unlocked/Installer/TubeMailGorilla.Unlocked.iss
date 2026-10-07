@@ -6,8 +6,9 @@
 ; This is the UNLOCKED edition: no account, no sign-in, no subscription and
 ; no server checks - every feature is available from the first launch.
 ; The installer also needs no account: it installs the app and downloads the
-; on-device AI model (Llama 3.2 3B Instruct GGUF, ~1.9 GB) into the install
-; folder, so end users never have to do anything technical.
+; on-device AI model (Qwen2.5-VL 3B GGUF ~1.9 GB + its vision projector
+; ~845 MB) into the app's models folder, so end users never have to do
+; anything technical.
 ;
 ; Installs side by side with the subscription edition (different AppId and
 ; install folder).
@@ -20,8 +21,16 @@
 #endif
 #define MyAppPublisher "TubeMailGorilla"
 #define MyAppExeName "TubeMailGorilla.Maui.Unlocked.exe"
-#define ModelFileName "Llama-3.2-3B-Instruct-Q4_K_M.gguf"
-#define ModelUrl "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf"
+
+; Both halves of the AI model, and they MUST come from the same repo: llama.cpp
+; feeds projector output into the chat model's embedding table, so a projector
+; trained against a different base architecture can never load. These names and
+; URLs must stay in sync with LlmSettings.ModelFileName / VisionModelFileName.
+#define ChatModelFileName "Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf"
+#define ChatModelUrl "https://huggingface.co/ggml-org/Qwen2.5-VL-3B-Instruct-GGUF/resolve/main/Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf"
+#define VisionModelFileName "mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf"
+#define VisionModelUrl "https://huggingface.co/ggml-org/Qwen2.5-VL-3B-Instruct-GGUF/resolve/main/mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf"
+
 ; Path to the dotnet publish output (created by build-installer.ps1)
 #define PublishDir "..\bin\Release\net10.0-windows10.0.19041.0\win-x64\publish"
 
@@ -70,17 +79,58 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
-; Remove the downloaded AI model when uninstalling
-Type: files; Name: "{app}\{#ModelFileName}"
+; Remove the downloaded AI model when uninstalling. It lives in the per-user
+; models folder (not {app}), so it is listed by its full path.
+Type: files; Name: "{localappdata}\TubeMailGorillaUnlocked\models\{#ChatModelFileName}"
+Type: files; Name: "{localappdata}\TubeMailGorillaUnlocked\models\{#VisionModelFileName}"
 
 [Code]
 const
-  ModelUrl = '{#ModelUrl}';
-  ModelFileName = '{#ModelFileName}';
+  ChatModelUrl = '{#ChatModelUrl}';
+  ChatModelFileName = '{#ChatModelFileName}';
+  VisionModelUrl = '{#VisionModelUrl}';
+  VisionModelFileName = '{#VisionModelFileName}';
+
+  // Must match LLMService.ModelDirectory, which is where the app looks by
+  // default. Writing the model anywhere else is exactly what made every
+  // installer build report "No model found" on first extraction.
+  ModelsDir = '{localappdata}\TubeMailGorillaUnlocked\models';
+
+  // Real sizes are ~1.9 GB and ~845 MB; these floors only reject truncated or
+  // HTML-error downloads saved under the .gguf name.
+  ChatModelMinBytes = 1073741824;    // 1 GB
+  VisionModelMinBytes = 268435456;   // 256 MB
 
 var
   ModelPage: TDownloadWizardPage;
   DownloadModel: Boolean;
+
+// Size in bytes of an existing file, or 0 when it does not exist.
+function FileSizeOf(const Path: String): Int64;
+var
+  F: TFindRec;
+begin
+  Result := 0;
+  if FileExists(Path) and FindFirst(Path, F) then
+  try
+    Result := Int64(F.SizeHigh) * 4294967296 + Int64(F.SizeLow);
+  finally
+    FindClose(F);
+  end;
+end;
+
+// True when BOTH halves are already present and plausibly sized (upgrade case).
+// Only the chat model is required for extraction; a missing projector just means
+// no image features, so it must not force a pointless ~845 MB re-download.
+function ChatModelAlreadyInstalled(): Boolean;
+begin
+  Result := FileSizeOf(ModelsDir + '\' + ChatModelFileName) > ChatModelMinBytes;
+end;
+
+function VisionModelAlreadyInstalled(): Boolean;
+begin
+  Result := FileSizeOf(ModelsDir + '\' + VisionModelFileName) > VisionModelMinBytes;
+end;
 
 // Called before the wizard opens. Creates the dedicated
 // "AI Model" download page used between Ready and Installing.
@@ -93,41 +143,27 @@ begin
     '{#MyAppName} Setup is downloading the on-device AI model.',
     nil);
   ModelPage.Description :=
-    'Your AI model (Llama 3.2 3B, approx. 1.9 GB) is being downloaded. ' +
+    'Your AI model (Qwen2.5-VL 3B, approx. 2.8 GB) is being downloaded. ' +
     'This runs completely on your device after installation and may take several minutes ' +
     'depending on your internet speed. No data ever leaves your machine.';
-end;
-
-// Returns True when a valid copy of the model is already installed
-// (upgrade scenario) - a truncated/corrupt file is re-downloaded.
-function ModelAlreadyInstalled(): Boolean;
-var
-  F: TFindRec;
-begin
-  Result := False;
-  if not DirExists(WizardDirValue) then
-    Exit;
-  if FindFirst(AddBackslash(WizardDirValue) + ModelFileName, F) then
-  try
-    Result := ((F.Attributes and FILE_ATTRIBUTE_DIRECTORY) = 0) and
-              ((Int64(F.SizeHigh) * 4294967296 + Int64(F.SizeLow)) > 1073741824);   // real model is ~1.9 GB
-  finally
-    FindClose(F);
-  end;
 end;
 
 // On the Ready page, if the model must be downloaded, do it here so the
 // user sees a proper progress page BEFORE files are installed.
 function NextButtonClick(CurPageID: Integer): Boolean;
 var
-  TmpFile, DestFile: String;
+  TmpChat, TmpVision, DestChat, DestVision: String;
+  NeedChat, NeedVision: Boolean;
 begin
   Result := True;
 
   if CurPageID <> wpReady then
     Exit;
 
-  if ModelAlreadyInstalled() then
+  NeedChat := not ChatModelAlreadyInstalled();
+  NeedVision := (not VisionModelAlreadyInstalled()) and NeedChat;
+
+  if not NeedChat then
   begin
     Log('AI model already present - skipping download.');
     Exit;
@@ -135,35 +171,57 @@ begin
 
   if not DownloadModel then
   begin
-    Log('User opted out of model download - the app will download it on first use.');
+    Log('User opted out of model download - extraction will run without AI fields.');
     Exit;
   end;
+
+  CreateDir(ModelsDir);
 
   ModelPage.Show;
   try
     try
-      ModelPage.Add(ModelUrl, ModelFileName, '');
+      ModelPage.Add(ChatModelUrl, ChatModelFileName, '');
+      if NeedVision then
+        ModelPage.Add(VisionModelUrl, VisionModelFileName, '');
       ModelPage.Download;   // downloads into {tmp}
 
-      TmpFile := ExpandConstant('{tmp}\') + ModelFileName;
-      DestFile := AddBackslash(WizardDirValue) + ModelFileName;
-      if not CopyFile(TmpFile, DestFile, False) then
+      TmpChat := ExpandConstant('{tmp}\') + ChatModelFileName;
+      TmpVision := ExpandConstant('{tmp}\') + VisionModelFileName;
+      DestChat := ModelsDir + '\' + ChatModelFileName;
+      DestVision := ModelsDir + '\' + VisionModelFileName;
+
+      if (not FileExists(TmpChat)) or (not CopyFile(TmpChat, DestChat, False)) then
       begin
         // The download failed - ask the user, but never block installation.
-        if MsgBox('The AI model could not be moved into the install folder.'#13#10#13#10 +
-                  'You can continue - TubeMailGorilla will download the model automatically ' +
-                  'the first time it needs it. Continue with the installation anyway?',
+        if MsgBox('The AI model could not be downloaded or saved to:'#13#10#13#10 +
+                  ModelsDir + #13#10#13#10 +
+                  'The app still works, but lead extraction will have no AI fields ' +
+                  '(name, company, job title, icebreakers). You can add the model later by ' +
+                  'running Tools\download-vision-model.ps1.'#13#10#13#10 +
+                  'Continue with the installation anyway?',
                   mbError, MB_YESNO) = IDNO then
           Result := False;
       end
       else
-        Log('AI model downloaded to ' + DestFile);
+      begin
+        Log('AI model downloaded to ' + DestChat);
+        // The projector is optional - the app works from the transcript alone.
+        if NeedVision and (FileExists(TmpVision)) then
+        begin
+          if CopyFile(TmpVision, DestVision, False) then
+            Log('Vision projector downloaded to ' + DestVision)
+          else
+            Log('Vision projector could not be saved - continuing without vision.');
+        end;
+      end;
     except
       // The download failed - ask the user, but never block installation.
       if MsgBox('The AI model could not be downloaded:'#13#10 +
                 GetExceptionMessage + #13#10#13#10 +
-                'You can continue - TubeMailGorilla will download the model automatically ' +
-                'the first time it needs it. Continue with the installation anyway?',
+                'The app still works, but lead extraction will have no AI fields ' +
+                '(name, company, job title, icebreakers). You can add the model later by ' +
+                'running Tools\download-vision-model.ps1.'#13#10#13#10 +
+                'Continue with the installation anyway?',
                 mbCriticalError, MB_YESNO) = IDNO then
         Result := False;
     end;

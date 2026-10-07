@@ -1,0 +1,7 @@
+ollama_proc=1
+listener=127.0.0.1:11434 pid=1540 proc=ollama
+tags_status=200
+tags_body={"models":[]}
+version_body={"version":"0.35.1"}
+root_status=200 body=Ollama is running
+ollama_list=NAME    ID    SIZE    MODIFIED 

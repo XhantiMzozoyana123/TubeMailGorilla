@@ -1,0 +1,11 @@
+ollama.exe exists: True
+process: RUNNING pid=1540
+port 11434: OPEN
+winget: not running
+powershell procs: 5
+--- log tail ---
+  waiting for server... (2/15)
+  waiting for server... (3/15)
+  waiting for server... (4/15)
+  waiting for server... (5/15)
+  waiting for server... (6/15)

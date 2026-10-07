@@ -208,11 +208,43 @@
                 </Grid>
 
                     <Label x:Name="NoSnapshotsLabel"
-                           Text="This lead has no snapshots. They are captured during extraction, so only leads found after that ran will have them."
+                           Text="This lead has no snapshots. They are captured during extraction, so only leads found after that ran will have them - or use Try again below to capture them now."
                            FontSize="12"
                            TextColor="{StaticResource TextTertiary}"
                            LineBreakMode="WordWrap"
                            IsVisible="False" />
+
+                    <!--
+                        Manual retry. Extraction captures frames as it goes and
+                        never retries them, so a lead can end up with none at all
+                        (download timed out, decoder failed, or the contact
+                        predates snapshot capture). Rather than re-running a whole
+                        keyword extraction for one lead, this re-runs just the
+                        capture for this contact's video.
+                    -->
+                    <Grid x:Name="SnapshotRetryRow"
+                          ColumnDefinitions="*,Auto,Auto"
+                          ColumnSpacing="8"
+                          Margin="0,8,0,0"
+                          VerticalOptions="Center">
+                        <Label x:Name="SnapshotRetryStatusLabel"
+                               Grid.Column="0"
+                               FontSize="11"
+                               LineBreakMode="WordWrap"
+                               TextColor="{StaticResource TextTertiary}"
+                               VerticalOptions="Center"
+                               Text="Missing frames? Retry the capture for this lead's video." />
+                        <ActivityIndicator x:Name="SnapshotCaptureIndicator"
+                                           Grid.Column="1"
+                                           IsRunning="False"
+                                           IsVisible="False"
+                                           VerticalOptions="Center" />
+                        <Button x:Name="RetrySnapshotsButton"
+                                Grid.Column="2"
+                                Text="Try again"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Clicked="OnRetrySnapshotsClicked" />
+                    </Grid>
 
                     </VerticalStackLayout>
                 </Frame>
@@ -312,6 +344,136 @@
                        Text="No icebreakers yet. Generate one above."
                        FontSize="12"
                        TextColor="{StaticResource TextTertiary}" />
+
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- ============================== SEND EMAIL ============================== -->
+                <!--
+                    A one-off send for this single lead, so the user does not have
+                    to build a whole campaign to reach one person. The compose and
+                    send flow mirrors SendEmailsPage exactly (same token engine,
+                    same account picker wiring, same validator gate) - the only
+                    difference is that the recipient is fixed to this contact.
+                -->
+                <Frame Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="10">
+
+                        <Label Text="SEND EMAIL" Style="{StaticResource SectionTitleStyle}" Margin="0" />
+                        <Label Text="Write a one-off email to this lead. Tokens like [f_name] or [snapshot_1] fill in per-recipient when you send."
+                               Style="{StaticResource DescriptionStyle}" />
+
+                        <Label Text="TO" Style="{StaticResource CaptionStyle}" Margin="0" />
+                        <Entry x:Name="DirectToEntry"
+                               Keyboard="Email"
+                               Placeholder="lead@example.com" />
+
+                        <Label Text="SEND FROM" Style="{StaticResource CaptionStyle}" Margin="0" />
+                        <Picker x:Name="DirectAccountPicker"
+                                Title="Select an account..."
+                                SelectedIndexChanged="OnDirectAccountSelected" />
+
+                        <Label Text="SUBJECT" Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" />
+                        <Entry x:Name="DirectSubjectEntry"
+                               Placeholder="A quick idea for your next video"
+                               Margin="0"
+                               Focused="OnDirectSubjectFocused"
+                               Unfocused="OnDirectSubjectUnfocused" />
+                        <HorizontalStackLayout x:Name="DirectSubjectTokenBar"
+                                               Spacing="8"
+                                               Margin="0,2,0,0">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Text="{Binding Label}"
+                                            CommandParameter="{Binding Token}"
+                                            Clicked="OnDirectTokenClicked"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            FontSize="12"
+                                            Padding="10,6"
+                                            Margin="0"
+                                            MinimumHeightRequest="32"
+                                            HeightRequest="32" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </HorizontalStackLayout>
+
+                        <Label Text="MESSAGE" Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" />
+                        <Editor x:Name="DirectBodyEditor"
+                                Placeholder="Hi [f_name], I loved your video on [channel]..."
+                                HeightRequest="150"
+                                AutoSize="TextChanges"
+                                Margin="0"
+                                Focused="OnDirectBodyFocused"
+                                Unfocused="OnDirectBodyUnfocused" />
+                        <HorizontalStackLayout x:Name="DirectBodyTokenBar"
+                                               Spacing="8"
+                                               Margin="0,2,0,0">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Text="{Binding Label}"
+                                            CommandParameter="{Binding Token}"
+                                            Clicked="OnDirectTokenClicked"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            FontSize="12"
+                                            Padding="10,6"
+                                            Margin="0"
+                                            MinimumHeightRequest="32"
+                                            HeightRequest="32" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </HorizontalStackLayout>
+                        <Label x:Name="DirectTokenHintLabel"
+                               FontSize="11"
+                               LineBreakMode="WordWrap"
+                               TextColor="{StaticResource TextTertiary}"
+                               Text="Tokens resolve when you send: [snapshot_1] is this lead's first captured frame." />
+
+                        <!-- Test Email: sends the exact same message to an address
+                             you control instead of the lead, so personalization and
+                             images can be checked without risking a bad first contact. -->
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,8,0,0">
+                            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                <Label Text="Test Email" FontSize="14" TextColor="{StaticResource TextPrimary}" />
+                                <Label Text="Send to the address below instead of this lead."
+                                       FontSize="12"
+                                       TextColor="{StaticResource TextSecondary}" />
+                            </VerticalStackLayout>
+                            <Switch x:Name="TestEmailSwitch"
+                                    Grid.Column="1"
+                                    VerticalOptions="Center"
+                                    Toggled="OnTestEmailToggled" />
+                        </Grid>
+                        <Entry x:Name="TestEmailEntry"
+                               IsVisible="False"
+                               Keyboard="Email"
+                               Placeholder="you@example.com" />
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,4,0,0">
+                            <Button x:Name="DirectPreviewButton"
+                                    Grid.Column="0"
+                                    Text="Preview"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Clicked="OnDirectPreviewClicked" />
+                            <Button x:Name="DirectSendButton"
+                                    Grid.Column="1"
+                                    Text="Send"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Clicked="OnDirectSendClicked" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                            <ActivityIndicator x:Name="DirectSendIndicator"
+                                               Grid.Column="0"
+                                               IsRunning="False"
+                                               IsVisible="False"
+                                               VerticalOptions="Center" />
+                            <Label x:Name="DirectSendStatusLabel"
+                                   Grid.Column="1"
+                                   FontSize="12"
+                                   LineBreakMode="WordWrap"
+                                   TextColor="{StaticResource TextTertiary}"
+                                   VerticalOptions="Center" />
+                        </Grid>
 
                     </VerticalStackLayout>
                 </Frame>

@@ -8,8 +8,34 @@ public partial class ContactDetailsPage : ContentPage
     private readonly DatabaseService _db;
     private readonly AIService _ai;
     private readonly YouTubeTranscriptService _transcript;
+    private readonly EmailService _email;
+    private readonly ValidationService _validator;
     private bool _isGeneratingIcebreaker;
     private bool _isGeneratingImprovements;
+
+    /// <summary>
+    /// Sender picker state for the direct-send card, mirroring SendEmailsPage's
+    /// LoadSendingOptionsAsync wiring (active accounts only, default taken from
+    /// SendSettings.DefaultSenderId).
+    /// </summary>
+    private List<Sender> _directAccounts = new();
+    private bool _directPickerInitializing;
+
+    /// <summary>Token chips shown above the two direct-send editors.</summary>
+    private readonly List<TokenOption> _directSubjectTokens = new();
+    private readonly List<TokenOption> _directBodyTokens = new();
+
+    /// <summary>True while a direct send/preview is running (blocks double-taps).</summary>
+    private bool _isSendingDirect;
+
+    /// <summary>Last direct-send field that had focus, for token insertion.</summary>
+    private View? _directLastFocusedField;
+
+    /// <summary>Re-captures this lead's frames on demand (the "Try again" button).</summary>
+    private readonly VideoSnapshotService _snapshotCapture;
+
+    /// <summary>True while a manual capture is running, to block double-taps.</summary>
+    private bool _isCapturingSnapshots;
 
     /// <summary>The lead's snapshots, ordered as they were captured.</summary>
     private readonly List<VideoSnapshotItem> _snapshots = new();
@@ -23,11 +49,56 @@ public partial class ContactDetailsPage : ContentPage
         _db = ServiceHelper.GetService<DatabaseService>();
         _ai = ServiceHelper.GetService<AIService>();
         _transcript = ServiceHelper.GetService<YouTubeTranscriptService>();
+        _snapshotCapture = ServiceHelper.GetService<VideoSnapshotService>();
+        _email = ServiceHelper.GetService<EmailService>();
+        _validator = ServiceHelper.GetService<ValidationService>();
         BindingContext = contact;
         NameEntry.Text = contact.Name ?? string.Empty;
         EmailEntry.Text = contact.Email;
         LoadSnapshots(contact);
+        SetupDirectSend(contact);
         _ = LoadOpenersAsync();
+    }
+
+    /// <summary>
+    /// Prepares the direct-send card: prefill the recipient from the contact,
+    /// seed the token chips with the built-ins (saved parameters are merged in
+    /// OnAppearing), and load the sender accounts.
+    /// </summary>
+    private void SetupDirectSend(EmailContact contact)
+    {
+        DirectToEntry.Text = contact.Email;
+
+        // Built-in chips as a safe first render; OnAppearing merges in any
+        // saved custom parameters and refreshes the snapshot hint.
+        AddDirectToken(_directSubjectTokens, "[name]");
+        AddDirectToken(_directSubjectTokens, "[f_name]");
+        AddDirectToken(_directSubjectTokens, "[l_name]");
+        AddDirectToken(_directSubjectTokens, "[channel]");
+        AddDirectToken(_directBodyTokens, "[name]");
+        AddDirectToken(_directBodyTokens, "[f_name]");
+        AddDirectToken(_directBodyTokens, "[l_name]");
+        AddDirectToken(_directBodyTokens, "[email]");
+        AddDirectToken(_directBodyTokens, "[channel]");
+        AddDirectToken(_directBodyTokens, "[video-title]");
+        AddDirectToken(_directBodyTokens, "[icebreaker]");
+        AddDirectToken(_directBodyTokens, "[snapshot_random]");
+        AddDirectToken(_directBodyTokens, "[snapshot_1]");
+        AddDirectToken(_directBodyTokens, "[snapshot_ai={Select the frame that most needs editing.}]");
+
+        BindableLayout.SetItemsSource(DirectSubjectTokenBar, _directSubjectTokens);
+        BindableLayout.SetItemsSource(DirectBodyTokenBar, _directBodyTokens);
+
+        DirectSendStatusLabel.Text = contact.HasVideoSnapshots
+            ? $"This lead has {contact.VideoSnapshot.Count} frame{(contact.VideoSnapshot.Count == 1 ? "" : "s")} - [snapshot_1]…[snapshot_{contact.VideoSnapshot.Count}] all work."
+            : "This lead has no frames yet, so snapshot tokens will render empty.";
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await LoadDirectAccountsAsync();
+        await LoadDirectTokenParametersAsync();
     }
 
     // ------------------------------------------------------------------
@@ -78,11 +149,436 @@ public partial class ContactDetailsPage : ContentPage
             ? $"{_snapshots.Count} snapshot{(_snapshots.Count == 1 ? "" : "s")} captured - Save ZIP exports them all."
             : "No snapshots captured for this lead yet.";
 
+        // The retry button is only useful when there is a video to capture
+        // from; without a URL the row still shows, but explains why it is
+        // unavailable instead of offering a button that cannot work.
+        RetrySnapshotsButton.IsVisible = hasVideo;
+        SnapshotRetryStatusLabel.Text = hasVideo
+            ? (hasSnapshots
+                ? "Missing frames? Retry the capture for this lead's video."
+                : "No frames captured yet. Try again captures them straight from the video.")
+            : "This lead has no video URL, so snapshots cannot be captured.";
+
         if (!hasSnapshots) return;
 
+        // Reset first: the carousel holds a reference to this same list, so
+        // assigning it again after a re-capture would not repaint the view.
+        SnapshotsCarousel.ItemsSource = null;
         SnapshotsCarousel.ItemsSource = _snapshots;
         SnapshotsCarousel.Position = 0;
         UpdateSnapshotIndicator(0);
+    }
+
+    /// <summary>
+    /// Re-runs snapshot capture for this contact's video and stores the result.
+    ///
+    /// Extraction captures frames as it goes and never retries them, so a lead
+    /// can end up with none at all - the download timed out, the decoder
+    /// failed, or the contact predates snapshot capture. This gives that lead
+    /// a second chance without re-running a whole keyword extraction.
+    /// </summary>
+    private async void OnRetrySnapshotsClicked(object? sender, EventArgs e)
+    {
+        if (_isCapturingSnapshots) return;
+        if (BindingContext is not EmailContact contact) return;
+
+        var videoUrl = contact.VideoUrl?.Trim();
+        if (string.IsNullOrWhiteSpace(videoUrl))
+        {
+            await DisplayAlert("No video",
+                "This lead has no video URL, so snapshots cannot be captured.", "OK");
+            return;
+        }
+
+        _isCapturingSnapshots = true;
+        RetrySnapshotsButton.IsEnabled = false;
+        RetrySnapshotsButton.Text = "Capturing…";
+        SnapshotCaptureIndicator.IsRunning = true;
+        SnapshotCaptureIndicator.IsVisible = true;
+        SnapshotRetryStatusLabel.Text =
+            "Downloading the video and capturing frames - this can take a minute or two…";
+
+        try
+        {
+            // CaptureAsync never throws: an undownloadable or undecodable
+            // video simply yields zero frames, which is handled below.
+            var captured = await _snapshotCapture.CaptureAsync(videoUrl);
+
+            if (captured.Count == 0)
+            {
+                SnapshotRetryStatusLabel.Text =
+                    "No snapshots captured. Check your internet connection and try again.";
+                await DisplayAlert("No snapshots",
+                    "The video could not be downloaded or decoded, so no frames were captured. Check your internet connection and try again.",
+                    "OK");
+                return;
+            }
+
+            contact.VideoSnapshot = captured.Select(s => s.Base64Image).ToList();
+            contact.VideoSnapshotTimestamps = captured.Select(s => s.Seconds).ToList();
+
+            // Persist immediately: leaving the page must not lose the frames.
+            if (contact.Id == 0)
+                await _db.AddContactAsync(contact);
+            else
+                await _db.UpdateContactAsync(contact);
+
+            LoadSnapshots(contact);
+            SnapshotRetryStatusLabel.Text =
+                $"{captured.Count} snapshot{(captured.Count == 1 ? "" : "s")} captured and saved.";
+            Log($"ContactDetails: retry captured {captured.Count} snapshots for {contact.Email}");
+        }
+        catch (Exception ex)
+        {
+            SnapshotRetryStatusLabel.Text = $"Snapshot capture failed: {ex.Message}";
+            Log($"ContactDetails: retry failed for {contact.Email}: {ex.Message}");
+        }
+        finally
+        {
+            _isCapturingSnapshots = false;
+            SnapshotCaptureIndicator.IsRunning = false;
+            SnapshotCaptureIndicator.IsVisible = false;
+            RetrySnapshotsButton.IsEnabled = true;
+            RetrySnapshotsButton.Text = "Try again";
+        }
+    }
+
+    // ------------------------------------------------------------------
+    //  Direct (one-off) email
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// Loads the active sender accounts into the picker, defaulting to
+    /// SendSettings.DefaultSenderId - the same wiring SendEmailsPage uses, so
+    /// both pages agree on which account "the default" is.
+    /// </summary>
+    private async Task LoadDirectAccountsAsync()
+    {
+        try
+        {
+            var accounts = await _db.GetAllSendersAsync();
+            _directAccounts = accounts.Where(a => a.IsActive).ToList();
+
+            _directPickerInitializing = true;
+            DirectAccountPicker.Items.Clear();
+            foreach (var s in _directAccounts)
+                DirectAccountPicker.Items.Add($"{s.Name} — {s.EmailAddress}");
+
+            var defaultId = SendSettings.DefaultSenderId;
+            var selectedIndex = 0;
+            if (defaultId > 0)
+            {
+                var pos = _directAccounts.FindIndex(a => a.Id == defaultId);
+                if (pos >= 0) selectedIndex = pos;
+            }
+
+            DirectAccountPicker.SelectedIndex = _directAccounts.Count == 0 ? -1 : selectedIndex;
+            _directPickerInitializing = false;
+        }
+        catch
+        {
+            // Non-fatal: the send flow re-checks accounts before sending.
+            _directPickerInitializing = false;
+        }
+    }
+
+    /// <summary>
+    /// Merges the saved custom parameters into the token chips, the same way
+    /// SendEmailsPage builds its composer chips.
+    /// </summary>
+    private async Task LoadDirectTokenParametersAsync()
+    {
+        try
+        {
+            var parameters = await _db.GetMessageParametersAsync();
+            var savedTokens = parameters
+                .Select(p => p.Token?.Trim().Trim('[', ']') ?? string.Empty)
+                .Where(token => token.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(token => $"[{token}]");
+
+            foreach (var token in savedTokens)
+            {
+                AddDirectToken(_directSubjectTokens, token);
+                AddDirectToken(_directBodyTokens, token);
+            }
+        }
+        catch
+        {
+            // Built-ins are already showing; a parameter load failure just
+            // leaves the custom chips out for this visit.
+        }
+    }
+
+    private void AddDirectToken(List<TokenOption> tokens, string token)
+    {
+        if (tokens.Any(t => t.Token.Equals(token, StringComparison.OrdinalIgnoreCase)))
+            return;
+        tokens.Add(new TokenOption(token, token));
+    }
+
+    private void OnDirectAccountSelected(object? sender, EventArgs e)
+    {
+        // Same rule as SendEmailsPage: the picker writes the shared default,
+        // so both pages stay in sync.
+        if (_directPickerInitializing) return;
+
+        if (DirectAccountPicker.SelectedIndex < 0 ||
+            DirectAccountPicker.SelectedIndex >= _directAccounts.Count)
+            return;
+
+        SendSettings.DefaultSenderId = _directAccounts[DirectAccountPicker.SelectedIndex].Id;
+    }
+
+    private void OnDirectSubjectFocused(object? sender, FocusEventArgs e) => _directLastFocusedField = DirectSubjectEntry;
+
+    private void OnDirectSubjectUnfocused(object? sender, FocusEventArgs e) { }
+
+    private void OnDirectBodyFocused(object? sender, FocusEventArgs e) => _directLastFocusedField = DirectBodyEditor;
+
+    private void OnDirectBodyUnfocused(object? sender, FocusEventArgs e) { }
+
+    /// <summary>
+    /// Inserts the tapped token into the last-focused direct-send field
+    /// (defaults to the message editor), mirroring SendEmailsPage.
+    /// </summary>
+    private void OnDirectTokenClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button { CommandParameter: string token } || string.IsNullOrWhiteSpace(token))
+            return;
+
+        if (ReferenceEquals(_directLastFocusedField, DirectSubjectEntry))
+        {
+            DirectSubjectEntry.Text = (DirectSubjectEntry.Text ?? string.Empty) + token + " ";
+            DirectSubjectEntry.Focus();
+        }
+        else
+        {
+            var body = DirectBodyEditor.Text ?? string.Empty;
+            var cursor = Math.Clamp(DirectBodyEditor.CursorPosition, 0, body.Length);
+            DirectBodyEditor.Text = body.Insert(cursor, token + " ");
+            DirectBodyEditor.Focus();
+        }
+    }
+
+    private void OnTestEmailToggled(object? sender, ToggledEventArgs e)
+    {
+        TestEmailEntry.IsVisible = e.Value;
+        if (e.Value)
+        {
+            DirectSendStatusLabel.Text = "Test mode: the email goes to the address below, not to this lead.";
+            TestEmailEntry.Focus();
+        }
+        else
+        {
+            DirectSendStatusLabel.Text = $"Sending to {DirectToEntry.Text} (this lead).";
+        }
+    }
+
+    /// <summary>
+    /// Resolves every token in the current subject/message for this lead and
+    /// shows the result in an alert. Shares the exact pipeline with the real
+    /// send (via <see cref="BuildDirectEmailAsync"/>), so what is previewed is
+    /// what will be sent - including which snapshot frame lands in the body.
+    /// </summary>
+    private async void OnDirectPreviewClicked(object? sender, EventArgs e)
+    {
+        if (_isSendingDirect) return;
+        if (BindingContext is not EmailContact contact) return;
+
+        var subject = DirectSubjectEntry.Text?.Trim() ?? string.Empty;
+        var body = DirectBodyEditor.Text?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(body))
+        {
+            DirectSendStatusLabel.Text = "Write both a subject and a message first.";
+            return;
+        }
+
+        _isSendingDirect = true;
+        DirectPreviewButton.IsEnabled = false;
+        DirectSendIndicator.IsRunning = true;
+        DirectSendIndicator.IsVisible = true;
+        DirectSendStatusLabel.Text = "Resolving tokens for this lead…";
+
+        try
+        {
+            var message = await BuildDirectEmailAsync(contact, subject, body);
+
+            await DisplayAlert("Preview",
+                $"To: {message.EmailTo}\nSubject: {message.Subject}\n\n{message.Body}", "OK");
+            DirectSendStatusLabel.Text = "Preview resolved with this lead's real values.";
+        }
+        catch (Exception ex)
+        {
+            DirectSendStatusLabel.Text = $"Preview failed: {ex.Message}";
+        }
+        finally
+        {
+            _isSendingDirect = false;
+            DirectPreviewButton.IsEnabled = true;
+            DirectSendIndicator.IsRunning = false;
+            DirectSendIndicator.IsVisible = false;
+        }
+    }
+
+    /// <summary>
+    /// The direct send. Identical resolution order to the campaign loop on
+    /// SendEmailsPage (Personalize → snapshot_random → snapshot_N →
+    /// snapshot_ai → ToHtmlBody), gated by the same validator, with one
+    /// recipient: this contact - or the test address when Test Email is on.
+    /// </summary>
+    private async void OnDirectSendClicked(object? sender, EventArgs e)
+    {
+        if (_isSendingDirect) return;
+        if (BindingContext is not EmailContact contact) return;
+
+        var subject = DirectSubjectEntry.Text?.Trim() ?? string.Empty;
+        var body = DirectBodyEditor.Text?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(body))
+        {
+            DirectSendStatusLabel.Text = "Write both a subject and a message first.";
+            return;
+        }
+
+        var isTest = TestEmailSwitch.IsToggled;
+        var toAddress = isTest
+            ? (TestEmailEntry.Text ?? string.Empty).Trim()
+            : (DirectToEntry.Text ?? string.Empty).Trim();
+
+        if (string.IsNullOrWhiteSpace(toAddress))
+        {
+            DirectSendStatusLabel.Text = isTest
+                ? "Enter the address the test email should go to."
+                : "This lead has no email address - fill in TO first.";
+            return;
+        }
+
+        if (DirectAccountPicker.SelectedIndex < 0 || _directAccounts.Count == 0)
+        {
+            DirectSendStatusLabel.Text = "No active email account. Add one in Settings → Email Accounts.";
+            return;
+        }
+
+        _isSendingDirect = true;
+        DirectSendButton.IsEnabled = false;
+        DirectPreviewButton.IsEnabled = false;
+        DirectSendIndicator.IsRunning = true;
+        DirectSendIndicator.IsVisible = true;
+        DirectSendStatusLabel.Text = isTest ? $"Sending test to {toAddress}…" : $"Sending to {toAddress}…";
+
+        try
+        {
+            // GATEKEEPER: same check the campaign page runs, for one email.
+            var verdict = await _validator.CheckOrAlertAsync(this, ValidationService.SendEmails, 1);
+            if (!verdict.Approved)
+            {
+                DirectSendStatusLabel.Text = "Sending was not approved for this account.";
+                return;
+            }
+
+            var message = await BuildDirectEmailAsync(contact, subject, body);
+            message.EmailTo = toAddress;
+            message.ToName = isTest ? toAddress : (contact.Name ?? contact.Email);
+
+            var success = await _email.SendEmailAsync(message);
+
+            if (!success)
+            {
+                DirectSendStatusLabel.Text = "Send failed. Check the account's SMTP settings and try again.";
+                return;
+            }
+
+            if (isTest)
+            {
+                DirectSendStatusLabel.Text = $"Test email sent to {toAddress}. This lead was not emailed.";
+            }
+            else
+            {
+                // Only a real send counts against the lead's history.
+                contact.LastEmailed = DateTime.Now;
+                if (contact.Id == 0)
+                    await _db.AddContactAsync(contact);
+                else
+                    await _db.UpdateContactAsync(contact);
+
+                DirectSendStatusLabel.Text = $"Email sent to {toAddress}. Last emailed set to now.";
+            }
+        }
+        catch (Exception ex)
+        {
+            DirectSendStatusLabel.Text = $"Send failed: {ex.Message}";
+        }
+        finally
+        {
+            _isSendingDirect = false;
+            DirectSendButton.IsEnabled = true;
+            DirectPreviewButton.IsEnabled = true;
+            DirectSendIndicator.IsRunning = false;
+            DirectSendIndicator.IsVisible = false;
+        }
+    }
+
+    /// <summary>
+    /// Resolves the raw subject/message into a ready-to-send MessengerDto for
+    /// this contact. Shared by Preview and Send so the two can never drift.
+    /// The To-address is left as the contact's own; the send handler overrides
+    /// it when Test Email mode redirects the message.
+    /// </summary>
+    private async Task<MessengerDto> BuildDirectEmailAsync(
+        EmailContact contact,
+        string subject,
+        string body)
+    {
+        var senderAccount = DirectAccountPicker.SelectedIndex >= 0 &&
+                            DirectAccountPicker.SelectedIndex < _directAccounts.Count
+            ? _directAccounts[DirectAccountPicker.SelectedIndex]
+            : _directAccounts.FirstOrDefault();
+
+        if (senderAccount is null)
+            throw new InvalidOperationException("No active email account is configured.");
+
+        var parameters = await _db.GetMessageParametersAsync();
+
+        // [icebreaker] resolves from this lead's latest generated opener.
+        var icebreaker = string.Empty;
+        if (contact.Id > 0)
+        {
+            var openers = await _db.GetOpenersForLeadAsync(contact.Id);
+            icebreaker = openers
+                .Where(o => !string.IsNullOrWhiteSpace(o.Text))
+                .OrderByDescending(o => o.CreatedAt)
+                .Select(o => o.Text.Trim())
+                .FirstOrDefault() ?? string.Empty;
+        }
+
+        var personalizedSubject = EmailService.Personalize(subject, contact, parameters, icebreaker);
+        var bodyText = EmailService.Personalize(body, contact, parameters, icebreaker);
+
+        // Same order as the campaign loop: free tokens first, the vision call
+        // only when the body actually asks for it.
+        if (EmailService.ContainsSnapshotRandomToken(bodyText))
+            bodyText = EmailService.PersonalizeSnapshotRandom(bodyText, contact.VideoSnapshot);
+
+        if (EmailService.ContainsSnapshotIndexToken(bodyText))
+            bodyText = EmailService.PersonalizeSnapshotIndexed(bodyText, contact.VideoSnapshot);
+
+        if (EmailService.ContainsSnapshotAiToken(bodyText))
+            bodyText = await EmailService.PersonalizeSnapshotAiAsync(
+                bodyText, contact, _ai, contact.VideoSnapshot);
+
+        return new MessengerDto
+        {
+            EmailFrom = senderAccount.EmailAddress,
+            FromName = senderAccount.Name,
+            EmailTo = contact.Email,
+            ToName = contact.Name ?? contact.Email,
+            Subject = personalizedSubject,
+            Body = EmailService.ToHtmlBody(bodyText),
+            SmtpHost = senderAccount.SmtpHost,
+            SmtpPort = senderAccount.SmtpPort,
+            SmtpUser = senderAccount.SmtpUser,
+            SmtpPassword = senderAccount.SmtpPassword
+        };
     }
 
     /// <summary>

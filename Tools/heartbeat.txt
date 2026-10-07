@@ -1,0 +1,4 @@
+tick=23:04:22
+procs=9
+logbytes=1106
+watchers=4

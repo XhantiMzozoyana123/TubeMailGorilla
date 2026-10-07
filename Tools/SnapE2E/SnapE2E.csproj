@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>SnapE2E</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Same version as the app. -->
+    <PackageReference Include="YoutubeExplode" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The ACTUAL app sources under test (not copies). -->
+    <Compile Include="..\..\TubeMailGorilla.Maui.Unlocked\Services\VideoSnapshotService.cs" Link="VideoSnapshotService.cs" />
+    <Compile Include="..\..\TubeMailGorilla.Maui.Unlocked\Services\IVideoFrameExtractor.cs" Link="IVideoFrameExtractor.cs" />
+    <Compile Include="..\..\TubeMailGorilla.Maui.Unlocked\Services\Mp4FragmentRemuxer.cs" Link="Mp4FragmentRemuxer.cs" />
+    <Compile Include="..\..\TubeMailGorilla.Maui.Unlocked\Platforms\Windows\MediaFoundationFrameExtractor.cs" Link="MediaFoundationFrameExtractor.cs" />
+  </ItemGroup>
+
+</Project>

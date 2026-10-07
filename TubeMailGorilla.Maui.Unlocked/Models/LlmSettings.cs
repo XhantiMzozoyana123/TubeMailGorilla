@@ -1,18 +1,18 @@
 namespace TubeMailGorilla.Maui.Unlocked.Models;
 
 /// <summary>
-/// Configuration for the VPS-hosted Ollama LLM used for data extraction.
-/// The app sends prompts to Ollama's /api/generate endpoint - no model is
-/// downloaded or loaded locally, so extraction requires internet access to
-/// reach the Ollama server.
+/// Configuration for the local Ollama LLM used for data extraction.
+/// The app POSTs prompts to Ollama's /api/chat endpoint on this machine -
+/// only the base URL and model NAME are configured here; the weights live
+/// inside Ollama (ollama pull), nothing is downloaded by the app itself.
 /// </summary>
 public class LlmSettings
 {
     /// <summary>
     /// Base URL of the Ollama server (no trailing slash).
-    /// Defaults to the TubeMailGorilla VPS.
+    /// Defaults to the local machine's Ollama daemon.
     /// </summary>
-    public string OllamaBaseUrl { get; set; } = "http://46.202.170.203:11434";
+    public string OllamaBaseUrl { get; set; } = "http://localhost:11434";
 
     /// <summary>Name of the model to request on the Ollama server.</summary>
     public string OllamaModel { get; set; } = "llama3:latest";
@@ -48,8 +48,14 @@ public class LlmSettings
     /// <summary>Maximum number of tokens the model may generate per call.</summary>
     public int MaxTokens { get; set; } = 512;
 
-    /// <summary>Sampling temperature (lower = more deterministic, better for extraction).</summary>
-    public float Temperature { get; set; } = 0.6f;
+    /// <summary>
+    /// Sampling temperature (lower = more deterministic, better for extraction).
+    ///
+    /// Deliberately low. The answers wanted here are a name, a company or a job
+    /// title - there is no creative variation to sample, and at 0.6 the 3B model
+    /// would often loop the value instead of stopping after it.
+    /// </summary>
+    public float Temperature { get; set; } = 0.2f;
 
     /// <summary>
     /// Hard cap on the prompt length (characters) sent to the model, so a long video
@@ -73,50 +79,7 @@ public class LlmSettings
     /// </summary>
     public int ModelKeepAliveMinutes { get; set; } = 60;
 
-    // ---- Local inference (LLamaSharp / llama.cpp) -----------------------------
-    // Inference runs on this machine against a local GGUF file. There is no
-    // remote server, so nothing here depends on the VPS.
-
-    /// <summary>
-    /// Absolute path to the chat GGUF used for text work. An empty value means
-    /// "use the default location under the app's data folder", so a normal
-    /// install needs no configuration.
-    /// </summary>
-    public string ChatModelPath { get; set; } = "";
-
-    /// <summary>
-    /// Absolute path to the multimodal (vision) GGUF, used by the
-    /// <c>[snapshot_ai]</c> token and the video analysis. This is a SEPARATE file
-    /// from the chat model - llama.cpp loads a vision projector and its language
-    /// model together, so a text-only chat GGUF cannot see images.
-    ///
-    /// Leave empty to run without vision; the affected features then fall back
-    /// to working from the transcript and metadata.
-    /// </summary>
-    public string VisionModelPath { get; set; } = "";
-
-    /// <summary>
-    /// Layers offloaded to the GPU. -1 means every layer the GPU can hold, which
-    /// is what you want on a card with enough VRAM (e.g. an RTX A2000 Ada).
-    /// Lower it if the model does not fit, or set 0 to run entirely on CPU.
-    /// </summary>
-    public int GpuLayerCount { get; set; } = -1;
-
-    /// <summary>Context window in tokens.</summary>
-    public uint ContextSize { get; set; } = 4096;
-
-    /// <summary>
-    /// Where downloaded models are cached, when empty. Defaults to a
-    /// "models" folder beside the app's data.
-    /// </summary>
-    public string ModelDirectory { get; set; } = "";
-
-    /// <summary>
-    /// Absolute path to the chat GGUF this app last downloaded, kept so a
-    /// first-run fetch does not have to happen again.
-    /// </summary>
-    public string ModelUrl { get; set; } = string.Empty;
-
-    /// <summary>File name the model is saved under in the model directory.</summary>
-    public string ModelFileName { get; set; } = "Llama-3.2-3B-Instruct-Q4_K_M.gguf";
+    // ---- Local model files are gone: inference goes through the Ollama --------
+    // server (OllamaBaseUrl / OllamaModel above). The Qwen2.5-VL GGUF path is
+    // intentionally not used any more.
 }

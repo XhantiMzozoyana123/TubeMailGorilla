@@ -171,6 +171,11 @@ public class EmailService
             ["name"] = contact.Name?.Trim() ?? string.Empty,
             ["first-name"] = GetFirstName(contact.Name),
             ["last-name"] = GetLastName(contact.Name),
+            // Underscore spellings. The task-facing token list names them this
+            // way ([f_name], [l_name]), and creators type them that way too -
+            // both spellings resolve to the same value.
+            ["f_name"] = GetFirstName(contact.Name),
+            ["l_name"] = GetLastName(contact.Name),
             ["channel"] = contact.Channel?.Trim() ?? string.Empty,
             ["channel-name"] = contact.Channel?.Trim() ?? string.Empty,
             ["video-title"] = contact.VideoTitle?.Trim() ?? string.Empty,
@@ -192,6 +197,8 @@ public class EmailService
             ["channel-name"] = fields["channel-name"],
             ["first-name"] = fields["first-name"],
             ["last-name"] = fields["last-name"],
+            ["f_name"] = fields["f_name"],
+            ["l_name"] = fields["l_name"],
             ["video-title"] = fields["video-title"],
             ["video-description"] = fields["video-description"],
             ["icebreaker"] = fields["icebreaker"],
@@ -214,7 +221,8 @@ public class EmailService
             // bare token here and the email would ship with no image and no
             // warning.
             if (token.Equals(SnapshotAiToken.TrimStart('['), StringComparison.OrdinalIgnoreCase) ||
-                token.Equals(SnapshotRandomToken.TrimStart('['), StringComparison.OrdinalIgnoreCase))
+                token.Equals(SnapshotRandomToken.TrimStart('['), StringComparison.OrdinalIgnoreCase) ||
+                SnapshotIndexTokenPattern.IsMatch("[" + token + "]"))
                 continue;
 
             var value = fields.TryGetValue(p.Field?.Trim() ?? string.Empty, out var matched)
@@ -405,6 +413,60 @@ public class EmailService
     /// </summary>
     public static bool ContainsSnapshotRandomToken(string? text) =>
         !string.IsNullOrEmpty(text) && SnapshotRandomTokenPattern.IsMatch(text);
+
+    /// <summary>
+    /// Matches a [snapshot_N] token, where N is the frame number. 1-based and
+    /// deliberately digits-only: <c>[snapshot_1]</c> is the first frame the
+    /// capture took, which matches the "1 of N" counter in the contact editor.
+    /// The zero-padded and 0 spellings are simply not matched, so they render
+    /// as literal text rather than silently picking a different frame than the
+    /// author expected.
+    /// </summary>
+    private static readonly Regex SnapshotIndexTokenPattern = new(
+        @"\[snapshot_(?<index>[1-9]\d*)\s*\]",
+        RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Replaces every <c>[snapshot_N]</c> token with the Nth frame of the
+    /// lead's own video (1-based).
+    ///
+    /// Unlike [snapshot_ai] there is no model call and unlike [snapshot_random]
+    /// the choice is not left to chance: the author picks the exact moment they
+    /// want shown - typically to frame the pitch around a specific scene. An
+    /// index past the end of the list (or a lead with no frames at all) renders
+    /// nothing, the same as every other snapshot token, rather than failing the
+    /// send.
+    /// </summary>
+    public static string PersonalizeSnapshotIndexed(string text, IReadOnlyList<string> snapshots)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+        if (!SnapshotIndexTokenPattern.IsMatch(text))
+            return text;
+
+        if (snapshots is null || snapshots.Count == 0)
+            return SnapshotIndexTokenPattern.Replace(text, string.Empty);
+
+        return SnapshotIndexTokenPattern.Replace(text, match =>
+        {
+            if (!int.TryParse(match.Groups["index"].Value, out var index))
+                return string.Empty;
+
+            // 1-based authoring, 0-based storage.
+            var position = index - 1;
+            if (position < 0 || position >= snapshots.Count)
+                return string.Empty;
+
+            return BuildSnapshotImageHtml(
+                new AIService.SnapshotAiImage(snapshots[position], DefaultRandomWidth, DefaultRandomHeight));
+        });
+    }
+
+    /// <summary>
+    /// True when the text contains a [snapshot_N] token.
+    /// </summary>
+    public static bool ContainsSnapshotIndexToken(string? text) =>
+        !string.IsNullOrEmpty(text) && SnapshotIndexTokenPattern.IsMatch(text);
 
     /// <summary>
     /// Produces a responsive HTML email from plain text. Blank lines become

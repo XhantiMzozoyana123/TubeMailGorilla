@@ -61,9 +61,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<PaymentService>();
         builder.Services.AddSingleton<ValidationService>();
 
-        // Load the model in the background so it is ready before the first
-        // extraction. Local inference, so this reads a local GGUF rather than
-        // pinging a server.
+        // Probe the local Ollama server in the background so the model is ready
+        // before the first extraction. Inference is Ollama's /api/chat over
+        // HTTP on this machine - no GGUF file and no VPS.
         builder.Services.AddSingleton(sp =>
         {
             var config = sp.GetRequiredService<IConfiguration>();

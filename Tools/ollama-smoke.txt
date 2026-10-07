@@ -1,0 +1,3 @@
+server=OK
+models=llama3:latest
+chat=OK reply=[Name: Sarah Mitchell]

@@ -49,12 +49,17 @@ public partial class SendEmailsPage : ContentPage
         // Composer chips are populated from the saved parameters in OnAppearing.
         // Keep the built-ins as a safe fallback for the first render.
         AddTokenOption(SubjectTokens, "[name]", "[name]");
+        AddTokenOption(SubjectTokens, "[f_name]", "[f_name]");
+        AddTokenOption(SubjectTokens, "[l_name]", "[l_name]");
         AddTokenOption(SubjectTokens, "[channel]", "[channel]");
         AddTokenOption(BodyTokens, "[name]", "[name]");
+        AddTokenOption(BodyTokens, "[f_name]", "[f_name]");
+        AddTokenOption(BodyTokens, "[l_name]", "[l_name]");
         AddTokenOption(BodyTokens, "[channel]", "[channel]");
         AddTokenOption(BodyTokens, "[email]", "[email]");
         AddTokenOption(BodyTokens, "[icebreaker]", "[icebreaker]");
         AddTokenOption(BodyTokens, "[snapshot_random]", "[snapshot_random]");
+        AddTokenOption(BodyTokens, "[snapshot_1]", "[snapshot_1]");
         AddTokenOption(BodyTokens, "[snapshot_ai={Select the frame that most needs editing.}]",
             "[snapshot_ai={Select the frame that most needs editing.}]");
     }
@@ -102,7 +107,7 @@ public partial class SendEmailsPage : ContentPage
                 .ToList();
 
             var subjectTokens = savedTokens
-                .Concat(new[] { "[name]", "[channel]" })
+                .Concat(new[] { "[name]", "[f_name]", "[l_name]", "[channel]" })
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
             // Both snapshot tokens are built in, not saved user parameters: they
@@ -112,8 +117,9 @@ public partial class SendEmailsPage : ContentPage
             var bodyTokens = savedTokens
                 .Concat(new[]
                 {
-                    "[name]", "[email]", "[channel]", "[video-title]", "[icebreaker]",
+                    "[name]", "[f_name]", "[l_name]", "[email]", "[channel]", "[video-title]", "[icebreaker]",
                     "[snapshot_random]",
+                    "[snapshot_1]",
                     "[snapshot_ai={Select the frame that most needs editing.}]"
                 })
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -597,11 +603,17 @@ public partial class SendEmailsPage : ContentPage
 
                 // [snapshot_random] is resolved first and is free - the frame is
                 // already in the database, so there is no model call and nothing
-                // to wait for. [snapshot_ai] is the expensive one, so it runs
+                // to wait for. [snapshot_N] is equally free (a direct index into
+                // the same list). [snapshot_ai] is the expensive one, so it runs
                 // only if the body actually asks for it.
                 if (EmailService.ContainsSnapshotRandomToken(bodyText))
                 {
                     bodyText = EmailService.PersonalizeSnapshotRandom(bodyText, contact.VideoSnapshot);
+                }
+
+                if (EmailService.ContainsSnapshotIndexToken(bodyText))
+                {
+                    bodyText = EmailService.PersonalizeSnapshotIndexed(bodyText, contact.VideoSnapshot);
                 }
 
                 if (EmailService.ContainsSnapshotAiToken(bodyText))

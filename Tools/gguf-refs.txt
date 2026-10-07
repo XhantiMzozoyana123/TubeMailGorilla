@@ -1,0 +1,23 @@
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Models\LlmSettings.cs:91: public string ChatModelPath { get; set; } = "";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Models\LlmSettings.cs:109: public string VisionModelPath { get; set; } = "";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Models\LlmSettings.cs:112: /// File name of the projector inside <see cref="ModelDirectory"/>, used when
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Models\LlmSettings.cs:113: /// <see cref="VisionModelPath"/> is left empty. Mirrors
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Models\LlmSettings.cs:114: /// <see cref="ModelFileName"/> so both halves of the pair are found the same
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Models\LlmSettings.cs:120: public string VisionModelFileName { get; set; } = "mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Models\LlmSettings.cs:128: public int GpuLayerCount { get; set; } = -1;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Models\LlmSettings.cs:139: public uint ContextSize { get; set; } = 16384;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Models\LlmSettings.cs:145: public string ModelDirectory { get; set; } = "";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Models\LlmSettings.cs:151: public string ModelUrl { get; set; } = string.Empty;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Models\LlmSettings.cs:154: public string ModelFileName { get; set; } = "Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs:139: public string ModelPath => IsReady ? ChatModelFile : "(not loaded)";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs:150: public string VisionModel => _settings.VisionModelPath?.Trim() ?? string.Empty;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs:170: public string ChatModelFile
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs:174: var configured = _settings.ChatModelPath?.Trim() ?? string.Empty;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs:178: return Path.Combine(ModelDirectory, _settings.ModelFileName);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs:186: public string ModelDirectory
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs:190: var configured = _settings.ModelDirectory?.Trim() ?? string.Empty;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs:318: var modelFile = ChatModelFile;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs:322: Status = $"No model found at {modelFile}. Place a .gguf there or set ChatModelPath.";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs:326: var contextSize = (uint)Math.Max(512u, _settings.ContextSize);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs:332: ContextSize = contextSize,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs:335: GpuLayerCount = _settings.GpuLayerCount

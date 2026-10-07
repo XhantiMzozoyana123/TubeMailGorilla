@@ -1,0 +1,2 @@
+time=00:44:41 exists=True exe=c:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\bin\Debug\net10.0-windows10.0.19041.0\win-x64\TubeMailGorilla.Maui.Unlocked.exe
+pid=2556

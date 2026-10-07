@@ -63,13 +63,10 @@
              MAUI ships no imaging library of its own; SkiaSharp is the cross-platform one and
              is already a transitive dependency of Microsoft.Maui.Graphics on most targets. -->
         <PackageReference Include="SkiaSharp" Version="3.119.1" />
-        <!-- Local GGUF inference. Runs on the host's own GPU (see the
-             LlmSettings.llamasharp section) - no remote inference server.
-             The CUDA backend is what uses the NVIDIA card; the CPU backend is a
-             fallback so the app still runs on a machine without one. -->
-        <PackageReference Include="LLamaSharp" Version="0.27.0" />
-        <PackageReference Include="LLamaSharp.Backend.Cuda12" Version="0.27.0" />
-        <PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.27.0" />
+        <!-- Local inference runs through the Ollama daemon over HTTP (see
+             LlmSettings.OllamaBaseUrl) - the weights live inside Ollama, so no
+             LLamaSharp/GGUF packages are needed. Ollama must be installed and
+             the model pulled (ollama pull llama3:latest). -->
         <PackageReference Include="sqlite-net-pcl" Version="1.8.116" />
         <PackageReference Include="YoutubeExplode" Version="6.6.2" />
         <PackageReference Include="YouTubeSearch" Version="2.2.6" />

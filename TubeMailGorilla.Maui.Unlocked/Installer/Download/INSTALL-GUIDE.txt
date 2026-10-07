@@ -9,7 +9,7 @@ feature limits. Everything is unlocked from the moment you open the app.
 ## What you need
 - A Windows 10 or newer computer
 - An internet connection (only needed during installation, to download the AI)
-- About 5 GB of free disk space
+- About 6 GB of free disk space
 - **Recommended: an NVIDIA RTX graphics card** for the fastest, smoothest AI
 
 ## Do I need an RTX GPU?
@@ -24,10 +24,15 @@ fully offline either way, and your data never leaves your machine.
    device?"*, click **Yes** - this is normal.
 3. Follow the wizard and click **Next** until you reach **Install**.
 4. During installation, the AI assistant is downloaded automatically
-   (about 1.9 GB). This is the longest step and depends on your internet
+   (about 2.8 GB). This is the longest step and depends on your internet
    speed. The AI runs completely on your own computer.
 5. When it is finished, TubeMailGorilla Unlocked is ready to use. Launch it
    from the Start Menu or the desktop shortcut.
+
+## Where the AI model is stored
+The AI model is installed in your user profile, at:
+`C:\Users\<you>\AppData\Local\TubeMailGorillaUnlocked\models`
+You do not need to move or configure anything.
 
 ## What is unlocked
 - Unlimited YouTube lead extraction (keyword and channel searches)
@@ -40,9 +45,11 @@ fully offline either way, and your data never leaves your machine.
 ## After installation
 - No account or internet connection is required to use the app.
 - Leads, templates and settings are stored in a local database on this PC.
-- If the AI download was interrupted during installation, do not worry:
-  TubeMailGorilla Unlocked finishes it automatically the first time it is
-  needed.
+- The first extraction loads the AI model into memory, which can take 30-90
+  seconds. The status line shows this, so the app is not stuck.
+- If the AI download was interrupted during installation, the app runs without
+  AI fields (name, company, job title and icebreakers stay empty). Reinstall,
+  or run `Tools\download-vision-model.ps1`, to add it.
 
 ## How to uninstall
 1. Open **Settings -> Apps -> Installed apps** (or Control Panel -> Programs).

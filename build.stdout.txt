@@ -1,0 +1,39 @@
+  Determining projects to restore...
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc.Tests\TubeMailGorilla.Mvc.Tests.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.1.10 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q [C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.slnx]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\TubeMailGorilla.Maui.Unlocked.csproj : warning NU1903: Package 'Newtonsoft.Json' 12.0.3 has a known high severity vulnerability, https://github.com/advisories/GHSA-5crp-9r3c-p9vr [C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.slnx]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\TubeMailGorilla.Maui.csproj : warning NU1903: Package 'Newtonsoft.Json' 12.0.3 has a known high severity vulnerability, https://github.com/advisories/GHSA-5crp-9r3c-p9vr [C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.slnx]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\TubeMailGorilla.Maui.Unlocked.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.0.4 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q [C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.slnx]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\TubeMailGorilla.Maui.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.0.4 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q [C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.slnx]
+  All projects are up-to-date for restore.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\TubeMailGorilla.Maui.Unlocked.csproj : warning NU1903: Package 'Newtonsoft.Json' 12.0.3 has a known high severity vulnerability, https://github.com/advisories/GHSA-5crp-9r3c-p9vr [TargetFramework=net10.0-windows10.0.19041.0]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\TubeMailGorilla.Maui.Unlocked.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.0.4 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q [TargetFramework=net10.0-windows10.0.19041.0]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\TubeMailGorilla.Maui.csproj : warning NU1903: Package 'Newtonsoft.Json' 12.0.3 has a known high severity vulnerability, https://github.com/advisories/GHSA-5crp-9r3c-p9vr [TargetFramework=net10.0-windows10.0.19041.0]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\TubeMailGorilla.Maui.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.0.4 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q [TargetFramework=net10.0-windows10.0.19041.0]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc.Tests\TubeMailGorilla.Mvc.Tests.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.1.10 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+  TubeMailGorilla.Domain -> C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Domain\bin\Debug\net8.0\TubeMailGorilla.Domain.dll
+  XAML source generation is enabled (MauiXamlInflator=SourceGen). This generates C# code from XAML at compile time for better performance. To disable, remove the MauiXamlInflator line from your .csproj file (reverts to configuration-based defaults: Runtime in Debug, XamlC in Release).
+  XAML source generation is enabled (MauiXamlInflator=SourceGen). This generates C# code from XAML at compile time for better performance. To disable, remove the MauiXamlInflator line from your .csproj file (reverts to configuration-based defaults: Runtime in Debug, XamlC in Release).
+  TubeMailGorilla.Infrastructure -> C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Infrastructure\bin\Debug\net8.0\TubeMailGorilla.Infrastructure.dll
+  TubeMailGorilla.Application -> C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Application\bin\Debug\net8.0\TubeMailGorilla.Application.dll
+  TubeMailGorilla.Api -> C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Api\bin\Debug\net8.0\TubeMailGorilla.Api.dll
+  TubeMailGorilla.Mvc -> C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\bin\Debug\net8.0\TubeMailGorilla.Mvc.dll
+  TubeMailGorilla.Mvc.Tests -> C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc.Tests\bin\Debug\net10.0\TubeMailGorilla.Mvc.Tests.dll
+  TubeMailGorilla.Maui -> C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\bin\Debug\net10.0-windows10.0.19041.0\win-x64\TubeMailGorilla.Maui.dll
+  TubeMailGorilla.Maui.Unlocked -> C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\bin\Debug\net10.0-windows10.0.19041.0\win-x64\TubeMailGorilla.Maui.Unlocked.dll
+
+Build succeeded.
+
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc.Tests\TubeMailGorilla.Mvc.Tests.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.1.10 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q [C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.slnx]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\TubeMailGorilla.Maui.Unlocked.csproj : warning NU1903: Package 'Newtonsoft.Json' 12.0.3 has a known high severity vulnerability, https://github.com/advisories/GHSA-5crp-9r3c-p9vr [C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.slnx]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\TubeMailGorilla.Maui.csproj : warning NU1903: Package 'Newtonsoft.Json' 12.0.3 has a known high severity vulnerability, https://github.com/advisories/GHSA-5crp-9r3c-p9vr [C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.slnx]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\TubeMailGorilla.Maui.Unlocked.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.0.4 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q [C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.slnx]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\TubeMailGorilla.Maui.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.0.4 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q [C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.slnx]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\TubeMailGorilla.Maui.Unlocked.csproj : warning NU1903: Package 'Newtonsoft.Json' 12.0.3 has a known high severity vulnerability, https://github.com/advisories/GHSA-5crp-9r3c-p9vr [TargetFramework=net10.0-windows10.0.19041.0]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\TubeMailGorilla.Maui.Unlocked.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.0.4 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q [TargetFramework=net10.0-windows10.0.19041.0]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\TubeMailGorilla.Maui.csproj : warning NU1903: Package 'Newtonsoft.Json' 12.0.3 has a known high severity vulnerability, https://github.com/advisories/GHSA-5crp-9r3c-p9vr [TargetFramework=net10.0-windows10.0.19041.0]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\TubeMailGorilla.Maui.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.0.4 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q [TargetFramework=net10.0-windows10.0.19041.0]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc.Tests\TubeMailGorilla.Mvc.Tests.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.1.10 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+    10 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.67

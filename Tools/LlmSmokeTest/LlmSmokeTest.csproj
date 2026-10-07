@@ -6,11 +6,31 @@
         <RootNamespace>LlmSmokeTest</RootNamespace>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- Same local-inference stack the app ships (see the MAUI csproj). -->
         <PackageReference Include="LLamaSharp" Version="0.27.0" />
+        <PackageReference Include="LLamaSharp.Backend.Cuda12" Version="0.27.0" />
         <PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.27.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
+        <!-- Only used to draw a throwaway test JPEG for the vision check. -->
+        <PackageReference Include="SkiaSharp" Version="3.119.1" />
+
+        <!--
+            Compile the REAL app sources, not copies, so a pass here means the
+            shipped LLMService works.
+        -->
+        <Compile Include="..\..\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs" Link="AppSources\LLMService.cs" />
+        <Compile Include="..\..\TubeMailGorilla.Maui.Unlocked\Models\LlmSettings.cs" Link="AppSources\LlmSettings.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Same settings file the app reads at startup (see MauiProgram.cs). -->
+        <None Include="..\..\TubeMailGorilla.Maui.Unlocked\appsettings.json" Link="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>

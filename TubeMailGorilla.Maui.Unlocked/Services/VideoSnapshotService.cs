@@ -66,7 +66,26 @@ public class VideoSnapshotService
                 var videoPath = await DownloadVideoAsync(videoUrl, tempDir, cancellationToken);
                 if (videoPath == null) return new List<VideoSnapshot>();
 
-                return await ExtractFramesAsync(videoPath, cancellationToken);
+                // YouTube serves its DASH streams as fragmented MP4, and
+                // Windows Media Foundation cannot serve samples from those -
+                // every thumbnail seek fails and the lead ends up with no
+                // frames at all. Fold the fragments into a plain progressive
+                // MP4 first (managed, no ffmpeg - see Mp4FragmentRemuxer);
+                // progressive downloads skip this and decode directly.
+                var workPath = videoPath;
+                if (Mp4FragmentRemuxer.LooksFragmented(videoPath))
+                {
+                    var flatPath = Path.Combine(tempDir, "video_flat.mp4");
+                    var remuxed = await Task.Run(
+                        () => Mp4FragmentRemuxer.TryRemux(videoPath, flatPath),
+                        cancellationToken);
+
+                    // A failed remux keeps the original: worse case is the old
+                    // behaviour, never a lost video.
+                    if (remuxed) workPath = flatPath;
+                }
+
+                return await ExtractFramesAsync(workPath, cancellationToken);
             }
             finally
             {

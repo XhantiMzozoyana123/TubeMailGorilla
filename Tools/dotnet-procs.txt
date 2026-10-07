@@ -1,0 +1,41 @@
+
+
+ProcessId   : 7668
+CPU         : 5.2
+CommandLine : "C:\Program Files\dotnet\dotnet.exe" "c:\Users\Shadow\.vscode\extensions\ms-dotnettools.csdevkit-3.40.210-win32-x64\components\CPS\platforms\win32-x64\node_modules\@microsoft\visualstudio-projectsystem-buildhost.win32-x64/Microsoft.VisualStudio.ProjectSystem.Server.BuildHost.dll"
+
+ProcessId   : 17640
+CPU         : 11.6
+CommandLine : "C:\Program Files\dotnet\dotnet.exe" "C:\Program Files\dotnet\sdk\10.0.401\MSBuild.dll" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false
+
+ProcessId   : 16892
+CPU         : 4
+CommandLine : "C:\Program Files\dotnet\dotnet.exe" "C:\Program Files\dotnet\sdk\10.0.401\MSBuild.dll" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false
+
+ProcessId   : 19832
+CPU         : 3.6
+CommandLine : "C:\Program Files\dotnet\dotnet.exe" "C:\Program Files\dotnet\sdk\10.0.401\MSBuild.dll" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false
+
+ProcessId   : 6192
+CPU         : 4.7
+CommandLine : "C:\Program Files\dotnet\dotnet.exe" "C:\Program Files\dotnet\sdk\10.0.401\MSBuild.dll" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false
+
+ProcessId   : 9916
+CPU         : 3.6
+CommandLine : "C:\Program Files\dotnet\dotnet.exe" "C:\Program Files\dotnet\sdk\10.0.401\MSBuild.dll" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false
+
+ProcessId   : 684
+CPU         : 7.8
+CommandLine : "C:\Program Files\dotnet\dotnet.exe" "C:\Program Files\dotnet\sdk\10.0.401\MSBuild.dll" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false
+
+ProcessId   : 20336
+CPU         : 4.5
+CommandLine : "C:\Program Files\dotnet\dotnet.exe" "C:\Program Files\dotnet\sdk\10.0.401\MSBuild.dll" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false
+
+ProcessId   : 19968
+CPU         : 2.2
+CommandLine : "C:\Program Files\dotnet\dotnet.exe" "C:\Program Files\dotnet\sdk\10.0.401\MSBuild.dll" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false
+
+
+
+

@@ -1,0 +1,27 @@
+time=23:15:18 alive=True
+--- startup-crash.log tail ---
+[17:49:50.575] BREADCRUMB: App ctor begin
+[17:49:50.647] BREADCRUMB: App ctor complete
+[17:49:51.033] BREADCRUMB: CreateWindow begin (unlocked edition - no sign-in required)
+[17:49:51.119] BREADCRUMB: CreateWindow startPage created: AppShell
+[17:49:51.129] BREADCRUMB: CreateWindow window created
+[18:40:22.648] UnobservedTaskException: System.AggregateException: A Task's exception(s) were not observed either by Waiting on the Task or accessing its Exception property. As a result, the unobserved exception was rethrown by the finalizer thread. (No such host is known.)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.NameResolutionPal.ProcessResult(SocketError errorCode, GetAddrInfoExContext* context)
+   at System.Net.NameResolutionPal.GetAddressInfoExCallback(Int32 error, Int32 bytes, NativeOverlapped* overlapped)
+--- End of stack trace from previous location ---
+
+   --- End of inner exception stack trace ---
+
+[22:50:04.417] BREADCRUMB: CreateMauiApp complete
+[22:50:04.436] BREADCRUMB: App ctor begin
+[22:50:04.514] BREADCRUMB: App ctor complete
+[22:50:04.908] BREADCRUMB: CreateWindow begin (unlocked edition - no sign-in required)
+[22:50:04.991] BREADCRUMB: CreateWindow startPage created: AppShell
+[22:50:05.000] BREADCRUMB: CreateWindow window created
+[23:14:51.884] BREADCRUMB: CreateMauiApp complete
+[23:14:51.942] BREADCRUMB: App ctor begin
+[23:14:52.278] BREADCRUMB: App ctor complete
+[23:14:54.832] BREADCRUMB: CreateWindow begin (unlocked edition - no sign-in required)
+[23:14:55.724] BREADCRUMB: CreateWindow startPage created: AppShell
+[23:14:55.878] BREADCRUMB: CreateWindow window created

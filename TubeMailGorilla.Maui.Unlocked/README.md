@@ -208,31 +208,39 @@ dotnet publish -f net10.0-maccatalyst -r osx-x64 --self-contained true -c Releas
 ## Local LLM (LLamaSharp)
 
 The app runs AI data extraction (names, companies, job titles, locations, industries, and
-email icebreakers) **fully on-device** via [LLamaSharp](https://github.com/SciSharp/LLamaSharp)
+email icecreakers) **fully on-device** via [LLamaSharp](https://github.com/SciSharp/LLamaSharp)
 (LLaMA.cpp for .NET) — no remote API, no API keys, and no data ever leaves the machine.
 
-- **Model**: Llama 3.2 3B Instruct in GGUF format (`Q4_K_M`, ~1.9 GB) configured in
-  `appsettings.json` under `LlmSettings`.
-- **Bundled with the app**: the GGUF is shipped inside the published package
-  (`Resources\Models\Llama-3.2-3B-Instruct-Q4_K_M.gguf` in this project, copied next to the
-  executable at build/publish time). Users get a fully offline app — **no runtime download
-  and no internet required**.
-- **Fallback for dev**: if the model file is absent from `Resources\Models` (e.g. a fresh
-  clone before the file is added), the app automatically downloads it on first use and caches
-  it under the local application data folder:
-  - Windows: `%LOCALAPPDATA%\TubeMailGorilla\Models`
-  - macOS: `~/Library/Application Support/TubeMailGorilla/Models`
-- **Obtaining the bundled file**: the model is large and not fetched automatically during a
-  build. Run the helper script to place it at `Resources\Models` (then publish to bundle it):
-  `powershell -ExecutionPolicy Bypass -File ..\Tools\download-model.ps1`
-- **CPU inference by default**: `GpuLayerCount` defaults to `0`; on a CUDA/Metal capable
-  machine raise it in `LlmSettings` for faster inference.
-- **Override the model**: point `LlmSettings.ModelUrl` / `LlmSettings.ModelFileName` at any
-  compatible Llama 3 GGUF (e.g. a larger or smaller quant) in `appsettings.json`, place the
-  file in `Resources\Models`, and delete any cached copy to force a refresh.
+- **Model**: **Qwen2.5-VL-3B-Instruct** in GGUF format (`Q4_K_M`, ~1.9 GB) plus its vision
+  projector (`mmproj`, ~845 MB), configured in `appsettings.json` under `LlmSettings`.
+- **Why one model for both jobs**: llama.cpp feeds projector output straight into the chat
+  model's embedding table, so a vision projector only works with the exact base architecture
+  it was trained against. A text-only chat GGUF (e.g. Llama 3.2) therefore **cannot** be
+  given a projector. Qwen2.5-VL is itself a vision-language model, so the same ~1.9 GB of
+  weights handles text extraction *and* the `[snapshot_ai]` image pick — no second, larger
+  model to ship.
+- **GPU**: `LLamaSharp.Backend.Cuda12` is what uses the NVIDIA card; `LLamaSharp.Backend.Cpu`
+  remains as a fallback. On an **RTX 2000 Ada (16 GB, sm_89)** the ~2.8 GB pair offloads
+  fully — `GpuLayerCount: -1` is correct, no tuning needed.
+- **Context**: raised to 16384. A Qwen2.5-VL image expands to roughly a thousand tokens
+  once split into patches, so the old 4k window overflowed mid-prompt whenever
+  `MaxImagesPerRequest` frames were attached.
+- **Both files must come from the same repo** (`ggml-org/Qwen2.5-VL-3B-Instruct-GGUF`).
 
-The relevant NuGet packages are `LLamaSharp` and `LLamaSharp.Backend.Cpu` (the CPU native
-backend), both at `0.27.0`.
+### Getting the models
+
+```bash
+# fetches both the model and its projector into the app's models folder
+powershell -ExecutionPolicy Bypass -File ..\Tools\download-vision-model.ps1
+```
+
+The script is idempotent (it skips files already present) and writes to
+`%LOCALAPPDATA%\TubeMailGorillaUnlocked\models`, which is where `LlmSettings` looks by
+default — so no configuration is needed after a normal run. Override with
+`ChatModelPath` / `VisionModelPath` if you keep models elsewhere.
+
+If the projector fails to load, the app still extracts from the transcript and reports
+the mismatch in its status text rather than failing the extraction.
 
 ## Smoke-testing the packaged model
 

@@ -1,24 +1,24 @@
-﻿using System.Text;
-using LLama;
-using LLama.Common;
-using LLama.Native;
-using LLama.Sampling;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using TubeMailGorilla.Maui.Unlocked.Models;
 
 namespace TubeMailGorilla.Maui.Unlocked.Services;
 
 /// <summary>
-/// Local LLM inference through LLamaSharp (llama.cpp bindings). There is no
-/// remote server: the model is a GGUF file on this machine and runs on the host's
-/// own GPU, so nothing here depends on the VPS being reachable.
+/// LLM inference through a local Ollama server (HTTP, no LLamaSharp/GGUF files).
+/// The app posts prompts to Ollama's /api/chat endpoint on this machine, so
+/// nothing depends on the VPS and no data leaves the machine - only the base
+/// URL and model NAME are configured, the weights live inside Ollama.
 ///
 /// The public surface (GenerateTextAsync, GenerateAdvisoryAsync, EnsureReadyAsync,
-/// IsReady, Status, StartModelWarmup, SelectImageSample) is unchanged, so
-/// AIService, ExtractPage and the send loop work as-is.
+/// IsReady, Status, StartModelWarmup, SelectImageSample, SupportsVision,
+/// VisionModel, ModelPath) is unchanged, so AIService, ExtractPage and the
+/// send loop work as-is.
 ///
-/// Threading: a llama.cpp context is not thread-safe, so every inference is
-/// serialized behind one lock. Loading is idempotent - concurrent callers share
-/// the single load task rather than each opening the model again.
+/// Threading: requests are serialized behind one lock to keep memory use and
+/// keep_alive behaviour predictable. The readiness probe is idempotent -
+/// concurrent callers share one probe task rather than hammering /api/tags.
 /// </summary>
 public class LLMService : IDisposable
 {
@@ -53,16 +53,25 @@ public class LLMService : IDisposable
         "- Write plain text. No markdown headers, no bold/asterisks, no emoji. " +
         "- Keep it tight and skimmable.";
 
+    // Deliberately NOT the DI-registered HttpClient: that one lives in the MAUI
+    // container and this service is constructed directly with `new`. Infinite
+    // timeout here as well - the per-call budget is enforced by a
+    // CancellationTokenSource in InferAsync (InferenceTimeoutSeconds).
+    private static readonly HttpClient Http = new() { Timeout = Timeout.InfiniteTimeSpan };
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
     private readonly LlmSettings _settings;
     private readonly SemaphoreSlim _inferenceLock = new(1, 1);
 
-    // Loading is guarded by a plain lock plus a cached Task, so a burst of
-    // callers at startup all await ONE load instead of each opening the GGUF.
+    // The readiness probe runs exactly once when it succeeds; failures are
+    // retried on the next call (the server may simply not have been up yet).
     private readonly object _loadGate = new();
-    private Task<bool>? _loadTask;
-    private LLamaWeights? _weights;
-    private LLamaContext? _context;
-    private StatefulExecutorBase? _executor;
+    private Task<bool>? _probeTask;
+    private volatile string[]? _knownModels;
     private bool _disposed;
     private int _warmupStarted;
 
@@ -71,11 +80,15 @@ public class LLMService : IDisposable
         _settings = settings ?? new LlmSettings();
     }
 
+    /// <summary>Base URL of the Ollama server, without a trailing slash.</summary>
+    private string BaseUrl => (_settings.OllamaBaseUrl ?? string.Empty).Trim().TrimEnd('/');
+
     /// <summary>
-    /// Loads the chat model if it is not loaded yet, and reports whether the app
-    /// can run its AI features. Returns false (and leaves <see cref="Status"/>
-    /// explaining why) when no model file is present, so the UI can say so
-    /// instead of failing part-way through an extraction.
+    /// Probes the Ollama server (GET /api/tags) and reports whether the app can
+    /// run its AI features. Returns false (and leaves <see cref="Status"/>
+    /// explaining why) when the server is down or the configured model is not
+    /// pulled, so the UI can say so instead of failing part-way through an
+    /// extraction.
     /// </summary>
     public async Task<bool> EnsureReadyAsync()
     {
@@ -86,14 +99,15 @@ public class LLMService : IDisposable
         catch (Exception ex)
         {
             IsReady = false;
-            Status = $"Model load failed: {ex.Message}";
+            Status = $"Ollama check failed: {ex.Message}";
             return false;
         }
     }
 
     /// <summary>
-    /// Loads the model on a background thread at startup so the first
-    /// extraction does not pay the load cost.
+    /// Probes the server and (when reachable) sends a 1-token request so the
+    /// model is loaded into memory before the first real extraction pays the
+    /// cold-load cost.
     /// </summary>
     public void StartModelWarmup()
     {
@@ -104,7 +118,16 @@ public class LLMService : IDisposable
         {
             try
             {
-                await EnsureLoadedAsync();
+                if (!await EnsureLoadedAsync())
+                    return;
+
+                // Force the model into RAM. The result text is irrelevant.
+                await InferAsync(
+                    "hi",
+                    "You are a helpful assistant.",
+                    images: null,
+                    maxTokens: 1,
+                    model: ActiveModel);
             }
             catch (Exception ex)
             {
@@ -113,87 +136,58 @@ public class LLMService : IDisposable
         });
     }
 
-    /// <summary>
-    /// Runs an advisory completion (editing / engagement critique) under the
-    /// advisory persona rather than the strict extraction one, and attaches the
-    /// snapshot frames when a vision model is configured.
-    ///
-    /// Kept separate from <see cref="GenerateTextAsync"/> so no caller has to
-    /// know that advisory work needs a different system prompt - using the
-    /// extraction persona here would return an empty string, because that prompt
-    /// bans lists and multi-line output.
-    /// </summary>
-    public Task<string> GenerateAdvisoryAsync(
-        string prompt,
-        int maxTokens,
-        IReadOnlyList<string>? base64Images = null)
-        => GenerateTextAsync(prompt, maxTokens, ADVISORY_SYSTEM_PROMPT, base64Images);
-
-    /// <summary>True once the model has loaded and can generate.</summary>
+    /// <summary>True once the server and model have been probed successfully.</summary>
     public bool IsReady { get; private set; }
 
     /// <summary>Human-readable status message surfaced to the UI.</summary>
     public string Status { get; private set; } = "LLM not initialized";
 
-    /// <summary>The chat model file in use, or a placeholder before it loads.</summary>
-    public string ModelPath => IsReady ? ChatModelFile : "(not loaded)";
+    /// <summary>The Ollama model in use, or a placeholder before it loads.</summary>
+    public string ModelPath => IsReady ? $"ollama/{ActiveModel}" : "(not loaded)";
 
     /// <summary>
-    /// The vision model file, or empty when none is configured. A vision model
-    /// is OPTIONAL: without one the app is fully functional, the analysis just
-    /// works from the transcript and metadata instead of the frames.
+    /// The vision model NAME configured on the Ollama server, or empty when
+    /// none. A vision model is OPTIONAL: without one the app is fully
+    /// functional, the analysis just works from the transcript and metadata
+    /// instead of the frames.
     ///
-    /// This is a SEPARATE file from the chat model. llama.cpp pairs a vision
-    /// projector with a language model, so a text-only GGUF cannot see images no
-    /// matter how it is loaded.
+    /// llama3:latest is text-only, so with only the default model pulled this
+    /// is empty and vision stays off. Set OllamaVisionModel to a pulled
+    /// vision-capable model (e.g. "qwen2.5vl:3b") to enable it.
     /// </summary>
-    public string VisionModel => _settings.VisionModelPath?.Trim() ?? string.Empty;
+    public string VisionModel => _settings.OllamaVisionModel?.Trim() ?? string.Empty;
 
     /// <summary>
-    /// True when a vision model file is configured AND it exists on disk.
-    /// Checking existence here means a typo'd path degrades to "no vision"
-    /// rather than failing every request.
+    /// True when a vision model is configured AND present on the Ollama server.
+    /// Before the first probe it only checks the configuration, mirroring the
+    /// old "file exists" semantics; the probe then tightens it.
     /// </summary>
     public bool SupportsVision
     {
         get
         {
-            var path = VisionModel;
-            return path.Length > 0 && File.Exists(path);
+            var model = VisionModel;
+            if (model.Length == 0)
+                return false;
+
+            var known = _knownModels;
+            if (known is null)
+                return true; // not probed yet - assume configured means available
+
+            return Array.Exists(known, n => ModelsEqual(n, model));
         }
     }
 
     /// <summary>
-    /// Where the chat GGUF lives: an explicit setting, or the default file name
-    /// inside the models folder.
+    /// Model used for text work (extraction, icebreakers, advisory without
+    /// frames).
     /// </summary>
-    public string ChatModelFile
+    private string ActiveModel
     {
         get
         {
-            var configured = _settings.ChatModelPath?.Trim() ?? string.Empty;
-            if (configured.Length > 0)
-                return configured;
-
-            return Path.Combine(ModelDirectory, _settings.ModelFileName);
-        }
-    }
-
-    /// <summary>
-    /// Folder holding model files. Defaults under the app's data directory so a
-    /// normal install needs no configuration.
-    /// </summary>
-    public string ModelDirectory
-    {
-        get
-        {
-            var configured = _settings.ModelDirectory?.Trim() ?? string.Empty;
-            if (configured.Length > 0)
-                return configured;
-
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "TubeMailGorillaUnlocked", "models");
+            var configured = _settings.OllamaModel?.Trim() ?? string.Empty;
+            return configured.Length > 0 ? configured : "llama3:latest";
         }
     }
 
@@ -236,9 +230,6 @@ public class LLMService : IDisposable
     /// Runs a one-shot completion and returns the generated text, or an
     /// "LLM Error: ..." string describing what went wrong. AIService deliberately
     /// drops those strings rather than treating them as data.
-    ///
-    /// llama.cpp is synchronous, so the work is pushed to a background thread to
-    /// keep the UI responsive.
     /// </summary>
     public async Task<string> GenerateTextAsync(
         string prompt,
@@ -260,11 +251,17 @@ public class LLMService : IDisposable
 
             var images = ResolveImages(base64Images);
 
-            var text = await Infer(
+            // Frames go to the vision model; text-only work uses the primary one.
+            var model = images is { Count: > 0 } && VisionModel.Length > 0
+                ? VisionModel
+                : ActiveModel;
+
+            var text = await InferAsync(
                 prompt,
                 systemPrompt ?? SYSTEM_PROMPT,
                 images,
-                maxTokens ?? _settings.MaxTokens);
+                maxTokens ?? _settings.MaxTokens,
+                model);
 
             if (string.IsNullOrEmpty(text))
                 return "LLM Error: No response generated.";
@@ -285,217 +282,303 @@ public class LLMService : IDisposable
     }
 
     /// <summary>
-    /// Loads the chat model (and the vision model when configured) exactly once.
-    /// Concurrent callers await the same task, so a burst at startup cannot open
-    /// the same GGUF several times over.
+    /// Runs an advisory completion (editing / engagement critique) under the
+    /// advisory persona rather than the strict extraction one, and attaches the
+    /// snapshot frames when a vision model is configured.
+    ///
+    /// Kept separate from <see cref="GenerateTextAsync"/> so no caller has to
+    /// know that advisory work needs a different system prompt - using the
+    /// extraction persona here would return an empty string, because that prompt
+    /// bans lists and multi-line output.
+    /// </summary>
+    public Task<string> GenerateAdvisoryAsync(
+        string prompt,
+        int maxTokens,
+        IReadOnlyList<string>? base64Images = null)
+        => GenerateTextAsync(prompt, maxTokens, ADVISORY_SYSTEM_PROMPT, base64Images);
+
+    /// <summary>
+    /// Checks (once, cached) that the Ollama server is up and the configured
+    /// model is pulled. Failures are NOT cached, so starting the server later
+    /// heals on the next call.
     /// </summary>
     private Task<bool> EnsureLoadedAsync()
     {
         lock (_loadGate)
         {
-            if (_executor is not null && _context is not null)
-                return Task.FromResult(true);
+            if (_probeTask is { IsCompleted: true } done)
+            {
+                if (done.Result)
+                    return done;
 
-            return _loadTask ??= Task.Run(LoadModels);
+                // The probe failed (server down, model not pulled) - forget it
+                // so the next call retries instead of caching the failure
+                // forever. The server may simply not have been up yet.
+                _probeTask = null;
+            }
+
+            return _probeTask ??= Task.Run(ProbeOllamaAsync);
         }
     }
 
-
     /// <summary>
-    /// Reads the GGUF files and builds a fresh executor. Runs on a background
-    /// thread; a llama.cpp load is synchronous and takes seconds, even from a
-    /// warm page cache.
+    /// GET /api/tags lists the models the Ollama server has pulled. The result
+    /// doubles as the <see cref="SupportsVision"/> availability check.
     /// </summary>
-    private bool LoadModels()
+    private async Task<bool> ProbeOllamaAsync()
     {
+        if (_disposed)
+            return false;
+
+        Status = "Checking Ollama server...";
+
         try
         {
-            if (_disposed)
-                return false;
+            using var cts = new CancellationTokenSource(
+                TimeSpan.FromSeconds(Math.Max(5, _settings.InferenceTimeoutSeconds)));
 
-            Status = "Loading model...";
+            using var response = await Http.GetAsync(
+                $"{BaseUrl}/api/tags", cts.Token).ConfigureAwait(false);
 
-            var modelFile = ChatModelFile;
-            if (!File.Exists(modelFile))
+            if (!response.IsSuccessStatusCode)
             {
                 IsReady = false;
-                Status = $"No model found at {modelFile}. Place a .gguf there or set ChatModelPath.";
+                Status = $"Ollama server returned {(int)response.StatusCode} on {BaseUrl}/api/tags. Is 'ollama serve' running?";
                 return false;
             }
 
-            var contextSize = (uint)Math.Max(512u, _settings.ContextSize);
+            var json = await response.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
+            var tags = JsonSerializer.Deserialize<OllamaTagsResponse>(json, JsonOptions);
 
-            // ModelParams is also the context parameter set in this version, so
-            // one object configures both the load and the KV cache size.
-            var modelParams = new ModelParams(modelFile)
+            var names = tags?.Models?
+                .Select(m => m.Name ?? string.Empty)
+                .Where(n => n.Length > 0)
+                .ToArray() ?? Array.Empty<string>();
+            _knownModels = names;
+
+            var wanted = ActiveModel;
+            if (!Array.Exists(names, n => ModelsEqual(n, wanted)))
             {
-                ContextSize = contextSize,
-                // -1 offloads every layer the GPU can hold, which is what you want
-                // on a card with enough VRAM. Lower it if the model does not fit.
-                GpuLayerCount = _settings.GpuLayerCount
-            };
-
-            var weights = LLamaWeights.LoadFromFile(modelParams);
-            var context = weights.CreateContext(modelParams);
-
-            // The vision projector is optional. When it loads, the executor
-            // becomes multimodal and can encode images via LoadMedia.
-            MtmdWeights? clip = null;
-            var visionFile = VisionModel;
-            if (visionFile.Length > 0 && File.Exists(visionFile))
-            {
-                try
-                {
-                    clip = MtmdWeights.LoadFromFile(
-                        visionFile, weights, new MtmdContextParams());
-                }
-                catch (Exception ex)
-                {
-                    // A broken projector must not stop text generation.
-                    Status = $"Vision model not loaded ({ex.Message}); continuing without images.";
-                }
-            }
-
-            var executor = clip is not null
-                ? new InteractiveExecutor(context, clip, null)
-                : new InteractiveExecutor(context, null);
-
-            lock (_loadGate)
-            {
-                // The executor does not own a disposable of its own - the
-                // context and weights below are what must be freed.
-                _context?.Dispose();
-                _weights?.Dispose();
-
-                _weights = weights;
-                _context = context;
-                _executor = executor;
+                IsReady = false;
+                Status =
+                    $"Model '{wanted}' not found in Ollama. Pull it with: ollama pull {wanted}";
+                return false;
             }
 
             IsReady = true;
-            if (Status.StartsWith("Loading model", StringComparison.Ordinal))
-                Status = clip is not null ? "Model ready (vision enabled)." : "Model ready.";
+            if (Status.StartsWith("Checking Ollama", StringComparison.Ordinal))
+                Status = SupportsVision
+                    ? $"Ollama ready (model {wanted}, vision {VisionModel})."
+                    : $"Ollama ready (model {wanted}).";
 
             return true;
+        }
+        catch (OperationCanceledException)
+        {
+            IsReady = false;
+            Status = $"Ollama server not reachable at {BaseUrl} (timed out).";
+            return false;
         }
         catch (Exception ex)
         {
             IsReady = false;
-            Status = $"Model load failed: {ex.Message}";
+            Status = $"Ollama server not reachable at {BaseUrl}: {ex.Message}";
             return false;
         }
     }
 
     /// <summary>
-    /// One inference pass over a fresh session, so the previous call's KV cache
-    /// can never contaminate this answer. The model's own chat template is
-    /// applied to the system and user turns, so formatting matches what the
-    /// GGUF was trained for.
+    /// One non-streaming POST /api/chat with a fresh conversation (system +
+    /// user turn only), so the previous call's context can never contaminate
+    /// this answer. Ollama applies the model's own chat template. The
+    /// per-request budget (InferenceTimeoutSeconds) is enforced by a
+    /// CancellationTokenSource because the shared HttpClient has no timeout.
     /// </summary>
-    private async Task<string> Infer(
+    private async Task<string> InferAsync(
         string prompt,
         string systemPrompt,
-        IReadOnlyList<string>? base64Images,
-        int maxTokens)
+        IReadOnlyList<string>? images,
+        int maxTokens,
+        string model)
     {
-        var executor = _executor
-            ?? throw new InvalidOperationException("Model is not loaded.");
-
-        if (executor is not InteractiveExecutor interactive)
-            throw new InvalidOperationException("Unexpected executor type.");
-
-        // Images are encoded by the vision projector and attached to the
-        // executor BEFORE the prompt runs, so the model actually sees the frames.
-        // LoadMedia returns the embed; the executor's Embeds list is what the
-        // inference loop reads.
-        if (base64Images is { Count: > 0 } && interactive.ClipModel is { } projector)
+        var request = new OllamaChatRequest
         {
-            interactive.Embeds.Clear();
-            foreach (var b64 in base64Images)
+            Model = model,
+            Stream = false,
+            KeepAliveMinutes = _settings.ModelKeepAliveMinutes,
+            Options = new OllamaChatOptions
             {
-                try
+                NumPredict = Math.Max(1, maxTokens),
+                Temperature = _settings.Temperature
+            },
+            Messages =
+            {
+                new OllamaMessage { Role = "system", Content = systemPrompt },
+                new OllamaMessage
                 {
-                    interactive.Embeds.Add(projector.LoadMedia(Convert.FromBase64String(b64)));
-                }
-                catch
-                {
-                    // One undecodable frame must not sink the whole request.
+                    Role = "user",
+                    Content = prompt,
+                    Images = images is { Count: > 0 } ? images : null
                 }
             }
-        }
+        };
+
+        var json = JsonSerializer.Serialize(request, JsonOptions);
+        var timeoutSeconds = Math.Max(5, _settings.InferenceTimeoutSeconds);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
 
         try
         {
-            // A fresh session per call: reusing one would carry the previous
-            // prompt's KV cache and contaminate the next answer. The model's own
-            // chat template is applied, so the system and user turns are
-            // formatted the way the GGUF was trained for.
-            var session = new ChatSession(executor);
-            session.AddSystemMessage(systemPrompt);
-            session.AddUserMessage(prompt);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var response = await Http.PostAsync(
+                $"{BaseUrl}/api/chat", content, cts.Token).ConfigureAwait(false);
 
-            var inference = new InferenceParams
+            var body = await response.Content.ReadAsStringAsync(CancellationToken.None)
+                .ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
             {
-                MaxTokens = Math.Max(1, maxTokens),
-                AntiPrompts = AntiPrompts,
-                SamplingPipeline = new DefaultSamplingPipeline
-                {
-                    Temperature = _settings.Temperature
-                }
-            };
+                // Ollama reports failures as {"error":"..."}; surface its text
+                // rather than a bare status code.
+                var detail = TryExtractError(body);
+                throw new InvalidOperationException(
+                    detail ?? $"Ollama returned {(int)response.StatusCode} on /api/chat");
+            }
 
-            var text = new StringBuilder();
-
-            // ChatAsync applies the model's own chat template to the session
-            // history and streams the reply back as plain text fragments.
-            var reply = new ChatHistory.Message(AuthorRole.Assistant, string.Empty);
-
-            await foreach (var fragment in session.ChatAsync(reply, inference).ConfigureAwait(false))
-                text.Append(fragment);
-
-            return text.ToString();
+            var parsed = JsonSerializer.Deserialize<OllamaChatResponse>(body, JsonOptions);
+            return parsed?.Message?.Content ?? string.Empty;
         }
-        finally
+        catch (OperationCanceledException)
         {
-            // Release the projector between calls, or each request would keep
-            // every frame it ever saw resident in VRAM.
-            interactive.Embeds.Clear();
-            interactive.ClipModel?.ClearMedia();
+            throw new TimeoutException($"Inference timed out after {timeoutSeconds}s");
         }
     }
 
     /// <summary>
-    /// Stops generation at the end of a turn. Instruction-tuned GGUFs emit one of
-    /// these after their answer; without them a short JSON reply runs on into
-    /// invented extra turns.
-    /// </summary>
-    private static readonly string[] AntiPrompts = { "<|eot_id|>", "<|end_of_text|>", "<|im_end|>" };
-
-    /// <summary>
-    /// Picks the frames to hand to a vision model. Sending every one is
-    /// impractical: a 10 minute lead has 30 base64 JPEGs (~20KB each), which is
-    /// a large encode and would swamp the projector. A small, evenly spread
-    /// sample keeps the request bounded and still covers the whole video.
+    /// Picks the frames to hand to the vision model. Sending every one is
+    /// impractical: a 10 minute lead has 30 base64 JPEGs (~20KB each), which
+    /// would swamp the request. A small, evenly spread sample keeps it bounded
+    /// and still covers the whole video.
     /// </summary>
     private List<string>? ResolveImages(IReadOnlyList<string>? base64Images)
     {
         if (!SupportsVision || base64Images is null || base64Images.Count == 0)
             return null;
 
-        // Only a multimodal executor can take images. Without a projector
-        // loaded, the request stays text-only rather than failing.
-        if (_executor is not InteractiveExecutor { IsMultiModal: true })
+        return SelectImageSample(base64Images).ToList();
+    }
+
+    /// <summary>
+    /// Ollama lists tags as "name:tag" and always reports ":latest"; the
+    /// config may omit the tag. Normalizing both sides makes "llama3" and
+    /// "llama3:latest" the same model while still distinguishing sizes
+    /// ("llama3:8b" is NOT "llama3:latest").
+    /// </summary>
+    private static bool ModelsEqual(string configured, string listed)
+    {
+        static string Normalize(string value)
+        {
+            var v = value.Trim();
+            return v.EndsWith(":latest", StringComparison.OrdinalIgnoreCase)
+                ? v[..^":latest".Length]
+                : v;
+        }
+
+        return string.Equals(
+            Normalize(configured), Normalize(listed), StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Pulls the "error" field out of an Ollama failure body, if any.</summary>
+    private static string? TryExtractError(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
             return null;
 
-        return SelectImageSample(base64Images).ToList();
+        try
+        {
+            return JsonSerializer.Deserialize<OllamaErrorResponse>(body, JsonOptions)?.Error;
+        }
+        catch (JsonException)
+        {
+            return null; // non-JSON body - fall back to the status code
+        }
     }
 
     public void Dispose()
     {
         _disposed = true;
-        _executor = null;
-        _context?.Dispose();
-        _weights?.Dispose();
         _inferenceLock.Dispose();
     }
+
+    // ---- Ollama wire format ---------------------------------------------------
+
+    private sealed class OllamaChatRequest
+    {
+        [JsonPropertyName("model")]
+        public string Model { get; set; } = string.Empty;
+
+        [JsonPropertyName("messages")]
+        public List<OllamaMessage> Messages { get; set; } = new();
+
+        [JsonPropertyName("stream")]
+        public bool Stream { get; set; }
+
+        [JsonPropertyName("options")]
+        public OllamaChatOptions? Options { get; set; }
+
+        [JsonPropertyName("keep_alive")]
+        public int KeepAliveMinutes { get; set; } = 60;
+    }
+
+    private sealed class OllamaMessage
+    {
+        [JsonPropertyName("role")]
+        public string Role { get; set; } = "user";
+
+        [JsonPropertyName("content")]
+        public string Content { get; set; } = string.Empty;
+
+        [JsonPropertyName("images")]
+        public IReadOnlyList<string>? Images { get; set; }
+    }
+
+    private sealed class OllamaChatOptions
+    {
+        [JsonPropertyName("num_predict")]
+        public int NumPredict { get; set; }
+
+        [JsonPropertyName("temperature")]
+        public float Temperature { get; set; }
+    }
+
+    private sealed class OllamaChatResponse
+    {
+        [JsonPropertyName("message")]
+        public OllamaMessage? Message { get; set; }
+    }
+
+    private sealed class OllamaTagsResponse
+    {
+        [JsonPropertyName("models")]
+        public List<OllamaTag>? Models { get; set; }
+    }
+
+    private sealed class OllamaTag
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+    }
+
+    private sealed class OllamaErrorResponse
+    {
+        [JsonPropertyName("error")]
+        public string? Error { get; set; }
+    }
+
+
+
+
+
+
 }
