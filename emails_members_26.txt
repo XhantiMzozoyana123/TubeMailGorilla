@@ -1,0 +1,20 @@
+﻿9: public class EmailService
+163: public static string Personalize(string text, EmailContact contact, IEnumerable<MessageParameter> parameters, string? icebreaker = null)
+225: SnapshotIndexTokenPattern.IsMatch("[" + token + "]"))
+267: private static readonly Regex SnapshotRandomTokenPattern = new(
+281: private static readonly Regex SnapshotAiTokenPattern = new(
+301: public static string BuildSnapshotImageHtml(AIService.SnapshotAiImage? image)
+327: public static async Task<string> PersonalizeSnapshotAiAsync(
+370: public static bool ContainsSnapshotAiToken(string? text) =>
+388: public static string PersonalizeSnapshotRandom(string text, IReadOnlyList<string> snapshots)
+414: public static bool ContainsSnapshotRandomToken(string? text) =>
+425: private static readonly Regex SnapshotIndexTokenPattern = new(
+440: public static string PersonalizeSnapshotIndexed(string text, IReadOnlyList<string> snapshots)
+444: if (!SnapshotIndexTokenPattern.IsMatch(text))
+448: return SnapshotIndexTokenPattern.Replace(text, string.Empty);
+450: return SnapshotIndexTokenPattern.Replace(text, match =>
+468: public static bool ContainsSnapshotIndexToken(string? text) =>
+469: !string.IsNullOrEmpty(text) && SnapshotIndexTokenPattern.IsMatch(text);
+475: public static string ToHtmlBody(string body)
+495: private static readonly Regex StandaloneImagePattern = new(
+551: public class MessengerDto

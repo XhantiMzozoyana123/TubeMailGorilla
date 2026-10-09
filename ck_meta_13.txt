@@ -1,0 +1,5 @@
+--- comfy_kitchen metadata ---
+Name: comfy-kitchen
+Version: 0.2.37
+Requires: 
+--- Requires-Dist (torch-related) ---

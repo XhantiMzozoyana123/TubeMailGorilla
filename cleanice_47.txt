@@ -1,0 +1,47 @@
+﻿626 |     private static string? CleanIcebreaker(string input)
+627 |     {
+628 |         if (string.IsNullOrWhiteSpace(input))
+629 |             return null;
+630 |         // Never persist raw LLM/API error output as an icebreaker.
+631 |         if (input.StartsWith("LLM Error", StringComparison.OrdinalIgnoreCase))
+632 |             return null;
+633 |         if (input.StartsWith("No response generated", StringComparison.OrdinalIgnoreCase))
+634 |             return null;
+635 | 
+636 |         var clean = input.Trim().Trim('"');
+637 |         // Collapse accidental multi-line responses into a single first line block.
+638 |         clean = clean.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ");
+639 |         while (clean.Contains("  "))
+640 |             clean = clean.Replace("  ", " ");
+641 |         return string.IsNullOrWhiteSpace(clean) ? null : clean.Trim();
+642 |     }
+643 | 
+644 |     public async Task<string> GetFullNameAsync(string description, string subtitles)
+645 |     {
+646 |         try
+647 |         {
+648 |             var prompt = BuildNamePrompt($"{description} {subtitles}", "full name");
+649 |             var result = await _llm.GenerateTextAsync(prompt);
+650 |             return CleanResult(result);
+651 |         }
+652 |         catch
+653 |         {
+654 |             return string.Empty;
+655 |         }
+656 |     }
+657 | 
+658 |     public async Task<string> GetCompanyAsync(string description, string subtitles)
+659 |     {
+660 |         try
+661 |         {
+662 |             var prompt = BuildNamePrompt($"{description} {subtitles}", "company");
+663 |             var result = await _llm.GenerateTextAsync(prompt);
+664 |             return CleanResult(result);
+665 |         }
+666 |         catch
+667 |         {
+668 |             return string.Empty;
+669 |         }
+670 |     }
+=== ollama process ===
+pid=9832 path=C:\Users\Shadow\AppData\Local\Programs\Ollama\ollama.exe

@@ -1,0 +1,63 @@
+﻿=== build/publish scripts ===
+buildinfo.ps1
+direct_run.ps1
+dryrun.ps1
+dryrun126.ps1
+e2e_run.ps1
+e2e_run2.ps1
+=== solutions ===
+TubeMailGorilla.slnx
+proj: C:\Users\Shadow\Documents\TubeMailGorilla\Tools\LlmApiDump\LlmApiDump.csproj
+proj: C:\Users\Shadow\Documents\TubeMailGorilla\Tools\LlmSmokeTest\LlmSmokeTest.csproj
+proj: C:\Users\Shadow\Documents\TubeMailGorilla\Tools\SnapDiag\SnapDiag.csproj
+proj: C:\Users\Shadow\Documents\TubeMailGorilla\Tools\SnapE2E\SnapE2E.csproj
+proj: C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Api\TubeMailGorilla.Api.csproj
+proj: C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Application\TubeMailGorilla.Application.csproj
+proj: C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Domain\TubeMailGorilla.Domain.csproj
+proj: C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Infrastructure\TubeMailGorilla.Infrastructure.csproj
+proj: C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\TubeMailGorilla.Maui.csproj
+proj: C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\TubeMailGorilla.Maui.Unlocked.csproj
+proj: C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\TubeMailGorilla.Mvc.csproj
+proj: C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc.Tests\TubeMailGorilla.Mvc.Tests.csproj
+=== git status ===
+ M Tools/ollama-status.txt
+ M TubeMailGorilla.Maui.Unlocked/MauiProgram.cs
+ M TubeMailGorilla.Maui.Unlocked/Models/LlmSettings.cs
+ M TubeMailGorilla.Maui.Unlocked/Services/AIService.cs
+ M TubeMailGorilla.Maui.Unlocked/Services/EmailService.cs
+ M TubeMailGorilla.Maui.Unlocked/Services/LLMService.cs
+ M TubeMailGorilla.Maui.Unlocked/TubeMailGorilla.Maui.Unlocked.csproj
+ M TubeMailGorilla.Maui.Unlocked/Views/ContactDetailsPage.xaml
+ M TubeMailGorilla.Maui.Unlocked/Views/ContactDetailsPage.xaml.cs
+ M TubeMailGorilla.Maui.Unlocked/Views/SendEmailsPage.xaml.cs
+ M TubeMailGorilla.Maui.Unlocked/appsettings.json
+ M TubeMailGorilla.Maui/Services/EmailService.cs
+?? Tools/ai-mid.txt
+?? Tools/budget-test.ps1
+?? Tools/budget-test.txt
+?? Tools/curl-think.ps1
+?? Tools/curl-think.txt
+?? Tools/err-search.txt
+?? Tools/llmmid.txt
+?? Tools/llmmid2.txt
+?? Tools/log-fn.txt
+?? Tools/n-only.ps1
+?? Tools/n-only.txt
+?? Tools/o2.ps1
+?? Tools/o2.txt
+?? Tools/q2.ps1
+?? Tools/q2.txt
+?? Tools/r1.ps1
+?? Tools/r1.txt
+?? Tools/review-qwen-single.ps1
+?? Tools/review-repro-qwen.ps1
+?? Tools/review-repro-qwen.txt
+?? Tools/review-repro.ps1
+?? Tools/review-repro.txt
+?? Tools/think-test.ps1
+?? Tools/think-test.txt
+?? TubeMailGorilla.Maui.Unlocked/Services/ComfyUiImageGenerationService.cs
+?? TubeMailGorilla.Maui.Unlocked/Services/VideoDownloadService.cs
+?? admin_check.ps1
+?? build_out.txt
+=== README build hints ===

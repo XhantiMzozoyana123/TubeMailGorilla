@@ -1,0 +1,79 @@
+﻿=== XAML ===
+38: <Label Text="START FROM A TEMPLATE (OPTIONAL)" Style="{StaticResource CaptionStyle}" />
+39: <Picker x:Name="TemplatePicker"
+40: Title="Select a template..."
+41: SelectedIndexChanged="OnTemplateSelected" />
+42: <Label x:Name="TemplateStatusLabel" Style="{StaticResource StatusStyle}" Margin="0" Text="" />
+52: <BindableLayout.ItemTemplate>
+53: <DataTemplate>
+63: </DataTemplate>
+64: </BindableLayout.ItemTemplate>
+75: <BindableLayout.ItemTemplate>
+76: <DataTemplate>
+86: </DataTemplate>
+87: </BindableLayout.ItemTemplate>
+122: <BindableLayout.ItemTemplate>
+123: <DataTemplate>
+133: </DataTemplate>
+134: </BindableLayout.ItemTemplate>
+139: <Label Text="START FROM A TEMPLATE (OPTIONAL)" Style="{StaticResource CaptionStyle}" />
+140: <Picker x:Name="VariationTemplatePicker"
+141: Title="Select a template..."
+142: SelectedIndexChanged="OnVariationTemplateSelected" />
+143: <Label x:Name="VariationTemplateStatusLabel" Style="{StaticResource StatusStyle}" Margin="0" Text="" />
+=== CS ===
+73: LoadTemplate();
+74: await LoadTemplatesIntoPickerAsync();
+137: TemplateStatusLabel.Text = $"Could not load email parameters: {ex.Message}";
+148: private void LoadTemplate()
+281: VariationTemplatePicker.SelectedIndex = 0;
+282: VariationTemplateStatusLabel.Text = string.Empty;
+293: VariationTemplatePicker.SelectedIndex = 0;
+294: VariationTemplateStatusLabel.Text = string.Empty;
+298: private async void OnVariationTemplateSelected(object? sender, EventArgs e)
+300: var index = VariationTemplatePicker.SelectedIndex - 1;
+301: if (index < 0 || index >= _templates.Count)
+303: VariationTemplateStatusLabel.Text = string.Empty;
+307: if (!await EnsureTemplatesAllowedAsync("using email templates"))
+309: VariationTemplatePicker.SelectedIndex = 0;
+313: var template = _templates[index];
+314: VarSubjectEntry.Text = template.Subject ?? string.Empty;
+315: VarBodyEditor.Text = template.Body ?? string.Empty;
+316: VariationTemplateStatusLabel.Text = $"Loaded \"{template.Name}\" into this variation. You can edit it before saving.";
+369: //  TEMPLATE PICKER â€” loads a saved template INTO this form so the
+370: //  user can tweak it and send. Templates themselves are managed on
+371: //  the Email Templates page, not here.
+374: private List<EmailTemplate> _templates = new();
+376: private async Task LoadTemplatesIntoPickerAsync()
+380: _templates = await _db.GetTemplatesAsync();
+382: TemplatePicker.Items.Clear();
+383: TemplatePicker.Items.Add("No template - write from scratch");
+384: VariationTemplatePicker.Items.Clear();
+385: VariationTemplatePicker.Items.Add("No template - write from scratch");
+386: foreach (var t in _templates)
+388: TemplatePicker.Items.Add(t.Name);
+389: VariationTemplatePicker.Items.Add(t.Name);
+392: TemplatePicker.SelectedIndex = 0;
+393: VariationTemplatePicker.SelectedIndex = 0;
+394: TemplateStatusLabel.Text = _templates.Count == 0
+395: ? "You have no saved templates yet. Create them on the Email Templates page."
+396: : $"{_templates.Count} template{(_templates.Count == 1 ? "" : "s")} available.";
+400: TemplateStatusLabel.Text = $"Could not load templates: {ex.Message}";
+404: private async void OnTemplateSelected(object? sender, EventArgs e)
+406: var index = TemplatePicker.SelectedIndex - 1; // index 0 = "no template"
+407: if (index < 0 || index >= _templates.Count)
+409: TemplateStatusLabel.Text = string.Empty;
+413: var template = _templates[index];
+415: // Templates are a gated feature - ask the API before loading one.
+416: if (!await EnsureTemplatesAllowedAsync("using email templates"))
+418: TemplatePicker.SelectedIndex = 0;
+422: if (!string.IsNullOrWhiteSpace(template.Subject))
+423: SubjectEntry.Text = template.Subject;
+424: if (!string.IsNullOrWhiteSpace(template.Body))
+425: BodyEditor.Text = template.Body;
+427: TemplateStatusLabel.Text = $"Loaded \"{template.Name}\" into the form. Tweak it if you like, then hit Send Campaign.";
+431: /// Email templates are Pro-only. The API's gatekeeper decides - this is
+434: private async Task<bool> EnsureTemplatesAllowedAsync(string action)
+436: var verdict = await _validator.CheckOrAlertAsync(this, ValidationService.UseEmailTemplates);
+482: StatusLabel.Text = "Please write both a subject and an email body first (or pick a template above).";
+490: // Save current as template

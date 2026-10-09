@@ -1,0 +1,9 @@
+﻿=== ERROR lines ===
+    0 Error(s)
+=== tail ===
+c:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\ViewModels\BaseViewModel.cs(13,18): warning MVVMTK0045: The field TubeMailGorilla.Maui.Unlocked.ViewModels.BaseViewModel._isBusy using [ObservableProperty] will generate code that is not AOT compatible in WinRT scenarios (such as UWP XAML and WinUI 3 apps), and a partial property should be used instead (as it allows the CsWinRT generators to correctly produce the necessary WinRT marshalling code) (https://aka.ms/mvvmtoolkit/errors/mvvmtk0045) [c:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\TubeMailGorilla.Maui.Unlocked.csproj::TargetFramework=net10.0-windows10.0.19041.0]
+    354 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:40.04
+build process alive=False

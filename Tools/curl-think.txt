@@ -1,0 +1,5 @@
+﻿time=20:41:36
+K think=false raw: done=stop content_len=11 think_len=1051
+  content=hello world
+L default (no think): done=stop content_len=11 think_len=734
+  content=hello world

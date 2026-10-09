@@ -1,0 +1,7 @@
+﻿ollama: UP
+ollama models: llama3:latest, llamacpp:e8503d318d8df6622abc18a317c0e5eee044821322c87a16a6acddd62984da84, qwen3-vl:4b, qwen3-vl:4b
+ollama: qwen3-vl:4b PRESENT
+comfyui system_stats http=200
+comfyui: checkpoint v1-5-pruned-emaonly PRESENT
+regular app: not running
+Unlocked LAUNCHED pid=4544

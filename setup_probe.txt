@@ -1,0 +1,9 @@
+===== GPU =====  
+name, memory.total [MiB], memory.free [MiB], driver_version
+NVIDIA RTX 2000 Ada Generation, 15356 MiB, 14143 MiB, 565.90
+===== 7ZIP =====  
+MISSING 
+===== PYTHON =====  
+Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.
+===== PORT8188 =====  
+===== END ===== 

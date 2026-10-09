@@ -1,0 +1,2 @@
+﻿origin	https://github.com/XhantiMzozoyana123/TubeMailGorilla.git (fetch)
+origin	https://github.com/XhantiMzozoyana123/TubeMailGorilla.git (push)

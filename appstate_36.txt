@@ -1,0 +1,1 @@
+﻿ALIVE=True WINDOW=[TubeMailGorilla Unlocked] MEM_MB=338

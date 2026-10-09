@@ -1,0 +1,6 @@
+﻿start=20:51:50
+prompt_chars=1649
+done=stop content_len=708 think_len=3010
+content_head=HOOK - Open with a dynamic shot of the house's most unique feature (like the backyard) instead of repeating the title. This creates immediate intrigue and reduces drop-off.  
+
+PACING - Cut the repetitive narration early and replace with a quick monta

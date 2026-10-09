@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>LLMCheck</RootNamespace>
+    <!-- Default output folder. The referenced app assembly's WindowsAppSDK module
+         initializer P/Invokes Microsoft.WindowsAppRuntime.dll, which lives in the
+         APP's folder - the runner script prepends that folder to PATH so the
+         native probe finds it (established with the EmailHtmlCheck harness). -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The actual app assembly under test (built DLL, not the csproj, so the
+         MAUI workload is not needed just to exercise the Ollama LLM path). -->
+    <Reference Include="TubeMailGorilla.Maui.Unlocked">
+      <HintPath>..\..\TubeMailGorilla.Maui.Unlocked\bin\Debug\net10.0-windows10.0.19041.0\win-x64\TubeMailGorilla.Maui.Unlocked.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

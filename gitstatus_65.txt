@@ -1,0 +1,242 @@
+﻿=== git status --short ===
+ M Tools/ollama-status.txt
+ M TubeMailGorilla.Maui.Unlocked/MauiProgram.cs
+ M TubeMailGorilla.Maui.Unlocked/Models/LlmSettings.cs
+ M TubeMailGorilla.Maui.Unlocked/Services/AIService.cs
+ M TubeMailGorilla.Maui.Unlocked/Services/EmailService.cs
+ M TubeMailGorilla.Maui.Unlocked/Services/LLMService.cs
+ M TubeMailGorilla.Maui.Unlocked/TubeMailGorilla.Maui.Unlocked.csproj
+ M TubeMailGorilla.Maui.Unlocked/Views/ContactDetailsPage.xaml
+ M TubeMailGorilla.Maui.Unlocked/Views/ContactDetailsPage.xaml.cs
+ M TubeMailGorilla.Maui.Unlocked/Views/EmailTemplateDetailsPage.xaml
+ M TubeMailGorilla.Maui.Unlocked/Views/EmailTemplateDetailsPage.xaml.cs
+ M TubeMailGorilla.Maui.Unlocked/Views/SendEmailsPage.xaml.cs
+ M TubeMailGorilla.Maui.Unlocked/appsettings.json
+ M TubeMailGorilla.Maui/Services/EmailService.cs
+?? Tools/EmailHtmlCheck/
+?? Tools/LLMCheck/
+?? Tools/ai-mid.txt
+?? Tools/budget-test.ps1
+?? Tools/budget-test.txt
+?? Tools/curl-think.ps1
+?? Tools/curl-think.txt
+?? Tools/err-search.txt
+?? Tools/llmmid.txt
+?? Tools/llmmid2.txt
+?? Tools/log-fn.txt
+?? Tools/n-only.ps1
+?? Tools/n-only.txt
+?? Tools/o2.ps1
+?? Tools/o2.txt
+?? Tools/q2.ps1
+?? Tools/q2.txt
+?? Tools/r1.ps1
+?? Tools/r1.txt
+?? Tools/review-qwen-single.ps1
+?? Tools/review-repro-qwen.ps1
+?? Tools/review-repro-qwen.txt
+?? Tools/review-repro.ps1
+?? Tools/review-repro.txt
+?? Tools/think-test.ps1
+?? Tools/think-test.txt
+?? TubeMailGorilla.Maui.Unlocked/Services/ComfyUiImageGenerationService.cs
+?? TubeMailGorilla.Maui.Unlocked/Services/VideoDownloadService.cs
+?? admin_check.ps1
+?? aisvc_dump.ps1
+?? aisvc_dump_46.txt
+?? appbin.ps1
+?? appbin_32.txt
+?? apppid.txt
+?? apprun_35.txt
+?? appstate_36.txt
+?? appstate_57.txt
+?? appstate_check.ps1
+?? bothapps_37.txt
+?? bothstate_39.txt
+?? bothstate_check.ps1
+?? build25.ps1
+?? build25_status.ps1
+?? build25_status_30.txt
+?? build26.ps1
+?? build26_status.ps1
+?? build26_status_52.txt
+?? build27.ps1
+?? build27_status.ps1
+?? build27_status_54.txt
+?? build28.ps1
+?? build28_status.ps1
+?? build28_status_55.txt
+?? build29.ps1
+?? build29_status.ps1
+?? build29_status_62.txt
+?? build30.ps1
+?? build30_status.ps1
+?? build30_status_64.txt
+?? build_25.log.err
+?? build_25.pid
+?? build_26.log.err
+?? build_26.pid
+?? build_27.log.err
+?? build_27.pid
+?? build_28.log.err
+?? build_28.pid
+?? build_29.log.err
+?? build_29.pid
+?? build_30.log.err
+?? build_30.pid
+?? build_out.txt
+?? buildinfo.ps1
+?? buildinfo_24.txt
+?? caller_diff.ps1
+?? caller_diff_27.txt
+?? check_swap.ps1
+?? checkboth.ps1
+?? ck_meta.ps1
+?? ck_meta_13.txt
+?? ckpt_check.ps1
+?? ckpt_check_17.txt
+?? cleanice_47.txt
+?? cleanice_dump.ps1
+?? comfy_req.ps1
+?? comfy_req_14.txt
+?? crash_40.txt
+?? crash_check.ps1
+?? cuda2.ps1
+?? cuda3.ps1
+?? cuda_detached.ps1
+?? cuda_out_10.txt
+?? cudatest.ps1
+?? diag.ps1
+?? diag2.ps1
+?? diag2_53.txt
+?? diag_49.txt
+?? direct_run.ps1
+?? dryrun.ps1
+?? dryrun126.ps1
+?? dryrun126_15.txt
+?? e2e.pid
+?? e2e2.pid
+?? e2e2_result_23.txt
+?? e2e_result_18.txt
+?? e2e_run.ps1
+?? e2e_run2.ps1
+?? e2e_test.py
+?? e2e_test2.py
+?? emailcheck.pid
+?? emailcheck_31.txt
+?? emailcheck_31.txt.err
+?? emailcheck_run.ps1
+?? emails_members.ps1
+?? emails_members_26.txt
+?? ensure_42.txt
+?? ensure_43.txt
+?? ensure_state.ps1
+?? ensure_unlocked.ps1
+?? final_33.txt
+?? final_check.ps1
+?? final_state.ps1
+?? gitlog.ps1
+?? gitlog_29.txt
+?? gitstatus.ps1
+?? graph_025059_245.cs
+?? graphdump.ps1
+?? grep_ice.ps1
+?? grep_ice_44.txt
+?? groundtruth.ps1
+?? groundtruth_024934_335.txt
+?? launch_app.ps1
+?? launch_both.ps1
+?? launchboth_38.txt
+?? llmcheck.pid
+?? llmcheck_result.txt
+?? llmcheck_result.txt.err
+?? llmcheck_run.ps1
+?? llmpoll_56.txt
+?? maui_diff.ps1
+?? maui_diff_28.txt
+?? nodes2_20.txt
+?? nodes_19.txt
+?? nodes_check.ps1
+?? nodes_check2.ps1
+?? ollama_req.json
+?? ollama_req2.json
+?? ollama_req3.json
+?? ollama_test.ps1
+?? ollama_test2.ps1
+?? ollama_test2_48.txt
+?? ollama_test2_worker.ps1
+?? ollama_test3.ps1
+?? ollama_test3_50.txt
+?? ollama_test3_worker.ps1
+?? ollama_test_45.txt
+?? ollama_test_worker.ps1
+?? poll.ps1
+?? poll2.ps1
+?? poll3.ps1
+?? poll4.ps1
+?? poll5.ps1
+?? poll5b.ps1
+?? poll6.ps1
+?? poll_llmcheck.ps1
+?? probe3.txt
+?? proc_status.ps1
+?? proc_status_11.txt
+?? progress.txt
+?? proxy_51.txt
+?? proxy_check.ps1
+?? push.err
+?? push.out
+?? queue_025159_020.cs
+?? queuedump.ps1
+?? rawdump.ps1
+?? rawdump_21.txt
+?? real_service_22.cs
+?? realdump.ps1
+?? retry_41.txt
+?? retry_regular.ps1
+?? runinfo_34.txt
+?? setup_all.ps1
+?? setup_probe.ps1
+?? setup_probe.txt
+?? snap_versions.ps1
+?? srv_status_12.txt
+?? srvpoll.ps1
+?? start_comfy.ps1
+?? start_server.ps1
+?? start_server2.ps1
+?? status.ps1
+?? swap126_status_16.txt
+?? swap126poll.ps1
+?? swappoll.ps1
+?? tmpl_ref.ps1
+?? tmpl_ref_63.txt
+?? tokeninfo.ps1
+?? tokeninfo2.ps1
+?? tokeninfo2_59.txt
+?? tokeninfo_58.txt
+?? tokenlist.ps1
+?? tokenlist_60.txt
+?? tokenxaml.ps1
+?? tokenxaml_61.txt
+?? torch_diag.ps1
+?? torch_diag2.ps1
+?? torch_swap.ps1
+?? torch_swap126.ps1
+?? url_check.ps1
+?? url_check.txt
+=== diff stat (tracked) ===
+ Tools/ollama-status.txt                            |   4 +-
+ TubeMailGorilla.Maui.Unlocked/MauiProgram.cs       |  19 +-
+ .../Models/LlmSettings.cs                          |  66 +++++-
+ .../Services/AIService.cs                          | 215 ++++++++++++++++---
+ .../Services/EmailService.cs                       | 143 ++++++++++++-
+ .../Services/LLMService.cs                         | 157 +++++++++++++-
+ .../TubeMailGorilla.Maui.Unlocked.csproj           |   2 +-
+ .../Views/ContactDetailsPage.xaml                  | 107 +++++++---
+ .../Views/ContactDetailsPage.xaml.cs               | 233 ++++++++++++++++++++-
+ .../Views/EmailTemplateDetailsPage.xaml            |  56 ++++-
+ .../Views/EmailTemplateDetailsPage.xaml.cs         | 108 ++++++++++
+ .../Views/SendEmailsPage.xaml.cs                   |  19 +-
+ TubeMailGorilla.Maui.Unlocked/appsettings.json     |  28 ++-
+ TubeMailGorilla.Maui/Services/EmailService.cs      | 140 ++++++++++++-
+ 14 files changed, 1190 insertions(+), 107 deletions(-)

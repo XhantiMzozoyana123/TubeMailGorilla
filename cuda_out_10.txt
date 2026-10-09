@@ -1,0 +1,6 @@
+torch 2.14.0+cu126
+cuda 12.6
+device_count 1
+is_available True
+init OK NVIDIA RTX 2000 Ada Generation
+END

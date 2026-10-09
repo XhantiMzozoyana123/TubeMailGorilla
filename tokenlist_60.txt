@@ -1,0 +1,54 @@
+﻿=== EmailService Personalize fields ===
+258: ["email"] = contact.Email?.Trim() ?? string.Empty,
+259: ["name"] = contact.Name?.Trim() ?? string.Empty,
+260: ["first-name"] = GetFirstName(contact.Name),
+261: ["last-name"] = GetLastName(contact.Name),
+265: ["f_name"] = GetFirstName(contact.Name),
+266: ["l_name"] = GetLastName(contact.Name),
+267: ["channel"] = contact.Channel?.Trim() ?? string.Empty,
+268: ["channel-name"] = contact.Channel?.Trim() ?? string.Empty,
+269: ["video-title"] = contact.VideoTitle?.Trim() ?? string.Empty,
+270: ["video-description"] = contact.VideoDescription?.Trim() ?? string.Empty,
+271: ["icebreaker"] = icebreaker?.Trim() ?? string.Empty
+281: ["name"] = fields["name"],
+282: ["full-name"] = fields["name"],
+283: ["email"] = fields["email"],
+284: ["channel"] = fields["channel"],
+285: ["channel-name"] = fields["channel-name"],
+286: ["first-name"] = fields["first-name"],
+287: ["last-name"] = fields["last-name"],
+288: ["f_name"] = fields["f_name"],
+289: ["l_name"] = fields["l_name"],
+290: ["video-title"] = fields["video-title"],
+291: ["video-description"] = fields["video-description"],
+292: ["icebreaker"] = fields["icebreaker"],
+293: ["ice-breaker"] = fields["icebreaker"]
+=== SendEmailsPage token seeds ===
+51: AddTokenOption(SubjectTokens, "[name]", "[name]");
+52: AddTokenOption(SubjectTokens, "[f_name]", "[f_name]");
+53: AddTokenOption(SubjectTokens, "[l_name]", "[l_name]");
+54: AddTokenOption(SubjectTokens, "[channel]", "[channel]");
+55: AddTokenOption(BodyTokens, "[name]", "[name]");
+56: AddTokenOption(BodyTokens, "[f_name]", "[f_name]");
+57: AddTokenOption(BodyTokens, "[l_name]", "[l_name]");
+58: AddTokenOption(BodyTokens, "[channel]", "[channel]");
+59: AddTokenOption(BodyTokens, "[email]", "[email]");
+60: AddTokenOption(BodyTokens, "[icebreaker]", "[icebreaker]");
+61: AddTokenOption(BodyTokens, "[snapshot_random]", "[snapshot_random]");
+62: AddTokenOption(BodyTokens, "[snapshot_1]", "[snapshot_1]");
+63: AddTokenOption(BodyTokens, "[snapshot_ai={Select the frame that most needs editing.}]",
+64: "[snapshot_ai={Select the frame that most needs editing.}]");
+110: .Concat(new[] { "[name]", "[f_name]", "[l_name]", "[channel]" })
+120: "[name]", "[f_name]", "[l_name]", "[email]", "[channel]", "[video-title]", "[icebreaker]",
+121: "[snapshot_random]",
+122: "[snapshot_1]",
+123: "[snapshot_ai={Select the frame that most needs editing.}]"
+130: AddTokenOption(SubjectTokens, token, token);
+133: AddTokenOption(BodyTokens, token, token);
+141: private static void AddTokenOption(ObservableCollection<TokenOption> options, string label, string token)
+145: options.Add(new TokenOption(label, token));
+547: // Load each lead's latest AI icebreaker (Opener) once so [icebreaker]
+561: // The [icebreaker] token will resolve to an empty value for this
+604: // [snapshot_random] is resolved first and is free - the frame is
+606: // to wait for. [snapshot_N] is equally free (a direct index into
+607: // the same list). [snapshot_ai] is the expensive one, so it runs

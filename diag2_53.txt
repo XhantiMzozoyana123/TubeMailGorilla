@@ -1,0 +1,12 @@
+﻿harness pid22064 alive = False
+llama-server pid=12864 cpu_delta_2s=0.62 mem_mb=1277
+ollama pid=9832 cpu_delta_2s=0 mem_mb=23
+ollama app pid=12496 cpu_delta_2s=0 mem_mb=11
+gpu=30 %, 11062 MiB
+--- llmcheck so far ---
+PASS  empty response -> 'LLM Error: No response generated.' -> LLM Error: No response generated.
+PASS  empty response -> LastError is set -> The model returned an empty response. A reasoning model can spend the whole token budget 'thinking' before answering.
+FAIL  custom icebreaker generated -> (null)
+FAIL  custom success -> LastError cleared -> The model returned an empty response. A reasoning model can spend the whole token budget 'thinking' before answering.
+PASS  standard icebreaker generated -> Your live-edge table build showcased such precise wood grain alignment in the latest video.
+2 CHECK(S) FAILED

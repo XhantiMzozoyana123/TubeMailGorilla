@@ -66,7 +66,7 @@
         <!-- Local inference runs through the Ollama daemon over HTTP (see
              LlmSettings.OllamaBaseUrl) - the weights live inside Ollama, so no
              LLamaSharp/GGUF packages are needed. Ollama must be installed and
-             the model pulled (ollama pull llama3:latest). -->
+             the model pulled (ollama pull qwen3-vl:4b). -->
         <PackageReference Include="sqlite-net-pcl" Version="1.8.116" />
         <PackageReference Include="YoutubeExplode" Version="6.6.2" />
         <PackageReference Include="YouTubeSearch" Version="2.2.6" />

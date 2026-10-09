@@ -1,0 +1,20 @@
+--- ComfyUI requirements.txt (torch-related) ---
+comfyui-frontend-package==1.53.10
+comfyui-workflow-templates==0.11.76
+comfyui-embedded-docs==0.5.13
+torch
+torchsde
+torchvision
+comfy-kitchen==0.2.37
+comfy-aimdo==0.5.5
+comfy-angle
+--- installed comfy_kitchen Requires-Dist (all) ---
+Requires-Dist: nvidia-cublas>=13.0.0; extra == "cublas"
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-benchmark>=4.0.0; extra == "dev"
+Requires-Dist: ruff>=0.1.0; extra == "dev"
+Requires-Dist: nanobind>=2.0.0; extra == "build"
+--- torch 2.7 cu126 availability for py3.13 ---
+torch (2.14.1+cu126)
+Available versions: 2.14.1+cu126, 2.14.0+cu126, 2.13.0+cu126, 2.12.1+cu126, 2.12.0+cu126, 2.11.0+cu126, 2.10.0+cu126, 2.9.1+cu126, 2.9.0+cu126, 2.8.0+cu126, 2.7.1+cu126, 2.7.0+cu126, 2.6.0+cu126
+  INSTALLED: 2.6.0+cu124

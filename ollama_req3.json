@@ -1,0 +1,21 @@
+{
+    "messages":  [
+                     {
+                         "content":  "You are a strict data-extraction engine. Return ONLY the raw data value the user asks for.",
+                         "role":  "system"
+                     },
+                     {
+                         "content":  "You are an expert cold-email copywriter helping a freelance video editor land YouTube creators as retainer clients.\r\n\r\nWrite ONE personalized first-line icebreaker (the opening sentence of a cold email) for the creator below.\r\n\r\nCreator context:\r\n- Name: Sarah\r\n- Channel: Cozy Kitchen Recipes\r\n- Latest video title: 15-minute garlic butter pasta\r\n\r\nRules:\r\n- No greeting (Hi/Hey), no sign-off, no mention of editing services yet\r\n- Plain text only, no quotes, no emojis\r\n\r\nReturn ONLY the icebreaker text.\r\n/no_think",
+                         "role":  "user"
+                     }
+                 ],
+    "stream":  false,
+    "keep_alive":  60,
+    "think":  false,
+    "model":  "qwen3-vl:4b",
+    "options":  {
+                    "num_predict":  1200,
+                    "num_ctx":  8192,
+                    "temperature":  0.2
+                }
+}

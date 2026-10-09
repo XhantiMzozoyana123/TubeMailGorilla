@@ -1,0 +1,15 @@
+PASS  plain single newlines -> <br>
+PASS  img body is wrapped (old bug returned it raw/unwrapped)
+PASS  img stays real markup (not HTML-encoded)
+PASS  img inside <p> survives
+PASS  inline img: tag preserved, text encoded
+PASS  authored html untouched
+PASS  standalone img line preserved, text around it paragraphed
+PASS  ExtractEmbeddedImages exists
+PASS  data: URI rewritten to cid:
+PASS  one LinkedResource produced
+PASS  [snapshot_N] indexes frames (restored member)
+PASS  ContainsSnapshotIndexToken detects token
+PASS  EmailContact type resolves
+
+ALL CHECKS PASSED

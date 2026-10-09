@@ -17,8 +17,36 @@ public class AIService
     private const int DefaultImageWidth = 480;
     private const int DefaultImageHeight = 270;
 
+    // Token budgets for an icebreaker. qwen3 emits a reasoning pass before the
+    // answer (measured 500-650 tokens on qwen3-vl:4b), so the cap covers
+    // thinking AND the 1-2 sentence answer. A hard custom prompt can still
+    // think past the first budget and come back empty; the retry buys 50% more
+    // room (~9 tokens/second measured keeps it well inside the 300s budget).
+    private const int IcebreakerMaxTokens = 1200;
+    private const int IcebreakerRetryTokens = 1800;
+
+    // The default LLMService system prompt is the strict DATA-EXTRACTION one -
+    // it demands a single value of 1-5 words and an empty answer when unsure.
+    // An icebreaker is 1-2 creative SENTENCES, so the model spends most of its
+    // thinking budget reconciling that conflict (measured: custom-instruction
+    // prompts burned past even the 1800-token retry and came back empty,
+    // surfacing as the generic "AI timed out" dialog). Icebreakers get their
+    // own copywriter persona - the same reasoning LLMService applies to its
+    // advisory prompt, which bans the extraction persona for creative work.
+    private const string IcebreakerSystemPrompt =
+        "You are an expert cold-email copywriter. " +
+        "Answer with ONLY the short piece of copy the user asks for - typically one or two sentences. " +
+        "No preamble, no explanations, no lists, no quotation marks around the answer.";
+
     private readonly LLMService _llm;
     private readonly IImageGenerationService _imageGeneration;
+
+    /// <summary>
+    /// True when a vision model is available for frame picking. The send page
+    /// uses this for its progress text; the pipeline itself falls back to the
+    /// first frame when false, so the token still renders an image.
+    /// </summary>
+    public bool VisionAvailable => _llm.SupportsVision;
 
     /// <param name="llm">Used for reasoning: picking frames and writing the edit prompt.</param>
     /// <param name="imageGeneration">
@@ -74,10 +102,28 @@ Rules:
 - Plain text only, no quotes, no emojis
 
 Return ONLY the icebreaker text.";
-            var result = await _llm.GenerateTextAsync(prompt, maxTokens: 160);
-            // An icebreaker is one or two sentences, so a short token cap keeps
-            // generation well inside the inference timeout even under load.
-            return CleanIcebreaker(result);
+            var result = await _llm.GenerateTextAsync(
+                prompt, maxTokens: IcebreakerMaxTokens, systemPrompt: IcebreakerSystemPrompt);
+            // Budget covers qwen3's thinking trace PLUS the 1-2 sentence answer:
+            // reasoning models spend tokens thinking before writing anything, and
+            // a tight cap (160) meant the budget ran out mid-thought, returning an
+            // empty response the caller treated as failure.
+            var icebreaker = CleanIcebreaker(result);
+            if (icebreaker is not null)
+                return icebreaker;
+
+            // Empty response = the thinking trace ate the whole budget (qwen3-vl
+            // ignores Ollama's think=false and /no_think - ollama/ollama#16945).
+            // One retry with 50% more room turns that case into a success. Probe
+            // failures and timeouts are NOT retried - they would just double the
+            // wait before failing the same way.
+            if (result.StartsWith("LLM Error: No response", StringComparison.OrdinalIgnoreCase))
+            {
+                var retry = await _llm.GenerateTextAsync(
+                    prompt, maxTokens: IcebreakerRetryTokens, systemPrompt: IcebreakerSystemPrompt);
+                icebreaker = CleanIcebreaker(retry);
+            }
+            return icebreaker;
         }
         catch
         {
@@ -144,26 +190,33 @@ Return ONLY the icebreaker text.";
     /// because the stack cannot generate an image - it can only choose between
     /// real ones. Every pixel in the result is genuinely from the lead's video.
     ///
-    /// Returns null when there is nothing to show (no snapshots, no vision model
-    /// configured, or the call failed) so the token renders as nothing rather
-    /// than leaking an error into a cold email.
+    /// Always returns an image when the lead has snapshots: with vision the
+    /// model picks the frames matching the instruction, without vision (or on
+    /// failure) the first sampled frame is composited instead. Returns null
+    /// only when there is nothing to show (no snapshots at all) so the token
+    /// renders as nothing rather than leaking an error into a cold email.
     /// </summary>
     public async Task<SnapshotAiImage?> GenerateSnapshotAiImageAsync(
         EmailContact contact,
         IReadOnlyList<string> snapshots,
         string? instruction = null)
     {
-        if (!_llm.SupportsVision)
-            return null;
-
-        var frames = snapshots?.Where(s => !string.IsNullOrWhiteSpace(s)).ToList()
-                    ?? new List<string>();
+        var frames = CleanFrames(snapshots);
         if (frames.Count == 0)
             return null;
 
         // Must be the exact list that goes over the wire, so the reported
-        // positions index frames the model actually saw.
+        // positions index frames the model actually saw. CleanFrames already
+        // ran, so SelectImageSample only thins the list - positions stay
+        // aligned with what BuildImageAsync resolves.
         var sent = _llm.SelectImageSample(frames);
+
+        // No vision model (not configured, not pulled, or Ollama down): the AI
+        // cannot choose, but the token must still show the creator's footage
+        // rather than vanishing. Fall back to the first sampled frame so the
+        // email always carries an honest image.
+        if (!_llm.SupportsVision)
+            return ComposeFallback(sent);
 
         var goal = string.IsNullOrWhiteSpace(instruction)
             ? "Pick the frames that most clearly show what could be improved."
@@ -208,15 +261,72 @@ Return only that JSON object.";
         {
             var result = await _llm.GenerateAdvisoryAsync(
                 prompt,
-                maxTokens: 160,
+                maxTokens: 1200,
                 base64Images: sent);
 
             return await BuildImageAsync(result, frames, sent, _imageGeneration);
         }
         catch
         {
-            return null;
+            // Vision call failed (timeout, server down, bad response): still
+            // show the creator's footage rather than shipping no image.
+            return ComposeFallback(sent);
         }
+    }
+
+    /// <summary>
+    /// Strips anything that is not image data from stored frames: data-URI
+    /// prefixes ("data:image/jpeg;base64,..."), whitespace and newlines folded
+    /// into the stored string, and blank entries. Without this a frame saved
+    /// with a prefix builds "data:...;base64,data:..." (no inbox renders it),
+    /// and folded whitespace makes SkiaSharp/the data-URI fail to decode, so
+    /// the composer returns null and the token silently renders nothing.
+    /// </summary>
+    private static List<string> CleanFrames(IReadOnlyList<string>? frames)
+    {
+        var cleaned = new List<string>();
+        if (frames is null)
+            return cleaned;
+
+        foreach (var frame in frames)
+        {
+            if (string.IsNullOrWhiteSpace(frame))
+                continue;
+
+            var value = frame.Trim();
+            var comma = value.IndexOf(',');
+            if (value.StartsWith("data:image", StringComparison.OrdinalIgnoreCase) && comma >= 0)
+                value = value[(comma + 1)..];
+
+            value = new string(value.Where(c => !char.IsWhiteSpace(c)).ToArray());
+            if (value.Length == 0)
+                continue;
+
+            cleaned.Add(value);
+        }
+
+        return cleaned;
+    }
+
+    /// <summary>
+    /// The no-AI fallback for [snapshot_ai]: composite the sampled frames (or
+    /// just pass through the single one) so the token always renders the
+    /// lead's real footage. Returns null only when there is genuinely nothing
+    /// to show.
+    /// </summary>
+    private static SnapshotAiImage? ComposeFallback(IReadOnlyList<string> sent)
+    {
+        var usable = CleanFrames(sent);
+        if (usable.Count == 0)
+            return null;
+
+        var composed = SnapshotImageComposer.ComposeBase64(usable);
+        if (composed is null)
+            return null;
+
+        // A single frame passes through untouched, so measure the composer
+        // output rather than assuming the default size.
+        return new SnapshotAiImage(composed, DefaultImageWidth, DefaultImageHeight, isGenerated: false);
     }
 
     /// raising watch time and engagement - the analysis a freelance editor
@@ -279,15 +389,17 @@ CTA - the end screen or call to action to add, and where.
 
 Reference the transcript where relevant. Skip a heading only if you genuinely have nothing to say.";
 
-            // The VPS is CPU-only llama3:8B and was measured at roughly 2.3
-            // tokens/second, so this budget is deliberately small. A measured
-            // 299-token answer took 221s; 260 lands around 190s, which fits
-            // inside the 300s inference timeout with room for a cold model load.
-            // The trade-off is that a long transcript can leave the last section
-            // (CTA) part-written.
+            // Token budget must cover qwen3's thinking trace AND the answer:
+            // reasoning models emit a thinking pass first (measured ~750 tokens
+            // for this review prompt), so the old 260 cap was consumed entirely
+            // by thinking and the response came back empty - reported to the user
+            // as "Could not generate an analysis". 1200 was validated against the
+            // local qwen3-vl:4b: thinking (~750) + the four-section answer (~250)
+            // finishes with done=stop. Generation runs at roughly 50 tok/s
+            // locally, so worst case is well inside the 300s inference timeout.
             var result = await _llm.GenerateAdvisoryAsync(
                 prompt,
-                maxTokens: 260,
+                maxTokens: 1200,
                 base64Images: snapshots);
 
             return CleanAdvice(result);
@@ -357,10 +469,18 @@ Reference the transcript where relevant. Skip a heading only if you genuinely ha
         IReadOnlyList<string> sentFrames,
         IImageGenerationService imageGeneration)
     {
-        if (string.IsNullOrWhiteSpace(response))
-            return null;
-        if (response.StartsWith("LLM Error", StringComparison.OrdinalIgnoreCase))
-            return null;
+        // Clean once up front: both the fallback picks and the composer need
+        // pure base64, and dirty frames are the silent killer (SkiaSharp decode
+        // fails -> composer returns null -> token renders nothing).
+        var cleanSent = CleanFrames(sentFrames);
+        var cleanAll = CleanFrames(allFrames);
+
+        // Empty/error/refusal answers skip straight to the first-frame fallback
+        // instead of attempting a parse that cannot succeed.
+        if (string.IsNullOrWhiteSpace(response)
+            || response.StartsWith("LLM Error", StringComparison.OrdinalIgnoreCase)
+            || LooksLikeRefusal(response))
+            return ComposeFallback(cleanSent.Count > 0 ? cleanSent : cleanAll);
 
         var json = ExtractFirstJsonObject(response);
         var width = Math.Clamp(ReadInt(json ?? string.Empty, "width", DefaultImageWidth), MinImageWidth, MaxImageWidth);
@@ -375,12 +495,16 @@ Reference the transcript where relevant. Skip a heading only if you genuinely ha
             {
                 // A position the model invented must not be honoured, and the
                 // set is capped so a greedy model cannot produce a huge strip.
-                if (index < 1 || index > sentFrames.Count)
+                // Index into the CLEANED list: positions refer to what the
+                // model saw (SelectImageSample output), and CleanFrames
+                // preserves order while only dropping blanks, so positions
+                // stay aligned unless blanks were dropped - hence the clamp.
+                if (index < 1 || index > cleanSent.Count)
                     continue;
-                if (chosen.Contains(sentFrames[index - 1]))
+                if (chosen.Contains(cleanSent[index - 1]))
                     continue;
 
-                chosen.Add(sentFrames[index - 1]);
+                chosen.Add(cleanSent[index - 1]);
                 if (chosen.Count >= SnapshotImageComposer.MaxFrames)
                     break;
             }
@@ -389,7 +513,7 @@ Reference the transcript where relevant. Skip a heading only if you genuinely ha
         // No usable answer at all: the first sampled frame is always valid, so
         // the email still shows the creator's footage rather than nothing.
         if (chosen.Count == 0)
-            chosen.Add(sentFrames.Count > 0 ? sentFrames[0] : allFrames.FirstOrDefault() ?? string.Empty);
+            chosen.Add(cleanSent.Count > 0 ? cleanSent[0] : cleanAll.FirstOrDefault() ?? string.Empty);
 
         if (imageGeneration.IsConfigured && !string.IsNullOrWhiteSpace(editPrompt))
         {
@@ -408,7 +532,7 @@ Reference the transcript where relevant. Skip a heading only if you genuinely ha
 
         var composed = SnapshotImageComposer.ComposeBase64(chosen);
         if (composed is null)
-            return null;
+            return ComposeFallback(cleanSent.Count > 0 ? cleanSent : cleanAll);
 
         return new SnapshotAiImage(composed, width, height, isGenerated: false);
     }
@@ -494,6 +618,35 @@ Reference the transcript where relevant. Skip a heading only if you genuinely ha
         return match.Success && int.TryParse(match.Groups[1].Value, out var value)
             ? value
             : fallback;
+    }
+
+    /// <summary>
+    /// True when the vision answer reads like a refusal or blind reply rather
+    /// than a frame pick ("I cannot see/view the images", "as an AI", "unable
+    /// to see", "no image(s) provided"). Small/quantized vision models say
+    /// this when the image payload did not attach or they cannot ground it -
+    /// treating it as a pick would either ship no image or, worse, trust
+    /// hallucinated positions.
+    /// </summary>
+    private static bool LooksLikeRefusal(string response)
+    {
+        if (string.IsNullOrWhiteSpace(response))
+            return true;
+
+        var text = response.ToLowerInvariant();
+        return text.Contains("cannot see")
+            || text.Contains("can't see")
+            || text.Contains("can not see")
+            || text.Contains("unable to see")
+            || text.Contains("unable to view")
+            || text.Contains("cannot view")
+            || text.Contains("can't view")
+            || text.Contains("no image")
+            || text.Contains("no images")
+            || text.Contains("images were not")
+            || text.Contains("image was not")
+            || text.Contains("as an ai")
+            || text.Contains("as a text");
     }
 
     /// <summary>

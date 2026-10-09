@@ -1,0 +1,6 @@
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:145: "Could not generate an analysis. The AI service may be unreachable - check your connection and try again.";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:158: ImprovementsStatusLabel.Text = $"Could not generate an analysis: {ex.Message}";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:344: await DisplayAlert("Error", $"Could not generate icebreaker: {ex.Message}", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:650: "Could not generate an analysis. The AI service may be unreachable - check your connection and try again.";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:663: ImprovementsStatusLabel.Text = $"Could not generate an analysis: {ex.Message}";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:908: await DisplayAlert("Error", $"Could not generate icebreaker: {ex.Message}", "OK");

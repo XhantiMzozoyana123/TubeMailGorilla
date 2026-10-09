@@ -14,10 +14,60 @@
         <ScrollView Grid.Row="1" HorizontalOptions="FillAndExpand">
             <VerticalStackLayout Spacing="12">
                 <Entry x:Name="NameEntry" Placeholder="Template name (e.g. Outreach)" />
-                <Entry x:Name="SubjectEntry" Placeholder="Email subject line" />
+
+                <!-- Token chips mirror the Send page composer and the contact page's
+                     one-off email form: tapping one inserts it into the field that
+                     last had focus, and every token resolves per-recipient when the
+                     campaign sends. Subject gets the short set (no room for much
+                     more in a subject line); the body gets everything including
+                     the snapshot tokens. -->
+                <Entry x:Name="SubjectEntry"
+                       Placeholder="Email subject line"
+                       Margin="0"
+                       Focused="OnSubjectFocused"
+                       Unfocused="OnSubjectUnfocused" />
+                <HorizontalStackLayout x:Name="SubjectTokenBar" Spacing="8" Margin="0,2,0,0">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate>
+                            <Button Text="{Binding Label}"
+                                    CommandParameter="{Binding Token}"
+                                    Clicked="OnTokenClicked"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    FontSize="12"
+                                    Padding="10,6"
+                                    Margin="0"
+                                    MinimumHeightRequest="32"
+                                    HeightRequest="32" />
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </HorizontalStackLayout>
+
                 <Editor x:Name="BodyEditor"
-                        Placeholder="Write your email body here. Use tokens like [name], [email], [channel], [video-title], [descr], [channel-name], [first-name], [last-name]."
-                        HeightRequest="180" />
+                        Placeholder="Hi [f_name], I loved your latest video on [channel]..."
+                        HeightRequest="180"
+                        AutoSize="TextChanges"
+                        Margin="0"
+                        Focused="OnBodyFocused"
+                        Unfocused="OnBodyUnfocused" />
+                <HorizontalStackLayout x:Name="BodyTokenBar" Spacing="8" Margin="0,2,0,0">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate>
+                            <Button Text="{Binding Label}"
+                                    CommandParameter="{Binding Token}"
+                                    Clicked="OnTokenClicked"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    FontSize="12"
+                                    Padding="10,6"
+                                    Margin="0"
+                                    MinimumHeightRequest="32"
+                                    HeightRequest="32" />
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </HorizontalStackLayout>
+                <Label FontSize="11"
+                       LineBreakMode="WordWrap"
+                       TextColor="{StaticResource TextTertiary}"
+                       Text="Tokens fill in per-recipient when the campaign sends: [snapshot_1] is the lead's first captured frame." />
             </VerticalStackLayout>
         </ScrollView>
 

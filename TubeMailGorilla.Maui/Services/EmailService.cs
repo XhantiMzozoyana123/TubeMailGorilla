@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mail;
+using System.Text;
 using System.Text.RegularExpressions;
 using TubeMailGorilla.Maui.Models;
 
@@ -26,16 +27,40 @@ public class EmailService
             smtp.Credentials = new NetworkCredential(message.SmtpUser, message.SmtpPassword);
             smtp.EnableSsl = true;
 
+            // Many inboxes (Gmail/Outlook) strip data: URIs, so a <img
+            // src="data:..."> built by a snapshot token arrives with no image.
+            // Convert every embedded data-URI into a CID attachment
+            // (LinkedResource) and rewrite src="cid:..." so it renders.
+            var (htmlBody, embeddedImages) = ExtractEmbeddedImages(message.Body);
+
             using var mail = new MailMessage
             {
                 From = new MailAddress(message.EmailFrom, message.FromName),
                 Subject = message.Subject,
-                Body = message.Body,
                 IsBodyHtml = true
             };
             mail.To.Add(message.EmailTo);
 
+            if (embeddedImages.Count == 0)
+            {
+                mail.Body = htmlBody;
+            }
+            else
+            {
+                var htmlView = AlternateView.CreateAlternateViewFromString(
+                    htmlBody, Encoding.UTF8, System.Net.Mime.MediaTypeNames.Text.Html);
+                foreach (var linked in embeddedImages)
+                    htmlView.LinkedResources.Add(linked);
+                mail.AlternateViews.Add(htmlView);
+                // Keep Body in sync for clients that ignore AlternateViews.
+                mail.Body = htmlBody;
+            }
+
             await smtp.SendMailAsync(mail);
+
+            foreach (var linked in embeddedImages)
+                linked.Dispose();
+
             return true;
         }
         catch
@@ -43,6 +68,70 @@ public class EmailService
             return false;
         }
     }
+
+    /// <summary>
+    /// Pulls &lt;img src="data:image/...;base64,..."&gt; tags out of the HTML
+    /// body into <see cref="LinkedResource"/> attachments. Returns the rewritten
+    /// HTML (src="cid:...") plus the resources the caller must attach/dispose.
+    /// A body without data-URIs comes back untouched with an empty list.
+    /// </summary>
+    private static (string Html, List<LinkedResource> Resources) ExtractEmbeddedImages(string? html)
+    {
+        var resources = new List<LinkedResource>();
+        if (string.IsNullOrEmpty(html))
+            return (html ?? string.Empty, resources);
+
+        var index = 0;
+        var rewritten = DataUriImagePattern.Replace(html, match =>
+        {
+            var mime = match.Groups["mime"].Value.ToLowerInvariant();
+            var base64 = match.Groups["data"].Value;
+            byte[] bytes;
+            try
+            {
+                bytes = Convert.FromBase64String(base64);
+            }
+            catch
+            {
+                return match.Value;
+            }
+
+            if (bytes.Length == 0)
+                return match.Value;
+
+            var contentType = mime switch
+            {
+                "image/png" => "image/png",
+                "image/gif" => "image/gif",
+                _ => System.Net.Mime.MediaTypeNames.Image.Jpeg,
+            };
+
+            var contentId = $"snapshot{index}@tubemailgorilla";
+            index++;
+
+            var stream = new MemoryStream(bytes, writable: false);
+            var linked = new LinkedResource(stream, contentType)
+            {
+                ContentId = contentId,
+                TransferEncoding = System.Net.Mime.TransferEncoding.Base64
+            };
+            resources.Add(linked);
+
+            var tag = match.Value;
+            var replaced = DataUriSrcPattern.Replace(tag, $"src=\"cid:{contentId}\"");
+            return replaced;
+        });
+
+        return (rewritten, resources);
+    }
+
+    private static readonly Regex DataUriImagePattern = new(
+        @"<img\b[^>]*\bsrc\s*=\s*[""']data:(?<mime>image/(?:jpeg|jpg|png|gif));base64,(?<data>[A-Za-z0-9+/=\s]+)[""'][^>]*>",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+    private static readonly Regex DataUriSrcPattern = new(
+        @"src\s*=\s*[""']data:image/(?:jpeg|jpg|png|gif);base64,[A-Za-z0-9+/=\s]+[""']",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
     public async Task<bool> ValidateEmailAsync(string email)
     {
@@ -218,22 +307,65 @@ public class EmailService
 
     /// <summary>
     /// Produces a responsive HTML email from plain text. Blank lines become
-    /// paragraphs, while authored HTML is passed through unchanged.
+    /// paragraphs and single newlines become line breaks, so the textbox body
+    /// the user typed arrives with the same line breaks. Real authored HTML
+    /// (html/body/div/p/ul/ol/li/a structure) passes through unchanged, while
+    /// inline tags alone must NOT skip wrapping - that skip is what collapsed
+    /// every newline into one line.
     /// </summary>
     public static string ToHtmlBody(string body)
     {
         if (string.IsNullOrWhiteSpace(body))
             return string.Empty;
 
-        if (Regex.IsMatch(body, @"<\s*(html|body|div|p|br|a|strong|em|ul|ol|li)\b", RegexOptions.IgnoreCase))
+        if (Regex.IsMatch(body, @"<\s*(html|body|div|p|ul|ol|li|table|a)\b", RegexOptions.IgnoreCase))
             return body;
 
         var paragraphs = Regex.Split(body.Replace("\r\n", "\n").Replace('\r', '\n'), @"\n\s*\n")
             .Select(paragraph => Regex.Replace(paragraph.Trim(), @"\s*\n\s*", "<br>"))
             .Where(paragraph => !string.IsNullOrWhiteSpace(paragraph))
-            .Select(paragraph => $"<p>{WebUtility.HtmlEncode(paragraph).Replace("&lt;br&gt;", "<br>")}</p>");
+            .Select(EncodeParagraphPreservingImages);
 
         return string.Join(string.Empty, paragraphs);
+    }
+
+    /// <summary>
+    /// Any snapshot &lt;img&gt; tag, wherever it sits. Used to shield the tag
+    /// from HTML-encoding: when the token is inline with text ("Hi ... &lt;img&gt;")
+    /// the whole paragraph gets encoded, which shows as raw "&lt;img src=...&gt;"
+    /// text in the inbox instead of an image.
+    /// </summary>
+    private static readonly Regex InlineImagePattern = new(
+        @"<img\b[^>]*>",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+    /// <summary>
+    /// HTML-encodes a paragraph but leaves injected snapshot &lt;img&gt; tags as
+    /// real markup. Only the text around each tag is encoded, then the tags are
+    /// spliced back in.
+    /// </summary>
+    private static string EncodeParagraphPreservingImages(string paragraph)
+    {
+        if (!InlineImagePattern.IsMatch(paragraph))
+            return $"<p>{WebUtility.HtmlEncode(paragraph).Replace("&lt;br&gt;", "<br>")}</p>";
+
+        var html = new StringBuilder();
+        var position = 0;
+
+        foreach (Match match in InlineImagePattern.Matches(paragraph))
+        {
+            var textPart = paragraph[position..match.Index];
+            if (!string.IsNullOrEmpty(textPart))
+                html.Append(WebUtility.HtmlEncode(textPart).Replace("&lt;br&gt;", "<br>"));
+            html.Append(match.Value);
+            position = match.Index + match.Length;
+        }
+
+        var tail = paragraph[position..];
+        if (!string.IsNullOrEmpty(tail))
+            html.Append(WebUtility.HtmlEncode(tail).Replace("&lt;br&gt;", "<br>"));
+
+        return $"<p>{html}</p>";
     }
 
     private static string GetFirstName(string? name)

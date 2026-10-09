@@ -1,0 +1,4 @@
+﻿build running = False
+    4 Warning(s)
+    0 Error(s)
+bin appsettings llama3 = True

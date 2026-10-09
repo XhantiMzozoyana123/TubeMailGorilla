@@ -1,0 +1,15 @@
+﻿=== log ===
+c9a8e2b chore: push working tree to origin/master
+42d03a5 MAUI Unlocked: run inference locally and add snapshot image tokens
+153ed5a MAUI Unlocked: organise the contact edit page into bordered cards
+a0d89ff MAUI Unlocked: add Save ZIP for lead snapshots and group the three lead actions
+42f5cee MVC: add a snapshot ZIP download and gather the lead actions into one row
+d08fd36 MVC: run lead extraction as background Hangfire jobs
+ea27c9b MVC: do not seed an admin with a hardcoded password
+b3ac8eb compose: set ConnectionStrings__DataStorage so SQLite is actually honoured
+=== status -sb ===
+## master...origin/master
+ M Tools/ollama-status.txt
+ M TubeMailGorilla.Maui.Unlocked/MauiProgram.cs
+ M TubeMailGorilla.Maui.Unlocked/Models/LlmSettings.cs
+ M TubeMailGorilla.Maui.Unlocked/Services/AIService.cs

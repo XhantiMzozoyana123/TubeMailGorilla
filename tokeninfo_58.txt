@@ -1,0 +1,22 @@
+﻿=== Views ===
+BlockedPage.xaml
+ContactDetailsPage.xaml
+ContactsPage.xaml
+EmailTemplateDetailsPage.xaml
+EmailTemplatesPage.xaml
+ExtractPage.xaml
+SendEmailsPage.xaml
+SenderDetailsPage.xaml
+SettingsPage.xaml
+SubscriptionPage.xaml
+=== ContactDetailsPage.xaml token lines ===
+389: send flow mirrors SendEmailsPage exactly (same token engine,
+397: <Label Text="Write a one-off email to this lead. Tokens like [f_name] or [snapshot_1] fill in per-recipient when you send."
+416: <HorizontalStackLayout x:Name="DirectSubjectTokenBar"
+422: CommandParameter="{Binding Token}"
+423: Clicked="OnDirectTokenClicked"
+442: <HorizontalStackLayout x:Name="DirectBodyTokenBar"
+448: CommandParameter="{Binding Token}"
+449: Clicked="OnDirectTokenClicked"
+459: <Label x:Name="DirectTokenHintLabel"
+463: Text="Tokens resolve when you send: [snapshot_1] is this lead's first captured frame." />

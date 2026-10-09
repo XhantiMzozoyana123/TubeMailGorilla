@@ -1,0 +1,17 @@
+﻿--- exe present ---
+True
+--- self-contained markers ---
+hostfxr.dll = True
+System.Private.CoreLib.dll = True
+coreclr.dll = True
+Microsoft.WindowsAppRuntime.dll = True
+appsettings.json = True
+--- existing run scripts in root ---
+direct_run.ps1
+dryrun.ps1
+dryrun126.ps1
+e2e_run.ps1
+e2e_run2.ps1
+emailcheck_run.ps1
+start_server.ps1
+start_server2.ps1

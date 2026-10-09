@@ -1,0 +1,227 @@
+﻿=== error string ===
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:329: "The AI service timed out or could not be reached. Check your internet connection and try again.", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1039: "The AI service timed out or could not be reached. Check your internet connection and try again.", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:188: TempData["StatusError"] = "The AI service timed out or could not be reached. Check your connection and try again.";
+=== icebreaker refs ===
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Api\Controllers\PaymentsController.cs:167: /// are visible, campaign size, and whether Icebreakers / Email Templates /
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Api\Controllers\PaymentsController.cs:195: IcebreakerEnabled: true,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Api\Controllers\PaymentsController.cs:209: IcebreakerEnabled: false,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Api\Controllers\ValidationController.cs:12: /// sending emails, viewing contacts, AI icebreakers, email templates, the
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Api\Controllers\ValidationController.cs:89: bool featureEnabled = status.IsSubscribed; // icebreakers/templates/blocklist are all-or-nothing
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Api\Controllers\ValidationController.cs:151: case ValidationAction.GenerateIcebreaker:
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Api\Controllers\ValidationController.cs:152: if (!featureEnabled) return Ok(Deny("AI Icebreakers are a Pro feature. Please upgrade your subscription to unlock them."));
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Api\Program.cs:138: //      MAUI desktop app (extraction, contacts, AI icebreakers, email
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Application\DTOs\EntitlementsDto.cs:15: bool IcebreakerEnabled,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Application\DTOs\ValidationDto.cs:13: public const string GenerateIcebreaker = "generate_icebreaker";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Application\DTOs\ValidationDto.cs:19: ExtractLeads, BulkExtractLeads, SendEmails, ViewContacts, GenerateIcebreaker, UseEmailTemplates, UseBlocklist
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Converters\FieldToDescriptionConverter.cs:22: ["icebreaker"] = "AI-written personalized first line"
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\AIService.cs:15: /// Generates a personalized cold-email first line (icebreaker) for a lead.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\AIService.cs:20: public async Task<string?> GenerateIcebreakerAsync(EmailContact contact)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\AIService.cs:21: => await GenerateIcebreakerAsync(contact, string.Empty);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\AIService.cs:24: /// Generates an icebreaker while honoring the user's custom instructions.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\AIService.cs:28: public async Task<string?> GenerateIcebreakerAsync(EmailContact contact, string customInstructions)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\AIService.cs:39: Write ONE personalized first-line icebreaker (the opening sentence of a cold email) for the creator below.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\AIService.cs:54: Return ONLY the icebreaker text.";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\AIService.cs:56: // An icebreaker is one or two sentences, so a short token cap keeps
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\AIService.cs:58: return CleanIcebreaker(result);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\AIService.cs:187: private static string? CleanIcebreaker(string input)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\AIService.cs:191: // Never persist raw LLM/API error output as an icebreaker.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\DatabaseService.cs:175: /// All icebreakers (openers) generated for one lead. Opener.EmailerId
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\DatabaseService.cs:280: new() { Token = "icebreaker", Field = "icebreaker" },
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\DatabaseService.cs:288: /// so [f_name], [icebreaker], etc. work out of the box.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\EmailService.cs:247: /// <paramref name="icebreaker"/> is the AI-generated personalized first line (Opener)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\EmailService.cs:248: /// for this contact - it always resolves the built-in [icebreaker] / [ice-breaker]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\EmailService.cs:251: public static string Personalize(string text, EmailContact contact, IEnumerable<MessageParameter> parameters, string? icebreaker = null)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\EmailService.cs:266: ["icebreaker"] = icebreaker?.Trim() ?? string.Empty
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\EmailService.cs:285: ["icebreaker"] = fields["icebreaker"],
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\EmailService.cs:286: ["ice-breaker"] = fields["icebreaker"]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\LLMService.cs:194: /// outputs (e.g. icebreakers) so they finish well inside the inference
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\LLMService.cs:289: /// minutes, so the next icebreaker pays a full multi-GB cold load again -
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\PaymentService.cs:284: public bool IcebreakerEnabled { get; set; }
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\ValidationService.cs:28: /// workloads (extraction, sending, contacts, icebreakers, templates,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Services\ValidationService.cs:40: public const string GenerateIcebreaker = "generate_icebreaker";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:11: private bool _isGeneratingIcebreaker;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:249: /// Loads previously generated icebreakers for this lead so they can be
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:276: /// Generates a fresh AI icebreaker for this lead and saves it as an
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:280: private async void OnGenerateIcebreakerClicked(object? sender, EventArgs e) =>
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:281: await GenerateIcebreakerAsync(useCustomPrompt: false);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:287: await DisplayAlert("Custom AI Prompt", "Enter instructions describing the icebreaker you want.", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:292: await GenerateIcebreakerAsync(useCustomPrompt: true);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:295: private async Task GenerateIcebreakerAsync(bool useCustomPrompt)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:297: if (_isGeneratingIcebreaker) return;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:307: await DisplayAlert("Email required", "Please enter an email address before generating an icebreaker.", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:314: _isGeneratingIcebreaker = true;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:315: GenerateIcebreakerButton.IsEnabled = false;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:317: GenerateIcebreakerButton.Text = "Generating…";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:322: var icebreaker = await _ai.GenerateIcebreakerAsync(
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:326: if (string.IsNullOrWhiteSpace(icebreaker))
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:336: Text = icebreaker,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:344: await DisplayAlert("Error", $"Could not generate icebreaker: {ex.Message}", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:348: _isGeneratingIcebreaker = false;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:349: GenerateIcebreakerButton.IsEnabled = true;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:351: GenerateIcebreakerButton.Text = "✨ Generate";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:362: await DisplayAlert("Icebreaker required", "Enter an icebreaker before saving.", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactDetailsPage.xaml.cs:383: await DisplayAlert("Error", $"Could not delete icebreaker: {ex.Message}", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:33: private bool _isGeneratingIcebreakers;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:57: // Icebreaker is Pro-only: hide the button so free users are not offered
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:59: GenerateIcebreakersButton.IsVisible = _entitlements.IcebreakerEnabled;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:276: /// Bulk-generates a personalized icebreaker (Opener) for every lead currently
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:280: private async void OnGenerateIcebreakersClicked(object? sender, EventArgs e)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:282: if (_isGeneratingIcebreakers) return;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:285: var verdict = await _validator.CheckOrAlertAsync(this, ValidationService.GenerateIcebreaker);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:288: GenerateIcebreakersButton.IsVisible = false;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:295: await DisplayAlert("No contacts", "Extract some leads first, then generate icebreakers.", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:300: "Generate Icebreakers",
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:305: _isGeneratingIcebreakers = true;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:306: GenerateIcebreakersButton.IsEnabled = false;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:315: GenerateIcebreakersButton.Text = $"✨ Generating… {i + 1}/{targets.Count}";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:319: var icebreaker = await _ai.GenerateIcebreakerAsync(contact);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:320: if (string.IsNullOrWhiteSpace(icebreaker))
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:335: Text = icebreaker,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:350: _isGeneratingIcebreakers = false;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:351: GenerateIcebreakersButton.IsEnabled = true;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:352: GenerateIcebreakersButton.Text = "✨ Generate Icebreakers";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\ContactsPage.xaml.cs:355: var summary = $"Created {created} icebreaker{(created == 1 ? "" : "s")}";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\SendEmailsPage.xaml.cs:54: AddTokenOption(BodyTokens, "[icebreaker]", "[icebreaker]");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\SendEmailsPage.xaml.cs:104: .Concat(new[] { "[name]", "[email]", "[channel]", "[video-title]", "[icebreaker]" })
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\SendEmailsPage.xaml.cs:527: // Load each lead's latest AI icebreaker (Opener) once so [icebreaker]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\SendEmailsPage.xaml.cs:540: // A missing icebreaker must not exclude the lead from the campaign.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\SendEmailsPage.xaml.cs:541: // The [icebreaker] token will resolve to an empty value for this
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\SendEmailsPage.xaml.cs:543: var icebreaker = latestOpenerByContact.TryGetValue(contact.Id, out var opener)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\SendEmailsPage.xaml.cs:581: var personalizedSubject = EmailService.Personalize(messageSubject, contact, parameters, icebreaker);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\SendEmailsPage.xaml.cs:583: EmailService.Personalize(messageBody, contact, parameters, icebreaker));
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui\Views\SettingsPage.xaml.cs:54: ("An AI icebreaker first line", "icebreaker"),
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Converters\FieldToDescriptionConverter.cs:22: ["icebreaker"] = "AI-written personalized first line"
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:44: /// Generates a personalized cold-email first line (icebreaker) for a lead.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:49: public async Task<string?> GenerateIcebreakerAsync(EmailContact contact)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:50: => await GenerateIcebreakerAsync(contact, string.Empty);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:53: /// Generates an icebreaker while honoring the user's custom instructions.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:57: public async Task<string?> GenerateIcebreakerAsync(EmailContact contact, string customInstructions)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:68: Write ONE personalized first-line icebreaker (the opening sentence of a cold email) for the creator below.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:83: Return ONLY the icebreaker text.";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:89: return CleanIcebreaker(result);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:626: private static string? CleanIcebreaker(string input)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\AIService.cs:630: // Never persist raw LLM/API error output as an icebreaker.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\DatabaseService.cs:175: /// All icebreakers (openers) generated for one lead. Opener.EmailerId
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\DatabaseService.cs:280: new() { Token = "icebreaker", Field = "icebreaker" },
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\DatabaseService.cs:288: /// so [f_name], [icebreaker], etc. work out of the box.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\EmailService.cs:247: /// <paramref name="icebreaker"/> is the AI-generated personalized first line (Opener)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\EmailService.cs:248: /// for this contact - it always resolves the built-in [icebreaker] / [ice-breaker]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\EmailService.cs:251: public static string Personalize(string text, EmailContact contact, IEnumerable<MessageParameter> parameters, string? icebreaker = null)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\EmailService.cs:271: ["icebreaker"] = icebreaker?.Trim() ?? string.Empty
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\EmailService.cs:292: ["icebreaker"] = fields["icebreaker"],
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\EmailService.cs:293: ["ice-breaker"] = fields["icebreaker"]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\LLMService.cs:182: /// Model used for text work (extraction, icebreakers, advisory without
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\PaymentService.cs:27: IcebreakerEnabled = true,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\PaymentService.cs:117: public bool IcebreakerEnabled { get; set; } = true;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\Subscriptions.cs:23: Description = "Every feature is included: unlimited lead extraction, bulk CSV extraction, AI icebreakers, " +
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\ValidationService.cs:36: public const string GenerateIcebreaker = "generate_icebreaker";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:13: private bool _isGeneratingIcebreaker;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:87: AddDirectToken(_directBodyTokens, "[icebreaker]");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:546: // [icebreaker] resolves from this lead's latest generated opener.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:547: var icebreaker = string.Empty;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:551: icebreaker = openers
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:558: var personalizedSubject = EmailService.Personalize(subject, contact, parameters, icebreaker);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:559: var bodyText = EmailService.Personalize(body, contact, parameters, icebreaker);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:959: /// Loads previously generated icebreakers for this lead so they can be
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:986: /// Generates a fresh AI icebreaker for this lead and saves it as an
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:990: private async void OnGenerateIcebreakerClicked(object? sender, EventArgs e) =>
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:991: await GenerateIcebreakerAsync(useCustomPrompt: false);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:997: await DisplayAlert("Custom AI Prompt", "Enter instructions describing the icebreaker you want.", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1002: await GenerateIcebreakerAsync(useCustomPrompt: true);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1005: private async Task GenerateIcebreakerAsync(bool useCustomPrompt)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1007: if (_isGeneratingIcebreaker) return;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1017: await DisplayAlert("Email required", "Please enter an email address before generating an icebreaker.", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1024: _isGeneratingIcebreaker = true;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1025: ActionIcebreakerButton.IsEnabled = false;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1027: ActionIcebreakerButton.Text = "Generating…";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1032: var icebreaker = await _ai.GenerateIcebreakerAsync(
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1036: if (string.IsNullOrWhiteSpace(icebreaker))
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1046: Text = icebreaker,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1054: await DisplayAlert("Error", $"Could not generate icebreaker: {ex.Message}", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1058: _isGeneratingIcebreaker = false;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1059: ActionIcebreakerButton.IsEnabled = true;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1061: ActionIcebreakerButton.Text = "✨ Icebreaker";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1072: await DisplayAlert("Icebreaker required", "Enter an icebreaker before saving.", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactDetailsPage.xaml.cs:1093: await DisplayAlert("Error", $"Could not delete icebreaker: {ex.Message}", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:29: private bool _isGeneratingIcebreakers;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:266: /// Bulk-generates a personalized icebreaker (Opener) for every lead currently
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:270: private async void OnGenerateIcebreakersClicked(object? sender, EventArgs e)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:272: if (_isGeneratingIcebreakers) return;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:274: // Unlocked edition: AI icebreakers are always available.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:275: var verdict = await _validator.CheckOrAlertAsync(this, ValidationService.GenerateIcebreaker);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:281: await DisplayAlert("No contacts", "Extract some leads first, then generate icebreakers.", "OK");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:286: "Generate Icebreakers",
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:291: _isGeneratingIcebreakers = true;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:292: GenerateIcebreakersButton.IsEnabled = false;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:301: GenerateIcebreakersButton.Text = $"✨ Generating… {i + 1}/{targets.Count}";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:305: var icebreaker = await _ai.GenerateIcebreakerAsync(contact);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:306: if (string.IsNullOrWhiteSpace(icebreaker))
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:321: Text = icebreaker,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:336: _isGeneratingIcebreakers = false;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:337: GenerateIcebreakersButton.IsEnabled = true;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:338: GenerateIcebreakersButton.Text = "✨ Generate Icebreakers";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\ContactsPage.xaml.cs:341: var summary = $"Created {created} icebreaker{(created == 1 ? "" : "s")}";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\SendEmailsPage.xaml.cs:60: AddTokenOption(BodyTokens, "[icebreaker]", "[icebreaker]");
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\SendEmailsPage.xaml.cs:120: "[name]", "[f_name]", "[l_name]", "[email]", "[channel]", "[video-title]", "[icebreaker]",
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\SendEmailsPage.xaml.cs:547: // Load each lead's latest AI icebreaker (Opener) once so [icebreaker]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\SendEmailsPage.xaml.cs:560: // A missing icebreaker must not exclude the lead from the campaign.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\SendEmailsPage.xaml.cs:561: // The [icebreaker] token will resolve to an empty value for this
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\SendEmailsPage.xaml.cs:563: var icebreaker = latestOpenerByContact.TryGetValue(contact.Id, out var opener)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\SendEmailsPage.xaml.cs:601: var personalizedSubject = EmailService.Personalize(messageSubject, contact, parameters, icebreaker);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\SendEmailsPage.xaml.cs:602: var bodyText = EmailService.Personalize(messageBody, contact, parameters, icebreaker);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Views\SettingsPage.xaml.cs:54: ("An AI icebreaker first line", "icebreaker"),
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:118: /// Bulk-generates a personalized icebreaker for every lead currently listed
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:119: /// (after the search/sort above) - desktop OnGenerateIcebreakersClicked.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:123: public async Task<IActionResult> GenerateIcebreakers(string? q, string? sort)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:128: TempData["StatusError"] = "Extract some leads first, then generate icebreakers.";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:133: await _validation.CheckAsync(ValidationService.GenerateIcebreaker);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:140: var icebreaker = await _ai.GenerateIcebreakerAsync(contact);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:141: if (string.IsNullOrWhiteSpace(icebreaker))
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:154: Text = icebreaker,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:166: var summary = $"Created {created} icebreaker{(created == 1 ? "" : "s")}";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:173: /// <summary>Generates one icebreaker for the open contact (details page).</summary>
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:180: public async Task<IActionResult> GenerateIcebreaker(int id, string? instructions)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:185: var icebreaker = await _ai.GenerateIcebreakerAsync(contact, instructions ?? string.Empty);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:186: if (string.IsNullOrWhiteSpace(icebreaker))
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:195: Text = icebreaker,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:198: TempData["StatusMessage"] = "Icebreaker generated.";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\ContactsController.cs:251: /// <summary>Removes one saved icebreaker from the contact details page.</summary>
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\SendEmailsController.cs:142: // Each lead's latest AI icebreaker so [icebreaker] resolves per recipient.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\SendEmailsController.cs:153: // Leads without an icebreaker are skipped, exactly like the desktop loop.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\SendEmailsController.cs:154: if (!latestOpenerByContact.TryGetValue(contact.Id, out var icebreaker))
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\SendEmailsController.cs:189: Subject = EmailService.Personalize(messageSubject, contact, parameters, icebreaker),
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\SendEmailsController.cs:194: EmailService.Personalize(messageBody, contact, parameters, icebreaker)),
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\SendEmailsController.cs:209: ? $"All done. Sent: {sent}, Failed: {failed}, Skipped (no icebreaker/blocked): {skipped}. " +
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\SendEmailsController.cs:211: : $"All done. Sent: {sent}, Failed: {failed}, Skipped (no icebreaker/blocked): {skipped}";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\SubscriptionController.cs:139: IcebreakerEnabled = true,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Controllers\SubscriptionController.cs:153: IcebreakerEnabled = false,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Models\AccountViewModels.cs:58: public bool IcebreakerEnabled { get; set; }
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Models\ContactsViewModels.cs:35: /// <summary>Saved AI icebreakers (Openers) for this lead.</summary>
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Models\SettingsViewModels.cs:42: ("An AI icebreaker first line", "icebreaker"),
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\AIService.cs:15: /// Generates a personalized cold-email first line (icebreaker) for a lead.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\AIService.cs:20: public async Task<string?> GenerateIcebreakerAsync(EmailContact contact)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\AIService.cs:21: => await GenerateIcebreakerAsync(contact, string.Empty);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\AIService.cs:24: /// Generates an icebreaker while honoring the user's custom instructions.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\AIService.cs:28: public async Task<string?> GenerateIcebreakerAsync(EmailContact contact, string customInstructions)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\AIService.cs:39: Write ONE personalized first-line icebreaker (the opening sentence of a cold email) for the creator below.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\AIService.cs:54: Return ONLY the icebreaker text.";
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\AIService.cs:56: // An icebreaker is one or two sentences, so a short token cap keeps
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\AIService.cs:58: return CleanIcebreaker(result);
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\AIService.cs:187: private static string? CleanIcebreaker(string input)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\AIService.cs:191: // Never persist raw LLM/API error output as an icebreaker.
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\DatabaseService.Campaigns.cs:6: /// <summary>AI icebreakers (Opener) and received replies (Inboxer).</summary>
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\DatabaseService.Templates.cs:21: new() { Token = "icebreaker", Field = "icebreaker" },
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\DatabaseService.Templates.cs:69: /// Every custom token. The built-in defaults ([f_name], [icebreaker], ...) are
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\EmailService.cs:158: /// <paramref name="icebreaker"/> is the AI-generated personalized first line (Opener)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\EmailService.cs:159: /// for this contact - it always resolves the built-in [icebreaker] / [ice-breaker]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\EmailService.cs:162: public static string Personalize(string text, EmailContact contact, IEnumerable<MessageParameter> parameters, string? icebreaker = null)
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\EmailService.cs:177: ["icebreaker"] = icebreaker?.Trim() ?? string.Empty
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\EmailService.cs:196: ["icebreaker"] = fields["icebreaker"],
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\EmailService.cs:197: ["ice-breaker"] = fields["icebreaker"]
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\LLMService.cs:192: /// outputs (e.g. icebreakers) so they finish well inside the inference
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\LLMService.cs:282: /// minutes, so the next icebreaker pays a full multi-GB cold load again -
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\PaymentService.cs:27: IcebreakerEnabled = true,
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\PaymentService.cs:117: public bool IcebreakerEnabled { get; set; } = true;
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\Subscriptions.cs:23: Description = "Every feature is included: unlimited lead extraction, bulk CSV extraction, AI icebreakers, " +
+C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Mvc\Services\ValidationService.cs:36: public const string GenerateIcebreaker = "generate_icebreaker";

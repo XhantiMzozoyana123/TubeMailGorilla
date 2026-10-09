@@ -1,0 +1,10 @@
+﻿time=20:36:54
+prompt_chars=1674
+A qwen3-vl +4img: ERROR after 5.7s - The remote server returned an error: (400) Bad Request. | BODY={"error":"{\"error\":{\"code\":400,\"message\":\"request (4723 tokens) exceeds the available context size (4096 tokens), try increasing it\",\"type\":\"exceed_context_size_error\",\"n_prompt_tokens\":4723,\"n_ctx\":4096}}"}
+B qwen3-vl noimg: OK in 4.7s done=length content_len=0 think_len=1283
+  CONTENT EMPTY!
+C llama3 +4img: ERROR after 10.9s - The remote server returned an error: (400) Bad Request. | BODY={"error":"{\"error\":{\"code\":400,\"message\":\"Multimodal data provided, but model does not support multimodal requests.\",\"type\":\"invalid_request_error\"}}"}
+D qwen3-vl +4img num_ctx=8192: OK in 17.9s done=length content_len=0 think_len=1209
+  CONTENT EMPTY!
+E qwen3-vl think=false +ctx: OK in 5.7s done=length content_len=0 think_len=1184
+  CONTENT EMPTY!

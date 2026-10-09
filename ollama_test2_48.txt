@@ -1,0 +1,7 @@
+﻿ollama version: ollama version is 0.40.1
+[STANDARD] elapsed_s=88.8
+[STANDARD] done_reason=stop eval_count=627 content_len=127 thinking_len=2558
+[STANDARD] content=Your live-edge table build in "How I built a live-edge table" clearly showcases the unique craftsmanship I admire in your work.
+[CUSTOM] elapsed_s=59.4
+[CUSTOM] done_reason=stop eval_count=508 content_len=118 thinking_len=1901
+[CUSTOM] content=Sheesh, that live-edge table in your "How I Built a Live-Edge Table" video must've been a sawdust nightmare to finish!

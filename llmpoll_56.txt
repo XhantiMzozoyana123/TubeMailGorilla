@@ -1,0 +1,7 @@
+﻿HARNESS GONE
+PASS  empty response -> 'LLM Error: No response generated.' -> LLM Error: No response generated.
+PASS  empty response -> LastError is set -> The model returned an empty response. A reasoning model can spend the whole token budget 'thinking' before answering.
+PASS  custom icebreaker generated -> Sheesh, I'm still trying to saw off the dust from your latest live-edge table build - that's some seriously sharp craftsmanship on display in your "How I built a live-edge table" video!
+PASS  custom success -> LastError cleared -> (null)
+PASS  standard icebreaker generated -> I've been impressed by the attention to detail in your latest video, "How I built a live-edge table", and the way you seamlessly integrate your woodworking expertise with engaging storytelling.
+ALL CHECKS PASSED

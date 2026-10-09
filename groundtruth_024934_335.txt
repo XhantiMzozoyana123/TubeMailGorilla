@@ -1,0 +1,21 @@
+﻿FILE=C:\Users\Shadow\Documents\TubeMailGorilla\TubeMailGorilla.Maui.Unlocked\Services\ComfyUiImageGenerationService.cs
+len=14524
+contains LoraZero=False
+contains CLIPTextEncode=True
+contains strength_model=False
+--- lines matching class_type ---
+166: ["class_type"] = "CheckpointLoaderSimple",
+171: ["class_type"] = "CLIPTextEncode",
+180: ["class_type"] = "CLIPTextEncode",
+189: ["class_type"] = "LoadImage",
+194: ["class_type"] = "ImageScale",
+206: ["class_type"] = "VAEEncode",
+215: ["class_type"] = "KSampler",
+232: ["class_type"] = "VAEDecode",
+241: ["class_type"] = "SaveImage",
+--- lines matching positive|negative|model\" ---
+175: ["clip"] = new object?[] { "1", 1 },
+184: ["clip"] = new object?[] { "1", 1 },
+218: ["model"] = new object?[] { "1", 0 },
+219: ["positive"] = new object?[] { "2", 0 },
+220: ["negative"] = new object?[] { "3", 0 },

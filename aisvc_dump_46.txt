@@ -1,0 +1,131 @@
+﻿80 | - No greeting (Hi/Hey), no sign-off, no mention of editing services yet
+81 | - Plain text only, no quotes, no emojis
+82 | 
+83 | Return ONLY the icebreaker text.";
+84 |             var result = await _llm.GenerateTextAsync(prompt, maxTokens: 1200);
+85 |             // Budget covers qwen3's thinking trace PLUS the 1-2 sentence answer:
+86 |             // reasoning models spend tokens thinking before writing anything, and
+87 |             // a tight cap (160) meant the budget ran out mid-thought, returning an
+88 |             // empty response the caller treated as failure.
+89 |             return CleanIcebreaker(result);
+90 |         }
+91 |         catch
+92 |         {
+93 |             return null;
+94 |         }
+95 |     }
+96 | 
+97 |     /// <summary>
+98 |     /// A frame the vision model picked for an email, together with the display
+99 |     /// dimensions it chose for it.
+100 |     ///
+101 |     /// This is the payload of the <c>[snapshot_ai]</c> email token. It carries the
+102 |     /// image data rather than markup so the HTML is built in one place (see
+103 |     /// <c>EmailService.BuildSnapshotImageHtml</c>). The model is asked to choose
+104 |     /// an image and a size, never to write HTML, and echoing a large base64 blob
+105 |     /// back through a text model is unreliable anyway.
+106 |     /// </summary>
+107 |     public class SnapshotAiImage
+108 |     {
+109 |         public SnapshotAiImage(string base64Image, int width, int height, bool isGenerated = false)
+110 |         {
+111 |             Base64Image = base64Image;
+112 |             Width = width;
+113 |             Height = height;
+114 |             IsGenerated = isGenerated;
+115 |         }
+116 | 
+117 |         /// <summary>Base64 image data (no data-URI prefix).</summary>
+118 |         public string Base64Image { get; }
+119 | 
+120 |         /// <summary>Display width in pixels, chosen by the model.</summary>
+121 |         public int Width { get; }
+122 | 
+123 |         /// <summary>Display height in pixels, chosen by the model.</summary>
+124 |         public int Height { get; }
+125 | 
+126 |         /// <summary>
+127 |         /// True when an image model rendered this, false when the lead's real
+128 |         /// frames were composited instead. The difference matters: a generated
+129 |         /// image is only a truthful "here is my edit" when a model actually ran,
+130 |         /// so callers may want to word the email differently for each.
+131 |         /// </summary>
+132 |         public bool IsGenerated { get; }
+133 | 
+134 |         /// <summary>
+135 |         /// The mime type for the data URI. A generated image is normally PNG;
+136 |         /// the composited fallback is JPEG, which is what the frames are.
+137 |         /// </summary>
+138 |         public string MimeType => IsGenerated ? "image/png" : "image/jpeg";
+139 |     }
+140 | 
+141 |     /// <summary>
+142 |     /// Picks the frames of a lead's video that best match what the caller wants
+143 |     /// to show, and composites them into ONE base64 JPEG.
+144 |     ///
+145 |     /// The [snapshot_ai] token lets a template say in plain English what the image
+146 |     /// is for - "show a before and after" or "pick the clips that need editing" -
+147 |     /// and that instruction drives the vision model's choice. One instruction can
+148 |     /// ask for a single frame, a before/after pair, or a grid of clips; the model
+149 |     /// answers with a list of frame positions plus the layout to use.
+150 |     ///
+151 |     /// Only the *decision* comes back from the model. The frames are resolved
+152 |     /// locally by position and drawn by <see cref="SnapshotImageComposer"/>,
+153 |     /// because the stack cannot generate an image - it can only choose between
+154 |     /// real ones. Every pixel in the result is genuinely from the lead's video.
+155 |     ///
+156 |     /// Always returns an image when the lead has snapshots: with vision the
+157 |     /// model picks the frames matching the instruction, without vision (or on
+158 |     /// failure) the first sampled frame is composited instead. Returns null
+159 |     /// only when there is nothing to show (no snapshots at all) so the token
+160 |     /// renders as nothing rather than leaking an error into a cold email.
+161 |     /// </summary>
+162 |     public async Task<SnapshotAiImage?> GenerateSnapshotAiImageAsync(
+163 |         EmailContact contact,
+164 |         IReadOnlyList<string> snapshots,
+165 |         string? instruction = null)
+166 |     {
+167 |         var frames = CleanFrames(snapshots);
+168 |         if (frames.Count == 0)
+169 |             return null;
+170 | 
+171 |         // Must be the exact list that goes over the wire, so the reported
+172 |         // positions index frames the model actually saw. CleanFrames already
+173 |         // ran, so SelectImageSample only thins the list - positions stay
+174 |         // aligned with what BuildImageAsync resolves.
+175 |         var sent = _llm.SelectImageSample(frames);
+176 | 
+177 |         // No vision model (not configured, not pulled, or Ollama down): the AI
+178 |         // cannot choose, but the token must still show the creator's footage
+179 |         // rather than vanishing. Fall back to the first sampled frame so the
+180 |         // email always carries an honest image.
+181 |         if (!_llm.SupportsVision)
+182 |             return ComposeFallback(sent);
+183 | 
+184 |         var goal = string.IsNullOrWhiteSpace(instruction)
+185 |             ? "Pick the frames that most clearly show what could be improved."
+186 |             : TrimInstruction(instruction);
+187 | 
+188 |         var prompt = $@"
+189 | You are a video editor planning a proof-of-concept image for a cold email to a
+190 | YouTube creator, from a freelance video editor offering their services.
+191 | 
+192 | What the image must show: {goal}
+193 | 
+194 | Video context:
+195 | - Title: {(string.IsNullOrWhiteSpace(contact.VideoTitle) ? "unknown" : contact.VideoTitle)}
+196 | - Channel: {(string.IsNullOrWhiteSpace(contact.Channel) ? "unknown" : contact.Channel)}
+197 | 
+198 | You have been given {sent.Count} frame(s), numbered 1 to {sent.Count} in order.
+199 | 
+200 | Do two things:
+201 | 
+202 | 1. Pick the frames to use in ""selectedSnapshots"". Put the weakest-looking frame
+203 |    first and the strongest last.
+204 |    - 1 frame when the goal asks for a single image.
+205 |    - 2 frames when the goal asks for a before and after, or a comparison.
+206 |    - Up to {SnapshotImageComposer.MaxFrames} frames when the goal asks for several clips.
+207 |    - Only frames you can actually see. Never invent an index.
+208 | 
+209 | 2. Write ""editPrompt"": the image-editing instruction describing how those frames
+210 |    should be turned into the finished image. Describe the edit, the look and the

@@ -1,0 +1,5 @@
+E2E TEST START
+source image built bytes=3419
+upload ok name=e2e_src_73c18b87.png subfolder=
+QUEUE FAILED http=400
+{"error": {"type": "missing_node_type", "message": "Node 'LoraZero' not found. The custom node may not be installed.", "details": "Node ID '#4'", "extra_info": {"node_id": "4", "class_type": "LoraZero", "node_title": "LoraZero"}}, "node_errors": {}}

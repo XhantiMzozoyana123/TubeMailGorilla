@@ -1,0 +1,5 @@
+CURL: C:\Windows\system32\curl.exe
+TAR: C:\Windows\system32\tar.exe
+FREE_GB: 80.1
+7Z_PF: False
+PY: C:\Users\Shadow\AppData\Local\Microsoft\WindowsApps\python.exe

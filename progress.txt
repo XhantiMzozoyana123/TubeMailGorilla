@@ -1,0 +1,8 @@
+swap_complete=True
+swap_tail:
+
+Successfully installed sympy-1.13.1 torch-2.6.0+cu124 torchaudio-2.6.0+cu124 torchvision-0.21.0+cu124
+[01:07:28] INSTALL EXIT=0
+[01:07:28] TORCH SWAP COMPLETE
+python_running=True
+cuda_result_exists=False

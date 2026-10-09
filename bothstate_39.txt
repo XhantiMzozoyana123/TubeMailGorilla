@@ -1,0 +1,2 @@
+﻿TubeMailGorilla.Maui DEAD
+TubeMailGorilla.Maui.Unlocked ALIVE pid=5000 responding=True window=[TubeMailGorilla Unlocked]

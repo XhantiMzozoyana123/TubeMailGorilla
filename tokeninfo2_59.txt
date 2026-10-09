@@ -1,0 +1,24 @@
+﻿69: /// OnAppearing), and load the sender accounts.
+75: // Built-in chips as a safe first render; OnAppearing merges in any
+76: // saved custom parameters and refreshes the snapshot hint.
+77: AddDirectToken(_directSubjectTokens, "[name]");
+78: AddDirectToken(_directSubjectTokens, "[f_name]");
+79: AddDirectToken(_directSubjectTokens, "[l_name]");
+80: AddDirectToken(_directSubjectTokens, "[channel]");
+81: AddDirectToken(_directBodyTokens, "[name]");
+82: AddDirectToken(_directBodyTokens, "[f_name]");
+83: AddDirectToken(_directBodyTokens, "[l_name]");
+84: AddDirectToken(_directBodyTokens, "[email]");
+85: AddDirectToken(_directBodyTokens, "[channel]");
+86: AddDirectToken(_directBodyTokens, "[video-title]");
+87: AddDirectToken(_directBodyTokens, "[icebreaker]");
+88: AddDirectToken(_directBodyTokens, "[snapshot_random]");
+89: AddDirectToken(_directBodyTokens, "[snapshot_1]");
+90: AddDirectToken(_directBodyTokens, "[snapshot_ai={Select the frame that most needs editing.}]");
+100: protected override async void OnAppearing()
+102: base.OnAppearing();
+290: /// Merges the saved custom parameters into the token chips, the same way
+306: AddDirectToken(_directSubjectTokens, token);
+307: AddDirectToken(_directBodyTokens, token);
+317: private void AddDirectToken(List<TokenOption> tokens, string token)
+349: private void OnDirectTokenClicked(object? sender, EventArgs e)

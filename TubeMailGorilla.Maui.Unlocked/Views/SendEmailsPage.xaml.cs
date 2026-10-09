@@ -606,6 +606,12 @@ public partial class SendEmailsPage : ContentPage
                 // to wait for. [snapshot_N] is equally free (a direct index into
                 // the same list). [snapshot_ai] is the expensive one, so it runs
                 // only if the body actually asks for it.
+                var hadSnapshotToken =
+                    EmailService.ContainsSnapshotRandomToken(bodyText) ||
+                    EmailService.ContainsSnapshotIndexToken(bodyText) ||
+                    EmailService.ContainsSnapshotAiToken(bodyText);
+                var snapshotCount = contact.VideoSnapshot?.Count ?? 0;
+
                 if (EmailService.ContainsSnapshotRandomToken(bodyText))
                 {
                     bodyText = EmailService.PersonalizeSnapshotRandom(bodyText, contact.VideoSnapshot);
@@ -618,10 +624,21 @@ public partial class SendEmailsPage : ContentPage
 
                 if (EmailService.ContainsSnapshotAiToken(bodyText))
                 {
-                    StatusLabel.Text = $"Choosing a frame for {i + 1}/{contacts.Count}… ({contact.Email})";
+                    // Surface the vision state: with a vision model the token is
+                    // AI-picked per the {instruction}; without one (or on failure)
+                    // the first frame is used so the email still shows footage.
+                    var visionState = _ai.VisionAvailable ? "AI-picking frame" : "no vision model - using first frame";
+                    StatusLabel.Text = $"{visionState} for {i + 1}/{contacts.Count}… ({contact.Email})";
                     bodyText = await EmailService.PersonalizeSnapshotAiAsync(
                         bodyText, contact, _ai, contact.VideoSnapshot);
                 }
+
+                // The token resolved to nothing (typically: the lead has no
+                // stored snapshots). Say so in the progress line instead of
+                // silently shipping an imageless email - the sender can then
+                // re-extract that lead to capture frames.
+                if (hadSnapshotToken && snapshotCount == 0)
+                    StatusLabel.Text = $"Sending {i + 1}/{contacts.Count}… ({contact.Email}) - no snapshots stored for this lead, image omitted.";
 
                 var personalizedBody = EmailService.ToHtmlBody(bodyText);
 

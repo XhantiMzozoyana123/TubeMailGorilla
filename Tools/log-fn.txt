@@ -1,0 +1,35 @@
+
+    /// <summary>
+    /// Appends one line to the app's startup log. The same file already records
+    /// crashes and startup breadcrumbs, so there is a single place to look.
+    /// </summary>
+    private static void Log(string message)
+    {
+        try
+        {
+            var dir = Path.Combine(FileSystem.AppDataDirectory, "TubeMailGorillaUnlocked");
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(
+                Path.Combine(dir, "startup-crash.log"),
+                $"[{DateTime.Now:HH:mm:ss.fff}] {message}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Logging must never break the page.
+        }
+    }
+
+    /// <summary>Swipe handler - keeps the counter and caption in step.</summary>
+    private void OnSnapshotPositionChanged(object? sender, PositionChangedEventArgs e)
+    {
+        UpdateSnapshotIndicator(e.CurrentPosition);
+    }
+
+    private void OnPreviousSnapshotClicked(object? sender, EventArgs e) => MoveSnapshot(-1);
+
+    private void OnNextSnapshotClicked(object? sender, EventArgs e) => MoveSnapshot(1);
+
+    private void MoveSnapshot(int delta)
+    {
+        if (_snapshots.Count == 0) return;
+

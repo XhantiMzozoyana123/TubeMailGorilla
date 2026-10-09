@@ -1,0 +1,7 @@
+complete=True
+  WARNING: The scripts torchfrtrace.exe and torchrun.exe are installed in 'C:\Users\Shadow\ComfyUI\ComfyUI_windows_portable\python_embeded\Scripts' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+
+Successfully installed sympy-1.14.0 torch-2.14.0+cu126 torchaudio-2.11.0+cu126 torchvision-0.29.0+cu126
+[01:16:45] INSTALL EXIT=0
+[01:16:45] TORCH SWAP 126 COMPLETE

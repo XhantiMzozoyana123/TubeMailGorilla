@@ -1,8 +1,8 @@
 ollama.exe exists: True
-process: RUNNING pid=1540
+process: RUNNING pid=11912
 port 11434: OPEN
 winget: not running
-powershell procs: 5
+powershell procs: 8
 --- log tail ---
   waiting for server... (2/15)
   waiting for server... (3/15)

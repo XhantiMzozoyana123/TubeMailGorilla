@@ -1,0 +1,6 @@
+﻿len=14524
+has LoraZero=False
+first class_type at=6483
+--- raw segment (escaped) ---
+ect?>\r\n            {\r\n                ["class_type"] = "CheckpointLoaderSimple",\r\n                ["inputs"] = new Dictionary<string, object?> { ["ckpt_name"] =
+--- has CRLF=True

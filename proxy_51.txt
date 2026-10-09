@@ -1,0 +1,17 @@
+﻿=== netsh winhttp proxy ===
+
+Current WinHTTP proxy settings:
+
+    Direct access (no proxy server).
+
+=== IE/user proxy registry ===
+ProxyEnable=0
+ProxyServer=
+ProxyOverride=
+AutoConfigURL=
+=== process env ===
+HTTP_PROXY=
+HTTPS_PROXY=
+NO_PROXY=
+ALL_PROXY=
+dotnet proxy probe failed: Unable to find type [System.Net.Http.HttpClient].

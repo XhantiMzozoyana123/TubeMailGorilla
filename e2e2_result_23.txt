@@ -1,0 +1,9 @@
+E2E2 TEST START
+source jpeg bytes=9192
+upload http=200 name=snapshot.jpg type=input
+queue http=200 prompt_id=6d0cd9ed-688d-4e9f-b448-4188cbf93c9a
+output: {"filename": "tmg_snapshot_ai_00001_.png", "subfolder": "", "type": "output"}
+view bytes=95480
+decoded size=(600, 400) mode=RGB
+RESULT: PASS
+E2E2 TEST END

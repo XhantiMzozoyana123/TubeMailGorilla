@@ -37,6 +37,9 @@ public partial class ContactDetailsPage : ContentPage
     /// <summary>True while a manual capture is running, to block double-taps.</summary>
     private bool _isCapturingSnapshots;
 
+    /// <summary>True while a full-video MP4 download is running, to block double-taps.</summary>
+    private bool _isDownloadingVideo;
+
     /// <summary>The lead's snapshots, ordered as they were captured.</summary>
     private readonly List<VideoSnapshotItem> _snapshots = new();
 
@@ -98,6 +101,7 @@ public partial class ContactDetailsPage : ContentPage
     {
         base.OnAppearing();
         await LoadDirectAccountsAsync();
+        await LoadDirectTemplatesAsync();
         await LoadDirectTokenParametersAsync();
     }
 
@@ -143,6 +147,7 @@ public partial class ContactDetailsPage : ContentPage
         // are none). The ZIP button needs actual frames, not just a URL.
         var hasVideo = !string.IsNullOrWhiteSpace(_videoUrl);
         SnapshotWatchButton.IsVisible = hasSnapshots && hasVideo;
+        DownloadVideoButton.IsVisible = hasVideo;
         ActionImprovementsButton.IsVisible = hasVideo;
         ActionDownloadButton.IsEnabled = hasSnapshots;
         ActionRowHintLabel.Text = hasSnapshots
@@ -308,6 +313,67 @@ public partial class ContactDetailsPage : ContentPage
             // Built-ins are already showing; a parameter load failure just
             // leaves the custom chips out for this visit.
         }
+    }
+
+    // ------------------------------------------------------------------
+    //  Template starter - mirrors the Send page composer so a one-off
+    //  email to one lead can reuse a saved campaign template.
+    // ------------------------------------------------------------------
+
+    /// <summary>Saved templates backing <see cref="DirectTemplatePicker"/> (picker index 0 is "no template").</summary>
+    private List<EmailTemplate> _directTemplates = new();
+
+    /// <summary>
+    /// Loads the saved template names into the direct-send picker, exactly
+    /// like the Send page's template starter.
+    /// </summary>
+    private async Task LoadDirectTemplatesAsync()
+    {
+        try
+        {
+            _directTemplates = await _db.GetTemplatesAsync();
+
+            DirectTemplatePicker.Items.Clear();
+            DirectTemplatePicker.Items.Add("No template - write from scratch");
+            foreach (var t in _directTemplates)
+                DirectTemplatePicker.Items.Add(t.Name);
+
+            DirectTemplatePicker.SelectedIndex = 0;
+            DirectTemplateStatusLabel.Text = _directTemplates.Count == 0
+                ? "You have no saved templates yet. Create them on the Email Templates page."
+                : $"{_directTemplates.Count} template{(_directTemplates.Count == 1 ? "" : "s")} available.";
+        }
+        catch (Exception ex)
+        {
+            DirectTemplateStatusLabel.Text = $"Could not load templates: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Fills the direct-send subject/message with the chosen template. The
+    /// loaded text is a starting point - it stays fully editable, and the
+    /// token chips still resolve per-recipient at send time.
+    /// </summary>
+    private async void OnDirectTemplateSelected(object? sender, EventArgs e)
+    {
+        var index = DirectTemplatePicker.SelectedIndex - 1; // index 0 = "no template"
+        if (index < 0 || index >= _directTemplates.Count)
+        {
+            DirectTemplateStatusLabel.Text = string.Empty;
+            return;
+        }
+
+        // Same gate the Send page uses (always approved in this edition, but
+        // the call-site parity keeps both composers identical).
+        await _validator.CheckOrAlertAsync(this, ValidationService.UseEmailTemplates);
+
+        var template = _directTemplates[index];
+        if (!string.IsNullOrWhiteSpace(template.Subject))
+            DirectSubjectEntry.Text = template.Subject;
+        if (!string.IsNullOrWhiteSpace(template.Body))
+            DirectBodyEditor.Text = template.Body;
+
+        DirectTemplateStatusLabel.Text = $"Loaded \"{template.Name}\" into the form. Tweak it if you like, then send.";
     }
 
     private void AddDirectToken(List<TokenOption> tokens, string token)
@@ -751,11 +817,123 @@ public partial class ContactDetailsPage : ContentPage
     }
 
     /// <summary>
-    /// Packs this lead's snapshots into a ZIP and hands it to the share sheet,
-    /// where the user can save it to Files/Drive or attach it to an email.
-    /// MAUI has no "download to disk" verb, so the share sheet is the native
-    /// equivalent - and it avoids inventing a file path and hoping the platform
-    /// can write to it.
+    /// Downloads the lead's full-length source video as an MP4 and saves it
+    /// through a Save As dialogue, so the user chooses the folder and file
+    /// name. The download reuses the YoutubeExplode pipeline (highest muxed
+    /// stream - audio + video in one file), then follows the same Save As
+    /// pattern as the ZIP export.
+    /// </summary>
+    private async void OnDownloadVideoClicked(object? sender, EventArgs e)
+    {
+        if (_isDownloadingVideo) return;
+        if (BindingContext is not EmailContact contact) return;
+
+        var videoUrl = (_videoUrl ?? contact.VideoUrl)?.Trim();
+        if (string.IsNullOrWhiteSpace(videoUrl))
+        {
+            await DisplayAlert("No video",
+                "This lead has no video URL, so there is nothing to download.",
+                "OK");
+            return;
+        }
+
+        _isDownloadingVideo = true;
+        DownloadVideoButton.IsEnabled = false;
+        DownloadVideoButton.Text = "Preparing…";
+        VideoDownloadStatusLabel.IsVisible = true;
+        VideoDownloadStatusLabel.Text = "Preparing the video download - this can take a few minutes for long videos…";
+
+        string? tempPath = null;
+
+        try
+        {
+            var progress = new Progress<double>(p => MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (_isDownloadingVideo)
+                    DownloadVideoButton.Text = $"Downloading… {p:P0}";
+            }));
+
+            var result = await VideoDownloadService.DownloadAsync(videoUrl, contact.VideoTitle, progress);
+
+            if (result is null)
+            {
+                VideoDownloadStatusLabel.Text = "The video could not be downloaded. Check your internet connection and try again.";
+                await DisplayAlert("Could not download",
+                    "The video could not be downloaded. Check your internet connection and try again.",
+                    "OK");
+                return;
+            }
+
+            tempPath = result.Value.TempPath;
+            var suggested = result.Value.SuggestedFileName;
+
+#if WINDOWS
+            // Native Save As dialogue, same pattern as the ZIP export.
+            var picker = new Windows.Storage.Pickers.FileSavePicker();
+            picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.VideosLibrary;
+            picker.FileTypeChoices.Add("MP4 video", new List<string> { ".mp4" });
+            picker.SuggestedFileName = Path.GetFileNameWithoutExtension(suggested);
+
+            var window = App.Current?.Windows.FirstOrDefault()?.Handler?.PlatformView as Microsoft.UI.Xaml.Window;
+            if (window is not null)
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            }
+
+            var file = await picker.PickSaveFileAsync();
+
+            // User cancelled the dialogue - stay quiet and let them carry on.
+            if (file is null)
+            {
+                VideoDownloadStatusLabel.Text = "Download cancelled - the video was not saved.";
+                return;
+            }
+
+            File.Copy(tempPath, file.Path, overwrite: true);
+
+            VideoDownloadStatusLabel.Text = $"Video saved to {file.Path}";
+            await DisplayAlert("Saved",
+                $"Video saved to:{Environment.NewLine}{file.Path}",
+                "OK");
+#else
+            // Non-Windows targets: hand the file to the share sheet so the
+            // user can save it to Files/Drive from there.
+            var path = Path.Combine(FileSystem.CacheDirectory, suggested);
+            File.Copy(tempPath, path, overwrite: true);
+
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = $"{contact.DisplayName} - video",
+                File = new ShareFile(path)
+            });
+#endif
+        }
+        catch (Exception ex)
+        {
+            VideoDownloadStatusLabel.Text = $"Video download failed: {ex.Message}";
+            await DisplayAlert("Could not download", ex.Message, "OK");
+        }
+        finally
+        {
+            // The temp folder served its purpose - remove it either way.
+            if (tempPath is not null)
+            {
+                try { Directory.Delete(Path.GetDirectoryName(tempPath)!, recursive: true); }
+                catch { }
+            }
+
+            _isDownloadingVideo = false;
+            DownloadVideoButton.IsEnabled = true;
+            DownloadVideoButton.Text = "Download video (MP4)";
+        }
+    }
+
+    /// <summary>
+    /// Packs this lead's snapshots into a ZIP and saves it through a
+    /// Save As dialogue, so the user chooses the folder and file name.
+    /// On Windows this is the native FileSavePicker; on other targets it
+    /// falls back to the share sheet so the archive is never lost.
     /// </summary>
     private async void OnDownloadSnapshotsClicked(object? sender, EventArgs e)
     {
@@ -786,9 +964,38 @@ public partial class ContactDetailsPage : ContentPage
 
             var (data, fileName) = archive.Value;
 
-            // Written to the cache directory first: the share sheet needs a real
-            // file path, and cache is the only location guaranteed writable and
-            // disposable on every platform.
+#if WINDOWS
+            // Native Save As dialogue - no new NuGet needed, and no invented
+            // path: the picker returns null when the user cancels, otherwise
+            // the StorageFile they chose.
+            var picker = new Windows.Storage.Pickers.FileSavePicker();
+            picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+            picker.FileTypeChoices.Add("ZIP archive", new List<string> { ".zip" });
+            picker.SuggestedFileName = Path.GetFileNameWithoutExtension(fileName);
+
+            var window = App.Current?.Windows.FirstOrDefault()?.Handler?.PlatformView as Microsoft.UI.Xaml.Window;
+            if (window is not null)
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            }
+
+            var file = await picker.PickSaveFileAsync();
+
+            // User cancelled the dialogue - stay quiet and let them carry on.
+            if (file is null)
+                return;
+
+            await Windows.Storage.FileIO.WriteBytesAsync(file, data);
+
+            await DisplayAlert("Saved",
+                $"Snapshots saved to:{Environment.NewLine}{file.Path}",
+                "OK");
+            return;
+#else
+            // Non-Windows targets have no FileSavePicker here, so the share
+            // sheet is the native equivalent: the user saves to Files/Drive
+            // or attaches the archive to an email from there.
             var path = Path.Combine(FileSystem.CacheDirectory, fileName);
             await File.WriteAllBytesAsync(path, data);
 
@@ -797,6 +1004,7 @@ public partial class ContactDetailsPage : ContentPage
                 Title = $"{contact.DisplayName} - video snapshots",
                 File = new ShareFile(path)
             });
+#endif
         }
         catch (Exception ex)
         {
@@ -889,8 +1097,15 @@ public partial class ContactDetailsPage : ContentPage
 
             if (string.IsNullOrWhiteSpace(icebreaker))
             {
+                // Every LLM failure funnels through this null path, so show the
+                // service's actual reason (model not pulled, inference timeout,
+                // empty response, ...) instead of blaming the internet - the
+                // model runs locally and Ollama may be perfectly reachable.
+                var reason = ServiceHelper.GetService<LLMService>()?.LastError;
                 await DisplayAlert("Generation failed",
-                    "The AI service timed out or could not be reached. Check your internet connection and try again.", "OK");
+                    string.IsNullOrWhiteSpace(reason)
+                        ? "No icebreaker was generated. Please try again."
+                        : $"No icebreaker was generated.\n\n{reason}", "OK");
                 return;
             }
 

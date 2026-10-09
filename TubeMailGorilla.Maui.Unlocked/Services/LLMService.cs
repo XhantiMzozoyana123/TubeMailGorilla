@@ -142,6 +142,16 @@ public class LLMService : IDisposable
     /// <summary>Human-readable status message surfaced to the UI.</summary>
     public string Status { get; private set; } = "LLM not initialized";
 
+    /// <summary>
+    /// Why the most recent GenerateTextAsync/GenerateAdvisoryAsync call failed,
+    /// or null when it succeeded. Failures return "LLM Error: ..." STRINGS (so
+    /// callers can never persist them as data), which forced UI layers to show
+    /// one generic "AI unreachable" message for every cause; this carries the
+    /// actual reason - probe failure, timeout, Ollama error text, or an empty
+    /// response (a reasoning model that spent its whole budget thinking).
+    /// </summary>
+    public string? LastError { get; private set; }
+
     /// <summary>The Ollama model in use, or a placeholder before it loads.</summary>
     public string ModelPath => IsReady ? $"ollama/{ActiveModel}" : "(not loaded)";
 
@@ -187,7 +197,7 @@ public class LLMService : IDisposable
         get
         {
             var configured = _settings.OllamaModel?.Trim() ?? string.Empty;
-            return configured.Length > 0 ? configured : "llama3:latest";
+            return configured.Length > 0 ? configured : "qwen3-vl:4b";
         }
     }
 
@@ -241,7 +251,10 @@ public class LLMService : IDisposable
         try
         {
             if (!await EnsureLoadedAsync())
+            {
+                LastError = Status;
                 return $"LLM Error: {Status}";
+            }
 
             // The prompt carries the (possibly long) video transcript. Cap it so
             // it can never overflow the model's context window.
@@ -264,15 +277,25 @@ public class LLMService : IDisposable
                 model);
 
             if (string.IsNullOrEmpty(text))
+            {
+                // Typical cause: a reasoning model spent the whole num_predict
+                // budget on its thinking trace and never wrote any content
+                // (qwen3-vl ignores Ollama's think=false - ollama/ollama#16945).
+                LastError =
+                    "The model returned an empty response. A reasoning model can " +
+                    "spend the whole token budget 'thinking' before answering.";
                 return "LLM Error: No response generated.";
+            }
 
             IsReady = true;
+            LastError = null;
             return text;
         }
         catch (Exception ex)
         {
             IsReady = false;
             Status = $"Inference failed: {ex.Message}";
+            LastError = ex.Message;
             return $"LLM Error: {ex.Message}";
         }
         finally
@@ -324,6 +347,11 @@ public class LLMService : IDisposable
     /// <summary>
     /// GET /api/tags lists the models the Ollama server has pulled. The result
     /// doubles as the <see cref="SupportsVision"/> availability check.
+    ///
+    /// When the server is not reachable this first tries to start it locally
+    /// ("ollama serve" as a hidden child process, one attempt per process) and
+    /// then retries the probe, so AI features heal themselves instead of
+    /// failing until the user manually starts Ollama.
     /// </summary>
     private async Task<bool> ProbeOllamaAsync()
     {
@@ -331,6 +359,23 @@ public class LLMService : IDisposable
             return false;
 
         Status = "Checking Ollama server...";
+
+        if (!await IsServerReachableAsync())
+        {
+            Status = "Ollama server not running - starting it...";
+            if (TryStartLocalServer())
+            {
+                Status = "Ollama server starting - waiting for it...";
+                await WaitForServerAsync(TimeSpan.FromSeconds(30));
+            }
+
+            if (!await IsServerReachableAsync())
+            {
+                IsReady = false;
+                Status = $"Ollama server not reachable at {BaseUrl}. Start it with 'ollama serve' and pull the model.";
+                return false;
+            }
+        }
 
         try
         {
@@ -388,6 +433,91 @@ public class LLMService : IDisposable
     }
 
     /// <summary>
+    /// Quick liveness check: is anything answering GET /api/tags right now?
+    /// Short timeout on purpose - this runs before every probe retry and must
+    /// never stall the send loop.
+    /// </summary>
+    private async Task<bool> IsServerReachableAsync()
+    {
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            using var response = await Http.GetAsync(
+                $"{BaseUrl}/api/tags", cts.Token).ConfigureAwait(false);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Polls GET /api/tags until the server answers or the budget runs out, so
+    /// a just-started "ollama serve" has time to bind its port.
+    /// </summary>
+    private async Task WaitForServerAsync(TimeSpan budget)
+    {
+        var deadline = DateTime.UtcNow + budget;
+        while (DateTime.UtcNow < deadline)
+        {
+            if (await IsServerReachableAsync())
+                return;
+            try
+            {
+                await Task.Delay(500).ConfigureAwait(false);
+            }
+            catch
+            {
+                return;
+            }
+        }
+    }
+
+    private static int _serverStartAttempted;
+
+    /// <summary>
+    /// Starts a local "ollama serve" as a hidden child process when the server
+    /// is down. One attempt per app run (guarded by
+    /// <see cref="_serverStartAttempted"/>) so a missing/broken install can
+    /// never fork-bomb the machine. Returns false when ollama is not on PATH,
+    /// the host is not local, or a start was already attempted - the caller
+    /// then falls back to the manual "ollama serve" message.
+    /// </summary>
+    private bool TryStartLocalServer()
+    {
+        if (Interlocked.Exchange(ref _serverStartAttempted, 1) == 1)
+            return false;
+
+        try
+        {
+            // Only a loopback BaseUrl can be started locally. A remote
+            // Ollama host must be started by its owner.
+            if (!Uri.TryCreate(BaseUrl, UriKind.Absolute, out var uri))
+                return false;
+
+            var host = uri.Host.Trim().ToLowerInvariant();
+            if (host != "localhost" && host != "127.0.0.1" && host != "::1")
+                return false;
+
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "ollama",
+                Arguments = "serve",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+            };
+            return System.Diagnostics.Process.Start(psi) is not null;
+        }
+        catch
+        {
+            // "ollama" not on PATH or spawn denied - caller shows the manual step.
+            return false;
+        }
+    }
+
+    /// <summary>
     /// One non-streaming POST /api/chat with a fresh conversation (system +
     /// user turn only), so the previous call's context can never contaminate
     /// this answer. Ollama applies the model's own chat template. The
@@ -406,9 +536,17 @@ public class LLMService : IDisposable
             Model = model,
             Stream = false,
             KeepAliveMinutes = _settings.ModelKeepAliveMinutes,
+            // Ask reasoning models to skip their thinking trace so the whole
+            // num_predict budget goes to the answer. NOTE: qwen3-vl on Ollama
+            // 0.40 currently IGNORES this flag (ollama/ollama#16945), so the
+            // per-call token budgets in AIService are sized to include thinking
+            // as well. Models/versions that do honour it benefit; others
+            // silently fall back to their default.
+            Think = false,
             Options = new OllamaChatOptions
             {
                 NumPredict = Math.Max(1, maxTokens),
+                NumCtx = Math.Max(512, _settings.OllamaContextSize),
                 Temperature = _settings.Temperature
             },
             Messages =
@@ -529,6 +667,15 @@ public class LLMService : IDisposable
 
         [JsonPropertyName("keep_alive")]
         public int KeepAliveMinutes { get; set; } = 60;
+
+        /// <summary>
+        /// Asks the server to skip the reasoning/thinking trace. Honoured by
+        /// models/versions that support the flag; qwen3-vl on Ollama 0.40
+        /// currently ignores it (ollama/ollama#16945), so callers must still
+        /// size num_predict to cover thinking + the actual answer.
+        /// </summary>
+        [JsonPropertyName("think")]
+        public bool Think { get; set; }
     }
 
     private sealed class OllamaMessage
@@ -547,6 +694,14 @@ public class LLMService : IDisposable
     {
         [JsonPropertyName("num_predict")]
         public int NumPredict { get; set; }
+
+        /// <summary>
+        /// Context window in tokens. Ollama defaults to 4096, which a video
+        /// review request (4 frames + transcript prompt, ~4700 tokens) exceeds -
+        /// Ollama then answers 400 and the review fails.
+        /// </summary>
+        [JsonPropertyName("num_ctx")]
+        public int NumCtx { get; set; }
 
         [JsonPropertyName("temperature")]
         public float Temperature { get; set; }

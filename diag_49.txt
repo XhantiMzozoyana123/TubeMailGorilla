@@ -1,0 +1,4 @@
+﻿llama-server GONE
+test worker alive=False
+result file=True
+gpu=99 %, 11132 MiB

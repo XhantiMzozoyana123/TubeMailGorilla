@@ -1,0 +1,4 @@
+﻿comfyui http=000
+ollama http=200
+TubeMailGorilla.Maui LAUNCHED pid=6484 cfgHasComfy=False
+TubeMailGorilla.Maui.Unlocked LAUNCHED pid=5000 cfgHasComfy=True

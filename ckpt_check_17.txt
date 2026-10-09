@@ -1,0 +1,5 @@
+put_checkpoints_here  0 GB
+v1-5-pruned-emaonly.safetensors  3.97 GB
+--- object_info CheckpointLoaderSimple ---
+http=200
+models: v1-5-pruned-emaonly.safetensors

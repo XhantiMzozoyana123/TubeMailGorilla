@@ -121,6 +121,54 @@
                                TextColor="{StaticResource TextTertiary}"
                                HorizontalTextAlignment="Center" />
 
+                        <!--
+                            The Video Review report. It used to live in its own
+                            card further down the page, past the snapshots, so the
+                            result of clicking Video Review showed up somewhere the
+                            eye had to go looking for it. It now renders directly
+                            beneath the row that produces it, inside this same
+                            section, and stays hidden until a review actually runs.
+
+                            Deliberately its own inner panel rather than part of
+                            the snapshots card: the review works from the
+                            transcript and metadata as well as the frames, so it
+                            must remain available for a lead with no snapshots.
+                        -->
+                        <Frame x:Name="ImprovementsCard"
+                               IsVisible="False"
+                               Padding="12"
+                               Margin="0"
+                               BackgroundColor="{StaticResource SurfaceVariant}"
+                               BorderColor="{StaticResource Border}"
+                               CornerRadius="8"
+                               HasShadow="False">
+                            <VerticalStackLayout Spacing="10">
+
+                                <Label Text="AREAS OF IMPROVEMENT"
+                                       Style="{StaticResource SectionTitleStyle}"
+                                       Margin="0" />
+                                <Label Text="Editing notes aimed at raising watch time and engagement on this video."
+                                       FontSize="12"
+                                       TextColor="{StaticResource TextSecondary}" />
+
+                                <VerticalStackLayout x:Name="ImprovementsPanel" IsVisible="False" Spacing="8">
+                                    <ActivityIndicator x:Name="ImprovementsIndicator"
+                                                       IsRunning="False"
+                                                       IsVisible="False"
+                                                       HorizontalOptions="Center" />
+                                    <Label x:Name="ImprovementsStatusLabel"
+                                           IsVisible="False"
+                                           FontSize="12"
+                                           TextColor="{StaticResource TextTertiary}" />
+                                    <Label x:Name="ImprovementsLabel"
+                                           IsVisible="False"
+                                           FontSize="13"
+                                           LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+
+                            </VerticalStackLayout>
+                        </Frame>
+
                     </VerticalStackLayout>
                 </Frame>
 
@@ -207,6 +255,24 @@
                             IsVisible="False" />
                 </Grid>
 
+                    <!--
+                        Full-length video download. Same card, directly beneath
+                        the carousel/watch area, but outside the SnapshotsPanel
+                        grid - the video needs only a URL, so this stays
+                        available even when a lead has no frames.
+                    -->
+                    <Button x:Name="DownloadVideoButton"
+                            Margin="0,8,0,0"
+                            Text="Download video (MP4)"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Clicked="OnDownloadVideoClicked"
+                            IsVisible="False" />
+                    <Label x:Name="VideoDownloadStatusLabel"
+                           FontSize="11"
+                           LineBreakMode="WordWrap"
+                           TextColor="{StaticResource TextTertiary}"
+                           IsVisible="False" />
+
                     <Label x:Name="NoSnapshotsLabel"
                            Text="This lead has no snapshots. They are captured during extraction, so only leads found after that ran will have them - or use Try again below to capture them now."
                            FontSize="12"
@@ -245,38 +311,6 @@
                                 Style="{StaticResource SecondaryButtonStyle}"
                                 Clicked="OnRetrySnapshotsClicked" />
                     </Grid>
-
-                    </VerticalStackLayout>
-                </Frame>
-
-                <!-- ======================= AREAS OF IMPROVEMENT ======================= -->
-                <!--
-                    Its own card and deliberately NOT nested inside the snapshots
-                    card: the review works from the transcript and metadata as well
-                    as the frames, so it has to stay available for a lead that has
-                    no snapshots at all.
-                -->
-                <Frame Style="{StaticResource CardStyle}" x:Name="ImprovementsCard" IsVisible="False">
-                    <VerticalStackLayout Spacing="10">
-
-                        <Label Text="AREAS OF IMPROVEMENT" Style="{StaticResource SectionTitleStyle}" Margin="0" />
-                        <Label Text="Editing notes aimed at raising watch time and engagement on this video."
-                               Style="{StaticResource DescriptionStyle}" />
-
-                        <VerticalStackLayout x:Name="ImprovementsPanel" IsVisible="False" Spacing="8">
-                            <ActivityIndicator x:Name="ImprovementsIndicator"
-                                               IsRunning="False"
-                                               IsVisible="False"
-                                               HorizontalOptions="Center" />
-                            <Label x:Name="ImprovementsStatusLabel"
-                                   IsVisible="False"
-                                   FontSize="12"
-                                   TextColor="{StaticResource TextTertiary}" />
-                            <Label x:Name="ImprovementsLabel"
-                                   IsVisible="False"
-                                   FontSize="13"
-                                   LineBreakMode="WordWrap" />
-                        </VerticalStackLayout>
 
                     </VerticalStackLayout>
                 </Frame>
@@ -372,6 +406,15 @@
                         <Picker x:Name="DirectAccountPicker"
                                 Title="Select an account..."
                                 SelectedIndexChanged="OnDirectAccountSelected" />
+
+                        <!-- Same template starter as the Send page: picking a
+                             template fills the one-off subject/message below so
+                             a single-lead email can reuse a saved campaign. -->
+                        <Label Text="START FROM A TEMPLATE (OPTIONAL)" Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" />
+                        <Picker x:Name="DirectTemplatePicker"
+                                Title="Select a template..."
+                                SelectedIndexChanged="OnDirectTemplateSelected" />
+                        <Label x:Name="DirectTemplateStatusLabel" Style="{StaticResource StatusStyle}" Margin="0" Text="" />
 
                         <Label Text="SUBJECT" Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" />
                         <Entry x:Name="DirectSubjectEntry"

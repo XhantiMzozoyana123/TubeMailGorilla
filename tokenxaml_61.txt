@@ -1,0 +1,4 @@
+﻿7: <ScrollView Padding="24">
+51: <HorizontalStackLayout x:Name="SubjectTokenBar" Spacing="8" Margin="0,2,0,0" BindableLayout.ItemsSource="{Binding SubjectTokens}">
+74: <HorizontalStackLayout x:Name="BodyTokenBar" Spacing="8" Margin="0,2,0,0" BindableLayout.ItemsSource="{Binding BodyTokens}">
+173: </ScrollView>

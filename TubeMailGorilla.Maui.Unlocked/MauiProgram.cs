@@ -69,15 +69,24 @@ public static class MauiProgram
             var config = sp.GetRequiredService<IConfiguration>();
             var settings = new LlmSettings();
             config.GetSection(nameof(LlmSettings)).Bind(settings);
+            return settings;
+        });
+        builder.Services.AddSingleton(sp =>
+        {
+            var settings = sp.GetRequiredService<LlmSettings>();
             var llm = new LLMService(settings);
             llm.StartModelWarmup();
             return llm;
         });
-        // Image generation is an optional capability. Today no model is
-        // configured, so the no-op implementation is registered and AIService
-        // composes the lead's real frames instead. When a model is added, this
-        // is the only line that needs to change.
-        builder.Services.AddSingleton<IImageGenerationService, NullImageGenerationService>();
+        // Image generation is an optional capability wired to a local ComfyUI
+        // server. ComfyUiImageGenerationService self-gates on ComfyUiBaseUrl:
+        // empty (the default) means IsConfigured is false and it never renders,
+        // so AIService composites the lead's real frames - identical to the old
+        // no-op. Set ComfyUiBaseUrl + ComfyUiCheckpoint in appsettings.json once
+        // ComfyUI is running and the SAME registration starts repainting the
+        // picked frame per the {instruction}, so the [snapshot_ai] prompt
+        // actually changes the picture.
+        builder.Services.AddSingleton<IImageGenerationService, ComfyUiImageGenerationService>();
         builder.Services.AddSingleton(sp => new AIService(
             sp.GetRequiredService<LLMService>(),
             sp.GetRequiredService<IImageGenerationService>()));
