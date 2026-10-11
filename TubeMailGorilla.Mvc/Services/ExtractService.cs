@@ -32,7 +32,8 @@ public class ExtractService
         int pageViewLimit,
         bool gmailAccountOnly,
         bool validateEmails,
-        IProgress<int>? progress = null)
+        IProgress<int>? progress = null,
+        CancellationToken stop = default)
     {
         var result = new ExtractionResult { TotalVideos = 0, EmailsFound = 0, Errors = 0 };
 

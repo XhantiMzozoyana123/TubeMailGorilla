@@ -69,12 +69,17 @@ YtDlp.Configure(builder.Configuration["YtDlp:Path"], builder.Environment.Content
 // ffmpeg decodes video frames for lead snapshots - see VideoSnapshotService.
 Ffmpeg.Configure(builder.Configuration["Ffmpeg:Path"], builder.Environment.ContentRootPath);
 
-// Ollama inference is remote, so the HttpClient timeout is managed per call.
+// Ollama inference is local-first, so the HttpClient timeout is managed per call.
 builder.Services.AddSingleton(new HttpClient { Timeout = Timeout.InfiniteTimeSpan });
 builder.Services.AddSingleton(sp =>
 {
     var settings = new LlmSettings();
     builder.Configuration.GetSection(nameof(LlmSettings)).Bind(settings);
+    return settings;
+});
+builder.Services.AddSingleton(sp =>
+{
+    var settings = sp.GetRequiredService<LlmSettings>();
     return new LLMService(settings, sp.GetRequiredService<HttpClient>());
 });
 
@@ -82,6 +87,13 @@ builder.Services.AddSingleton<YouTubeSearchService>();
 builder.Services.AddSingleton<YouTubeTranscriptService>();
 builder.Services.AddSingleton<CaptionService>();
 builder.Services.AddSingleton<VideoSnapshotService>();
+builder.Services.AddSingleton<IImageGenerationService>(sp =>
+{
+    var settings = sp.GetRequiredService<LlmSettings>();
+    return string.IsNullOrWhiteSpace(settings.ComfyUiBaseUrl)
+        ? new NullImageGenerationService()
+        : new ComfyUiImageGenerationService(settings);
+});
 builder.Services.AddSingleton<AIService>();
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddSingleton<ExtractService>();
@@ -89,22 +101,17 @@ builder.Services.AddSingleton<ValidationService>();
 builder.Services.AddSingleton<PaymentService>();
 
 // ---------------------------------------------------------------------------
-// Hangfire background processing
-//
-// Extraction moved off the request thread because a single run routinely takes
-// tens of minutes (video download + ffmpeg + several Ollama calls per video),
-// which reliably blew past the browser / reverse-proxy timeout. Jobs now run on
-// a background server and the Extract page polls their progress.
+// Hangfire background processing - EVERY heavy operation runs here, never
+// inside a request. One queue per workload so a stuck extraction cannot
+// starve a campaign send behind it; AutomaticRetry(0) globally because
+// retries live in the JobRecord counters - a blind Hangfire retry of a
+// half-finished campaign would double-send mail.
 //
 // Storage is in-memory. There is no maintained Hangfire provider for SQLite
-// (the only one, Hangfire.SQLite, was last published in 2017 and is broken:
-// jobs enqueue and persist, but the worker never dequeues them, because its
-// schema predates the FetchedAt column the modern worker polls on). MySQL
-// storage is available if durability across restarts is ever needed, and the
-// app already supports MySQL. In-memory is a reasonable fit here because the
-// site runs as a single container: there is no second instance that would need
-// to see another's queue, and the recurring schedule is persisted separately in
-// WebPreferences and re-applied on startup.
+// (Hangfire.SQLite was last published in 2017 and is broken: jobs enqueue
+// and persist, but the worker never dequeues them). In-memory fits because
+// the site runs as a single container, and the recurring schedule is
+// persisted separately in WebPreferences and re-applied on startup.
 // ---------------------------------------------------------------------------
 builder.Services.AddHangfire(config =>
 {
@@ -112,7 +119,14 @@ builder.Services.AddHangfire(config =>
         .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
         .UseSimpleAssemblyNameTypeSerializer()
         .UseMemoryStorage();
+    config.UseFilter(new AutomaticRetryAttribute { Attempts = 0 });
 });
+builder.Services.AddSingleton<BackgroundJobService>();
+builder.Services.AddScoped<ExtractionJob>();
+builder.Services.AddScoped<BulkExtractionJob>();
+builder.Services.AddScoped<CampaignJob>();
+builder.Services.AddScoped<IcebreakerBatchJob>();
+builder.Services.AddScoped<VideoReviewJob>();
 builder.Services.AddSingleton<ExtractionJobRunner>();
 builder.Services.AddSingleton<ExtractionJobScheduler>();
 
@@ -289,24 +303,27 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// Start the background job server. This is what actually executes queued
-// extractions - without it jobs sit in the queue forever and the Extract page
-// shows "Queued" indefinitely.
+// Start the background job servers. These are what actually execute queued
+// work - without them jobs sit queued forever and the pages poll "Queued"
+// indefinitely. Two servers: one worker for the heavy extraction/bulk queue
+// (yt-dlp, ffmpeg and video download are process- and bandwidth-bound, and
+// VideoSnapshotService already serialises capture with a global lock), and a
+// second worker for campaigns + AI so a stuck extraction never starves a send.
 app.UseHangfireServer(new BackgroundJobServerOptions
 {
-    // One worker on purpose. The heavy part of extraction (yt-dlp, ffmpeg, video
-    // download) is process- and bandwidth-bound, and VideoSnapshotService already
-    // serialises capture with a global lock, so extra workers would only contend.
     WorkerCount = 1,
-    // Jobs are enqueued onto the "extraction" queue, so the worker has to be
-    // told to listen there - it only polls the "default" queue otherwise, and the
-    // job would sit queued forever.
-    Queues = new[] { ExtractionJobScheduler.QueueName },
-    // An extraction legitimately runs for tens of minutes. Hangfire's default
-    // would abandon and retry it long before a video download plus several
-    // Ollama calls finish, which is the timeout this change exists to remove.
+    Queues = new[] { BackgroundQueues.Extraction, BackgroundQueues.Bulk },
     ShutdownTimeout = TimeSpan.FromMinutes(30),
-    HeartbeatInterval = TimeSpan.FromSeconds(30)
+    HeartbeatInterval = TimeSpan.FromSeconds(30),
+    ServerName = "heavy",
+});
+app.UseHangfireServer(new BackgroundJobServerOptions
+{
+    WorkerCount = 2,
+    Queues = new[] { BackgroundQueues.Campaign, BackgroundQueues.Ai },
+    ShutdownTimeout = TimeSpan.FromMinutes(30),
+    HeartbeatInterval = TimeSpan.FromSeconds(30),
+    ServerName = "interactive",
 });
 
 // Dashboard for job history, retries and the recurring schedules.
@@ -328,24 +345,62 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Extract}/{action=Index}/{id?}");
 
-// JSON status endpoint the Extract page polls for a running job.
-app.MapGet("/extract/status/{jobId}", (string jobId) =>
+// JSON status endpoints polled by the pages. /jobs/status/{id} is the unified
+// endpoint (JobsController.Status serves the same shape); /extract/status is
+// kept so the existing Extract page keeps polling without a JS change.
+app.MapGet("/jobs/status/{jobId}", (string jobId) =>
 {
-    var status = ExtractionRunStore.Get(jobId);
-    return status is null
+    var job = JobTrackerStore.Get(jobId);
+    return job is null
         ? Results.NotFound(new { error = "Unknown job." })
         : Results.Ok(new
         {
-            status.JobId,
-            status.Keyword,
-            status.State,
-            status.Message,
-            status.TotalVideos,
-            status.EmailsFound,
-            status.Errors,
-            status.ElapsedLabel,
-            IsActive = status.IsActive
+            job.JobId,
+            Kind = job.Kind.ToString(),
+            State = job.State.ToString(),
+            Label = job.Label,
+            job.Message,
+            job.Total,
+            job.Processed,
+            job.Succeeded,
+            job.Failed,
+            job.Skipped,
+            job.ElapsedLabel,
+            IsActive = job.IsActive
         });
+});
+
+app.MapGet("/extract/status/{jobId}", (string jobId) =>
+{
+    var status = ExtractionRunStore.Get(jobId);
+    var tracked = JobTrackerStore.Get(jobId);
+    if (status is null && tracked is null)
+        return Results.NotFound(new { error = "Unknown job." });
+    if (tracked is not null)
+        return Results.Ok(new
+        {
+            tracked.JobId,
+            Keyword = tracked.Label,
+            State = tracked.State.ToString(),
+            tracked.Message,
+            TotalVideos = tracked.Total,
+            EmailsFound = tracked.Succeeded,
+            Errors = tracked.Failed,
+            tracked.ElapsedLabel,
+            IsActive = tracked.IsActive
+        });
+    return Results.Ok(new
+    {
+        status!.JobId,
+        status.Keyword,
+        status.State,
+        status.Message,
+        status.TotalVideos,
+        status.EmailsFound,
+        status.Errors,
+        status.ElapsedLabel,
+        IsActive = status.IsActive
+    });
 });
 
 app.Run();

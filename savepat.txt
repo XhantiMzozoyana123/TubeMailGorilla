@@ -1,0 +1,13 @@
+﻿872:             var picker = new Windows.Storage.Pickers.FileSavePicker();
+880:                 var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+881:                 WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+884:             var file = await picker.PickSaveFileAsync();
+905:             await Share.Default.RequestAsync(new ShareFileRequest
+935:     /// On Windows this is the native FileSavePicker; on other targets it
+938:     private async void OnDownloadSnapshotsClicked(object? sender, EventArgs e)
+971:             var picker = new Windows.Storage.Pickers.FileSavePicker();
+979:                 var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+980:                 WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+983:             var file = await picker.PickSaveFileAsync();
+996:             // Non-Windows targets have no FileSavePicker here, so the share
+1002:             await Share.Default.RequestAsync(new ShareFileRequest

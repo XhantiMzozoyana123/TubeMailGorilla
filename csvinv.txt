@@ -1,0 +1,49 @@
+﻿=== CsvCheck files ===
+bin len=1
+obj len=1
+CsvCheck.csproj len=481
+Debug.cs len=4069
+Program.cs len=4149
+StandaloneContact.cs len=825
+
+=== ContactCsvService head (first 40 lines) ===
+namespace TubeMailGorilla.Maui.Unlocked.Services;
+
+/// <summary>
+/// Imports and exports the contact list as CSV, so leads can move between
+/// the app and a spreadsheet. Exported rows carry every importable field
+/// (name, email, channel, video title/description/url) plus the activity
+/// columns (extracted/blocked/emailed timestamps); snapshots and generated
+/// content (openers, blockers) are intentionally left out - snapshots are
+/// multi-kilobyte base64 blobs and icebreakers regenerate from the contact.
+/// Import is the mirror: header aliases are accepted, rows without a usable
+/// email are skipped, and duplicates are rejected by the database's own
+/// dedupe (INSERT OR IGNORE), so re-importing an export is always safe.
+/// </summary>
+public static class ContactCsvService
+{
+    /// <summary>
+    /// Header aliases accepted on import, normalised to lower-case with
+    /// underscores, dashes and spaces stripped. First column wins when two
+    /// headers map to the same field.
+    /// </summary>
+    private static readonly Dictionary<string, string> HeaderAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // email
+        ["email"] = "email",
+        ["emailaddress"] = "email",
+        ["email_address"] = "email",
+        ["mail"] = "email",
+        // name
+        ["name"] = "name",
+        ["fullname"] = "name",
+        ["full_name"] = "name",
+        ["contactname"] = "name",
+        ["contact_name"] = "name",
+        ["firstname"] = "name",
+        ["first_name"] = "name",
+        ["lastname"] = "name",
+        ["last_name"] = "name",
+        // channel
+        ["channel"] = "channel",
+        ["channelname"] = "channel",

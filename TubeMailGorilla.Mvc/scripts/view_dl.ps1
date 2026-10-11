@@ -1,0 +1,1 @@
+﻿param() $p = 'C:/Users/Shadow/Documents/TubeMailGorilla/TubeMailGorilla.Mvc/Controllers/ContactsController.cs' $lines = Get-Content $p $idx = 0 foreach($l in $lines){ if($l -match 'DownloadSnapshots'){ Write-Output 'LINE ' + $idx } $idx++ }

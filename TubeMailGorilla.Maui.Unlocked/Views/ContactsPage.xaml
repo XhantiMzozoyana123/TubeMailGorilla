@@ -4,7 +4,7 @@
              xmlns:models="clr-namespace:TubeMailGorilla.Maui.Unlocked.Models"
              x:Class="TubeMailGorilla.Maui.Unlocked.Views.ContactsPage"
              Title="Contacts">
-    <Grid Padding="20" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="12">
+    <Grid Padding="20" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" RowSpacing="12">
         <VerticalStackLayout Grid.Row="0" Spacing="4">
             <Label Text="CONTACTS" Style="{StaticResource SectionTitleStyle}" Margin="0" />
             <Label Text="All of your extracted leads. Tap a lead to open it, or search / sort to find one fast."
@@ -19,8 +19,12 @@
             <Button x:Name="GenerateIcebreakersButton" Grid.Column="1" Text="Generate Icebreakers" Style="{StaticResource PrimaryButtonStyle}" Margin="0" Clicked="OnGenerateIcebreakersClicked" />
         </Grid>
         <Label x:Name="FreePlanBanner" Grid.Row="3" Style="{StaticResource DescriptionStyle}" TextColor="{StaticResource Primary}" Margin="0" IsVisible="False" />
-        <ActivityIndicator x:Name="LoadingIndicator" Grid.Row="4" IsRunning="True" IsVisible="False" HorizontalOptions="Center" VerticalOptions="Center" />
-        <Frame Grid.Row="4" Margin="0" Padding="0" CornerRadius="12" HasShadow="False" BackgroundColor="{StaticResource Surface}" BorderColor="{StaticResource Border}">
+        <Grid Grid.Row="4" ColumnDefinitions="*,*" ColumnSpacing="12">
+            <Button x:Name="ImportCsvButton" Text="Import CSV" Style="{StaticResource SecondaryButtonStyle}" Margin="0" Clicked="OnImportCsvClicked" />
+            <Button x:Name="ExportCsvButton" Grid.Column="1" Text="Export CSV" Style="{StaticResource SecondaryButtonStyle}" Margin="0" Clicked="OnExportCsvClicked" />
+        </Grid>
+        <ActivityIndicator x:Name="LoadingIndicator" Grid.Row="5" IsRunning="True" IsVisible="False" HorizontalOptions="Center" VerticalOptions="Center" />
+        <Frame Grid.Row="5" Margin="0" Padding="0" CornerRadius="12" HasShadow="False" BackgroundColor="{StaticResource Surface}" BorderColor="{StaticResource Border}">
             <Grid RowDefinitions="Auto,Auto,*">
                 <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="16,10">
                     <Label x:Name="ContactsCountLabel" Text="Loading leads..." FontSize="12" TextColor="{StaticResource TextSecondary}" VerticalOptions="Center" />

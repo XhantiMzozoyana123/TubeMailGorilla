@@ -1,0 +1,8 @@
+﻿=== CsvCheck dir ===
+bin  len=1
+obj  len=1
+CsvCheck.csproj  len=482
+Program.cs  len=4069
+Program.cs.bak  len=165
+StandaloneContact.cs  len=825
+

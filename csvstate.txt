@@ -1,0 +1,18 @@
+﻿=== CsvCheck dir ===
+bin
+obj
+CsvCheck.csproj
+Program.cs
+StandaloneContact.cs
+
+=== service Parse head ===
+    public static (List<Models.EmailContact> Contacts, int Skipped) Parse(string text)
+    {
+        // Strip a leading BOM: our own exports start with one for Excel, and
+        // without this the first header cell ("ï»¿name") matches no alias, so
+        // the whole first column would silently drop on re-import.
+        var rows = SplitRows((text ?? string.Empty).TrimStart((char)65279));
+
+        var headerIndex = rows.FindIndex(r => r.Any(f => !string.IsNullOrWhiteSpace(f)));
+        if (headerIndex < 0)
+            throw new FormatException("That file looks empty - no header row was found. Export your contacts first to get a correctly formatted CSV.");

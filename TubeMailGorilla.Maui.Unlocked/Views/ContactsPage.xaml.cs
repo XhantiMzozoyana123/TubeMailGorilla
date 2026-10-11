@@ -26,6 +26,8 @@ public partial class ContactsPage : ContentPage
     private int _visibleLimit = int.MaxValue;
 
     private bool _isLoading;
+    private bool _isImportingCsv;
+    private bool _isExportingCsv;
     private bool _isGeneratingIcebreakers;
     private bool _isNavigating;
     private int _renderLimit = int.MaxValue;
@@ -233,6 +235,193 @@ public partial class ContactsPage : ContentPage
         catch (Exception ex)
         {
             await DisplayAlert("Error", $"Could not delete contact: {ex.Message}", "OK");
+        }
+    }
+
+    /// <summary>
+    /// Exports every stored contact to CSV through a Save As dialogue, so the
+    /// user chooses the folder and file name. On Windows this is the native
+    /// FileSavePicker; on other targets it falls back to the share sheet so
+    /// the file is never lost. Same save pattern as the snapshot ZIP export.
+    /// </summary>
+    private async void OnExportCsvClicked(object? sender, EventArgs e)
+    {
+        if (_isExportingCsv) return;
+
+        _isExportingCsv = true;
+        ExportCsvButton.IsEnabled = false;
+        var originalText = ExportCsvButton.Text;
+        ExportCsvButton.Text = "Exporting…";
+
+        try
+        {
+            var contacts = await _db.GetContactsAsync();
+            if (contacts.Count == 0)
+            {
+                await DisplayAlert("No contacts", "There is nothing to export yet. Extract some leads first.", "OK");
+                return;
+            }
+
+            var csv = ContactCsvService.Build(contacts);
+            var data = System.Text.Encoding.UTF8.GetBytes(csv);
+            var fileName = $"tubemail-contacts-{DateTime.Now:yyyy-MM-dd}.csv";
+
+#if WINDOWS
+            // Native Save As dialogue - the picker returns null when the user
+            // cancels, otherwise the StorageFile they chose.
+            var picker = new Windows.Storage.Pickers.FileSavePicker();
+            picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+            picker.FileTypeChoices.Add("CSV file", new List<string> { ".csv" });
+            picker.SuggestedFileName = Path.GetFileNameWithoutExtension(fileName);
+
+            var window = App.Current?.Windows.FirstOrDefault()?.Handler?.PlatformView as Microsoft.UI.Xaml.Window;
+            if (window is not null)
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            }
+
+            var file = await picker.PickSaveFileAsync();
+
+            // User cancelled the dialogue - stay quiet and let them carry on.
+            if (file is null)
+                return;
+
+            await Windows.Storage.FileIO.WriteBytesAsync(file, data);
+
+            var doneMsg = $"{contacts.Count} contact{(contacts.Count == 1 ? "" : "s")} saved to:{Environment.NewLine}{file.Path}";
+            await DisplayAlert("Exported", doneMsg, "OK");
+            return;
+#else
+            // Non-Windows targets have no FileSavePicker here, so the share
+            // sheet is the native equivalent: the user saves to Files/Drive
+            // or attaches the file to an email from there.
+            var path = Path.Combine(FileSystem.CacheDirectory, fileName);
+            await File.WriteAllBytesAsync(path, data);
+
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = $"TubeMailGorilla contacts ({contacts.Count})",
+                File = new ShareFile(path)
+            });
+#endif
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Could not export", ex.Message, "OK");
+        }
+        finally
+        {
+            _isExportingCsv = false;
+            ExportCsvButton.IsEnabled = true;
+            ExportCsvButton.Text = originalText;
+        }
+    }
+
+    /// <summary>
+    /// Imports contacts from a CSV file (File -> Open dialogue). Rows without
+    /// a usable email are skipped; contacts already stored are counted as
+    /// duplicates rather than imported twice. The list reloads afterwards so
+    /// the new leads appear immediately.
+    /// </summary>
+    private async void OnImportCsvClicked(object? sender, EventArgs e)
+    {
+        if (_isImportingCsv) return;
+
+        FileResult? picked = null;
+        try
+        {
+            picked = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Choose a contacts CSV file",
+                FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                    [DevicePlatform.WinUI] = new[] { ".csv" },
+                    [DevicePlatform.macOS] = new[] { "csv", "public.comma-separated-values-text" },
+                    [DevicePlatform.iOS] = new[] { "public.comma-separated-values-text" },
+                    [DevicePlatform.Android] = new[] { "text/csv", "text/comma-separated-values" },
+                }),
+            });
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Could not open file", ex.Message, "OK");
+            return;
+        }
+
+        // User cancelled the dialogue - stay quiet and let them carry on.
+        if (picked is null)
+            return;
+
+        _isImportingCsv = true;
+        ImportCsvButton.IsEnabled = false;
+        var originalText = ImportCsvButton.Text;
+        ImportCsvButton.Text = "Importing…";
+
+        try
+        {
+            string text;
+            try
+            {
+                using var stream = await picked.OpenReadAsync();
+                using var reader = new StreamReader(stream, detectEncodingFromByteOrderMarks: true);
+                text = await reader.ReadToEndAsync();
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Could not read file", ex.Message, "OK");
+                return;
+            }
+
+            List<EmailContact> parsed;
+            int skipped;
+            try
+            {
+                (parsed, skipped) = ContactCsvService.Parse(text);
+            }
+            catch (FormatException ex)
+            {
+                await DisplayAlert("Not a contacts CSV", ex.Message, "OK");
+                return;
+            }
+
+            if (parsed.Count == 0)
+            {
+                var noneMsg = skipped == 0
+                    ? "That file has a header row but no contact rows."
+                    : $"All {skipped} row{(skipped == 1 ? " was" : "s were")} skipped - none had a usable email address.";
+                await DisplayAlert("Nothing to import", noneMsg, "OK");
+                return;
+            }
+
+            var imported = 0;
+            var duplicates = 0;
+            foreach (var contact in parsed)
+            {
+                // AddContactAsync dedupes atomically (INSERT OR IGNORE):
+                // zero rows means this email is already stored.
+                if (await _db.AddContactAsync(contact) > 0)
+                    imported++;
+                else
+                    duplicates++;
+            }
+
+            var summary = $"Imported {imported} contact{(imported == 1 ? "" : "s")}.";
+            if (duplicates > 0) summary += $"\n{duplicates} already existed (skipped).";
+            if (skipped > 0) summary += $"\n{skipped} row{(skipped == 1 ? " had" : "s had")} no usable email (skipped).";
+            await DisplayAlert("Import complete", summary, "OK");
+
+            await LoadContactsAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Could not import", ex.Message, "OK");
+        }
+        finally
+        {
+            _isImportingCsv = false;
+            ImportCsvButton.IsEnabled = true;
+            ImportCsvButton.Text = originalText;
         }
     }
 

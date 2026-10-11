@@ -1,0 +1,9 @@
+﻿=== log ===
+b1df905 MAUI Unlocked: fix custom icebreaker empty-response failure, add template token chips + direct-send template picker
+c9a8e2b chore: push working tree to origin/master
+42d03a5 MAUI Unlocked: run inference locally and add snapshot image tokens
+
+=== status ===
+?? push_result.txt
+?? pushverify.ps1
+

@@ -1,0 +1,17 @@
+﻿total lines: 535
+12: public partial class ContactsPage : ContentPage
+107: private void OnSearchTextChanged(object? sender, TextChangedEventArgs e) => ApplySearchAndSort();
+109: private void OnSortChanged(object? sender, EventArgs e) => ApplySearchAndSort();
+120: private void ApplySearchAndSort() => RenderContacts(initialLimit: int.MaxValue);
+127: private void RenderContacts(int initialLimit)
+168: private async void OnContactSelected(object? sender, SelectionChangedEventArgs e)
+177: private async void OnContactTapped(object? sender, TappedEventArgs e)
+200: private void OnRemainingItemsThresholdReached(object? sender, EventArgs e)
+207: private async void OnAddContactClicked(object? sender, EventArgs e)
+214: private async void OnDeleteSwipeInvoked(object? sender, EventArgs e)
+247: private async void OnExportCsvClicked(object? sender, EventArgs e)
+265: var csv = ContactCsvService.Build(contacts);
+327: private async void OnImportCsvClicked(object? sender, EventArgs e)
+380: (parsed, skipped) = ContactCsvService.Parse(text);
+428: private async void OnDeleteAllContactsClicked(object? sender, EventArgs e)
+459: private async void OnGenerateIcebreakersClicked(object? sender, EventArgs e)

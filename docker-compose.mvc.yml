@@ -72,6 +72,13 @@ services:
       FreePlan__MaxContactsVisible: ${FREE_PLAN_MAX_CONTACTS:-5}
       FreePlan__MaxEmailsPerCampaign: ${FREE_PLAN_MAX_EMAILS:-5}
 
+      # ---- Local AI (Ollama + ComfyUI) - same defaults as the MAUI Unlocked app ----
+      # Ollama runs on the host (or a sidecar); ComfyUI img2img is optional.
+      LlmSettings__OllamaBaseUrl: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      LlmSettings__OllamaModel: ${OLLAMA_MODEL:-llama3:latest}
+      LlmSettings__OllamaVisionModel: ${OLLAMA_VISION_MODEL:-qwen3-vl:4b}
+      LlmSettings__ComfyUiBaseUrl: ${COMFYUI_BASE_URL:-}
+
     # Persistent SQLite database. The path /app/data must match
     # DataStorage__ConnectionString above.
     volumes:

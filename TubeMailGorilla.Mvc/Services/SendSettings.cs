@@ -94,9 +94,3 @@ public static class SendSettings
         }
     }
 }
-
-/// <summary>
-/// One alternate message used in message rotation. Tokens like [name]
-/// are personalized per recipient at send time.
-/// </summary>
-public record MessageVariation(string Subject, string Body);

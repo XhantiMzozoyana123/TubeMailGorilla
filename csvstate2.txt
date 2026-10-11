@@ -1,0 +1,28 @@
+﻿=== XAML refs ===
+7: <Grid Padding="20" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" RowSpacing="12">
+18: <Button Text="Add Contact" Style="{StaticResource PrimaryButtonStyle}" Margin="0" Clicked="OnAddContactClicked" />
+23: <Button x:Name="ImportCsvButton" Text="Import CSV" Style="{StaticResource SecondaryButtonStyle}" Margin="0" Clicked="OnImportCsvClicked" />
+24: <Button x:Name="ExportCsvButton" Grid.Column="1" Text="Export CSV" Style="{StaticResource SecondaryButtonStyle}" Margin="0" Clicked="OnExportCsvClicked" />
+28: <Grid RowDefinitions="Auto,Auto,*">
+
+=== code-behind refs ===
+29: private bool _isImportingCsv;
+30: private bool _isExportingCsv;
+207: private async void OnAddContactClicked(object? sender, EventArgs e)
+247: private async void OnExportCsvClicked(object? sender, EventArgs e)
+249: if (_isExportingCsv) return;
+251: _isExportingCsv = true;
+265: var csv = ContactCsvService.Build(contacts);
+315: _isExportingCsv = false;
+327: private async void OnImportCsvClicked(object? sender, EventArgs e)
+329: if (_isImportingCsv) return;
+356: _isImportingCsv = true;
+380: (parsed, skipped) = ContactCsvService.Parse(text);
+422: _isImportingCsv = false;
+
+=== service methods ===
+14: public static class ContactCsvService
+87: public static string Build(IEnumerable<Models.EmailContact> contacts)
+119: public static (List<Models.EmailContact> Contacts, int Skipped) Parse(string text)
+
+=== service lines: 304 ===

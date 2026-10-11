@@ -1,0 +1,22 @@
+PASS build emits UTF-8 BOM for Excel
+PASS build quotes commas+quotes (RFC 4180)
+PASS round trip skips nothing
+PASS round trip returns both contacts
+PASS quoted name survives round trip
+PASS multiline field survives round trip
+PASS blocked flag survives round trip
+PASS extracted date survives round trip
+PASS minimal contact survives round trip
+PASS alias header parses one contact
+PASS alias: Full Name -> name
+PASS alias: Channel Name -> channel
+PASS alias: Title -> video title
+PASS alias: Blocked=yes -> true
+PASS junk: two valid contacts parsed
+PASS junk: three bad rows skipped (blank line ignored)
+PASS junk: valid rows keep order
+PASS bad file raises FormatException with helpful text: empty
+PASS bad file raises FormatException with helpful text: blank
+PASS bad file raises FormatException with helpful text: no-header
+
+ALL CHECKS PASSED

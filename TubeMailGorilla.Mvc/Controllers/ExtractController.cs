@@ -21,6 +21,7 @@ public class ExtractController : Controller
     private readonly LLMService _llm;
     private readonly ValidationService _validation;
     private readonly PaymentService _payments;
+    private readonly BackgroundJobService _jobs;
     private readonly ExtractionJobScheduler _scheduler;
 
     public ExtractController(
@@ -29,6 +30,7 @@ public class ExtractController : Controller
         LLMService llm,
         ValidationService validation,
         PaymentService payments,
+        BackgroundJobService jobs,
         ExtractionJobScheduler scheduler)
     {
         _extract = extract;
@@ -36,6 +38,7 @@ public class ExtractController : Controller
         _llm = llm;
         _validation = validation;
         _payments = payments;
+        _jobs = jobs;
         _scheduler = scheduler;
     }
 
@@ -83,27 +86,22 @@ public class ExtractController : Controller
         await _llm.EnsureReadyAsync();
         model.LlmStatus = _llm.Status;
 
-        // Hand the work to the background server and return immediately. A single
-        // run takes tens of minutes (video download + ffmpeg + Ollama per video),
-        // so doing it inline meant the browser timed out long before the work
-        // finished - even though the server kept going. The page now polls
-        // /extract/status/{jobId} instead.
+        // Hand the work to the background server and redirect to Jobs. A single
+        // run takes tens of minutes (video download + ffmpeg + Ollama per
+        // video), so the browser must never wait on it.
         try
         {
-            model.JobId = _scheduler.Enqueue(
+            var jobId = _jobs.EnqueueExtraction(
                 keyword.Trim(), model.PageViewLimit, gmailOnly, validateEmails);
 
-            model.StatusMessage =
-                "Queued in the background - you can leave this page open or close it. " +
-                "Progress updates below and on the /hangfire dashboard.";
+            TempData["StatusMessage"] =
+                $"Extraction queued for '{keyword.Trim()}'. You can close the browser - progress is on the Jobs page.";
+            return RedirectToAction("Index", "Jobs");
         }
         catch (Exception ex)
         {
             model.Error = $"Could not queue the extraction: {ex.Message}";
         }
-
-        model.ActiveJob = ExtractionRunStore.Get(model.JobId ?? string.Empty);
-        model.RecentJobs = ExtractionRunStore.Recent();
 
         await PopulateAsync(model);
         return View(nameof(Index), model);
@@ -176,40 +174,25 @@ public class ExtractController : Controller
 
         // GATEKEEPER: bulk extraction is approved before any work begins.
         await _validation.CheckAsync(ValidationService.BulkExtractLeads, 0);
-        await _llm.EnsureReadyAsync();
-        model.LlmStatus = _llm.Status;
 
-        var totalVideos = 0;
-        var totalEmails = 0;
-        var totalErrors = 0;
+        // Single-flight: two bulk runs would contend on yt-dlp/ffmpeg/Ollama.
+        if (JobTrackerStore.HasActive(JobKind.BulkExtraction))
+        {
+            model.BulkStatusMessage = "A bulk extraction is already running. Track it on the Jobs page.";
+            return View(nameof(Index), model);
+        }
 
         try
         {
-            for (int i = 0; i < rows.Count; i++)
-            {
-                var row = rows[i];
-                await _validation.CheckAsync(ValidationService.ExtractLeads, row.Pages);
-
-                var result = await _extract.ExtractByKeywordAsync(
-                    row.Keyword, row.Pages,
-                    SendSettings.ExtractGmailOnly, SendSettings.ExtractValidateEmails);
-
-                totalVideos += result.TotalVideos;
-                totalEmails += result.EmailsFound;
-                totalErrors += result.Errors;
-            }
-
-            model.TotalVideos = totalVideos;
-            model.EmailsFound = totalEmails;
-            model.Errors = totalErrors;
-            model.BulkStatusMessage =
-                $"Bulk extract complete.\nKeywords run: {rows.Count}/{rows.Count}\nTotal videos: {totalVideos}  |  Total emails: {totalEmails}  |  Errors: {totalErrors}" +
-                (totalEmails > 0 ? "\n\nYour fresh leads are waiting on the Contacts page." : "");
+            var jobId = _jobs.EnqueueBulkExtraction(
+                rows, SendSettings.ExtractGmailOnly, SendSettings.ExtractValidateEmails);
+            TempData["StatusMessage"] =
+                $"Bulk extraction queued ({rows.Count} keywords). You can close the browser - progress is on the Jobs page.";
+            return RedirectToAction("Index", "Jobs");
         }
         catch (Exception ex)
         {
-            model.BulkStatusMessage =
-                $"The Gorilla tripped over something: {ex.Message}\n—\nProgress so far — Videos: {totalVideos}, Emails: {totalEmails}.";
+            model.BulkStatusMessage = $"Could not queue the bulk run: {ex.Message}";
         }
 
         await PopulateAsync(model);
@@ -287,9 +270,32 @@ public class ExtractController : Controller
         model.YtDlpExpectedPath = YtDlp.ExpectedPath;
 
         // Populated on every load, not just after a POST, so refreshing the page
-        // (or coming back to it later) still shows the running job's progress.
-        model.ActiveJob = ExtractionRunStore.Current;
-        model.RecentJobs = ExtractionRunStore.Recent();
+        // (or coming back to it later) still shows running work. The Jobs page
+        // is the full history; this is the at-a-glance panel.
+        var active = JobTrackerStore.LatestActive(JobKind.Extraction)
+            ?? JobTrackerStore.LatestActive(JobKind.BulkExtraction);
+        model.ActiveJob = active is null ? null : new ExtractionRunStatus
+        {
+            JobId = active.JobId,
+            Keyword = active.Label,
+            State = active.State.ToString(),
+            Message = active.Message,
+            TotalVideos = active.Total,
+            EmailsFound = active.Succeeded,
+            Errors = active.Failed
+        };
+        model.RecentJobs = JobTrackerStore.Recent(take: 10)
+            .Where(j => j.Kind is JobKind.Extraction or JobKind.BulkExtraction)
+            .Select(j => new ExtractionRunStatus
+            {
+                JobId = j.JobId,
+                Keyword = j.Label,
+                State = j.State.ToString(),
+                Message = j.Message,
+                TotalVideos = j.Total,
+                EmailsFound = j.Succeeded,
+                Errors = j.Failed
+            }).ToList();
         if (model.ActiveJob is not null)
             model.JobId = model.ActiveJob.JobId;
     }

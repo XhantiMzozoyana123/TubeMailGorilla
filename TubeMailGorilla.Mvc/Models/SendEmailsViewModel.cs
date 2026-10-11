@@ -25,7 +25,7 @@ public class SendEmailsViewModel
 
     // 3 - MESSAGE ROTATION -------------------------------------------------
     public bool AllowMessageRotation { get; set; }
-    public List<MessageVariation> Variations { get; set; } = new();
+    public List<Models.MessageVariation> Variations { get; set; } = new();
     public string VarSubject { get; set; } = string.Empty;
     public string VarBody { get; set; } = string.Empty;
     public bool ShowVariationEditor { get; set; }
@@ -34,6 +34,12 @@ public class SendEmailsViewModel
     public string SendSummary { get; set; } = "Review your message, then send.";
     public string? StatusMessage { get; set; }
     public string? Error { get; set; }
+
+    /// <summary>Currently sending campaign, if any - shown as a progress panel.</summary>
+    public JobRecord? ActiveCampaign { get; set; }
+
+    /// <summary>Recent campaigns for the history panel.</summary>
+    public List<JobRecord> RecentCampaigns { get; set; } = new();
 
     /// <summary>True when rotation is on and at least one valid variation exists -</summary>
     public bool UsingRotation => AllowMessageRotation && Variations.Any(v =>

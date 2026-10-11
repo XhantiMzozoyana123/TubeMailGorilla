@@ -28,6 +28,8 @@
     <!-- Used by VideoSnapshotService to download a lead's video before
          ffmpeg samples its frames. Same version as the desktop edition. -->
     <PackageReference Include="YoutubeExplode" Version="6.6.2" />
+      <PackageReference Include="SkiaSharp" Version="3.119.1" />
+
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TubeMailGorilla.Mvc.Models;
@@ -17,17 +17,20 @@ public class ContactsController : Controller
     private readonly AIService _ai;
     private readonly ValidationService _validation;
     private readonly YouTubeTranscriptService _transcript;
+    private readonly BackgroundJobService _jobs;
 
     public ContactsController(
         DatabaseService db,
         AIService ai,
         ValidationService validation,
-        YouTubeTranscriptService transcript)
+        YouTubeTranscriptService transcript,
+        BackgroundJobService jobs)
     {
         _db = db;
         _ai = ai;
         _validation = validation;
         _transcript = transcript;
+        _jobs = jobs;
     }
 
     private const string SortNewestFirst = "newest";
@@ -115,8 +118,9 @@ public class ContactsController : Controller
     }
 
     /// <summary>
-    /// Bulk-generates a personalized icebreaker for every lead currently listed
-    /// (after the search/sort above) - desktop OnGenerateIcebreakersClicked.
+    /// Bulk-generates an icebreaker per lead on a worker. Per-lead try/catch
+    /// plus a 3-consecutive-failure circuit breaker: a dead AI server stops the
+    /// batch instead of burning a 300s timeout on each remaining lead.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -132,49 +136,33 @@ public class ContactsController : Controller
         // GATEKEEPER: unlocked edition always approves.
         await _validation.CheckAsync(ValidationService.GenerateIcebreaker);
 
-        int created = 0, failed = 0, consecutiveFailures = 0;
-        foreach (var contact in model.Contacts)
+        // Single-flight: two AI batches would contend on the Ollama server.
+        if (JobTrackerStore.HasActive(JobKind.Icebreakers))
         {
-            try
-            {
-                var icebreaker = await _ai.GenerateIcebreakerAsync(contact);
-                if (string.IsNullOrWhiteSpace(icebreaker))
-                {
-                    failed++;
-                    // A dead AI server fails for every remaining lead too - bail out
-                    // instead of burning the full inference timeout on each one.
-                    if (++consecutiveFailures >= 3) break;
-                    continue;
-                }
-
-                consecutiveFailures = 0;
-                await _db.SaveOpenerAsync(new Opener
-                {
-                    EmailerId = contact.Id,
-                    Text = icebreaker,
-                    CreatedAt = DateTime.Now
-                });
-                created++;
-            }
-            catch
-            {
-                failed++;
-                if (++consecutiveFailures >= 3) break;
-            }
+            TempData["StatusError"] = "An AI batch is already running. Track it on the Jobs page.";
+            return RedirectToAction(nameof(Index), new { q, sort });
         }
 
-        var summary = $"Created {created} icebreaker{(created == 1 ? "" : "s")}";
-        if (failed > 0) summary += $", {failed} failed (the AI service timed out or was unreachable).";
-        if (consecutiveFailures >= 3) summary += " Stopped early after 3 consecutive failures.";
-        TempData["StatusMessage"] = summary;
+        try
+        {
+            var ids = model.Contacts.Select(c => c.Id).ToList();
+            _jobs.EnqueueIcebreakers(ids, q ?? string.Empty);
+            TempData["StatusMessage"] =
+                $"Icebreakers queued for {ids.Count} leads. You can close the browser - progress is on the Jobs page.";
+            return RedirectToAction("Index", "Jobs");
+        }
+        catch (Exception ex)
+        {
+            TempData["StatusError"] = $"Could not queue the icebreaker batch: {ex.Message}";
+        }
+
         return RedirectToAction(nameof(Index), new { q, sort });
     }
 
-    /// <summary>Generates one icebreaker for the open contact (details page).</summary>
-    /// <param name="instructions">
-    /// Optional custom instructions from the user (e.g. "mention my editing style"),
-    /// which supplement the lead context but never override the safety rules.
-    /// </param>
+    /// <summary>
+    /// Generates one icebreaker for the open contact (details page) as a
+    /// background job, so a slow Ollama call never blocks the page.
+    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> GenerateIcebreaker(int id, string? instructions)
@@ -182,28 +170,17 @@ public class ContactsController : Controller
         var contact = await _db.GetContactAsync(id);
         if (contact is null) return RedirectToAction(nameof(Index));
 
-        var icebreaker = await _ai.GenerateIcebreakerAsync(contact, instructions ?? string.Empty);
-        if (string.IsNullOrWhiteSpace(icebreaker))
-        {
-            TempData["StatusError"] = "The AI service timed out or could not be reached. Check your connection and try again.";
-        }
-        else
-        {
-            await _db.SaveOpenerAsync(new Opener
-            {
-                EmailerId = contact.Id,
-                Text = icebreaker,
-                CreatedAt = DateTime.Now
-            });
-            TempData["StatusMessage"] = "Icebreaker generated.";
-        }
-        return RedirectToAction(nameof(Details), new { id });
+        var queued = _jobs.EnqueueIcebreakers(new List<int> { contact.Id }, string.Empty);
+        TempData["StatusMessage"] =
+            $"Icebreaker queued. Track it on the Jobs page - it will appear on the Details page when ready.";
+        return RedirectToAction("Index", "Jobs");
     }
 
     /// <summary>
     /// Analyses the lead's video and returns concrete editing notes aimed at
-    /// raising watch time. Needs the snapshots and/or the transcript, so it is
-    /// a separate opt-in action rather than part of extraction.
+    /// raising watch time. Never runs inline - the transcript fetch (yt-dlp,
+    /// 45s cap) and the vision call can each take minutes, so it runs as a
+    /// worker job whose result lives in VideoReviewStore (survives the request).
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -212,42 +189,12 @@ public class ContactsController : Controller
         var contact = await _db.GetContactAsync(id);
         if (contact is null) return RedirectToAction(nameof(Index));
 
-        string transcript = string.Empty;
-        if (!string.IsNullOrWhiteSpace(contact.VideoUrl))
-        {
-            try
-            {
-                var cues = await _transcript.ExtractTranscriptCuesAsync(contact.VideoUrl);
-                transcript = string.Join(" ", cues.Select(c => c.Text).Distinct());
-            }
-            catch
-            {
-                // No transcript is survivable: the analysis falls back to the
-                // snapshots and the video metadata.
-            }
-        }
-
-        var advice = await _ai.GenerateVideoImprovementsAsync(contact, transcript, contact.VideoSnapshot);
-        if (string.IsNullOrWhiteSpace(advice))
-        {
-            TempData["StatusError"] = "The AI service could not produce an analysis. It may have timed out - try again.";
-        }
-        else
-        {
-            TempData["StatusMessage"] = "Analysis ready.";
-        }
-
-        // The result is shown inline, so render the details view directly
-        // rather than redirecting (which would lose the text in TempData).
-        var model = new ContactDetailsViewModel
-        {
-            Contact = contact,
-            Openers = await _db.GetOpenersForLeadAsync(contact.Id),
-            Snapshots = BuildSnapshots(contact),
-            VideoAdvice = advice
-        };
-        return View(nameof(Details), model);
+        var queued = _jobs.EnqueueVideoReview(id, contact.Email);
+        TempData["StatusMessage"] =
+            $"Video analysis queued. Track it on the Jobs page - your review will appear on the Details page when ready.";
+        return RedirectToAction("Index", "Jobs");
     }
+
     /// <summary>Removes one saved icebreaker from the contact details page.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]

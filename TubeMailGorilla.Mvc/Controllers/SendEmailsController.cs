@@ -16,12 +16,16 @@ public class SendEmailsController : Controller
     private readonly DatabaseService _db;
     private readonly EmailService _email;
     private readonly ValidationService _validation;
+    private readonly BackgroundJobService _jobs;
 
-    public SendEmailsController(DatabaseService db, EmailService email, ValidationService validation)
+    public SendEmailsController(
+        DatabaseService db, EmailService email, ValidationService validation,
+        BackgroundJobService jobs)
     {
         _db = db;
         _email = email;
         _validation = validation;
+        _jobs = jobs;
     }
 
     [HttpGet]
@@ -58,7 +62,7 @@ public class SendEmailsController : Controller
         }
 
         var variations = SendSettings.MessageVariations;
-        variations.Add(new MessageVariation(subject, body));
+        variations.Add(new MessageVariation { Subject = subject, Body = body });
         SendSettings.MessageVariations = variations;
         return RedirectToAction(nameof(Index));
     }
@@ -77,7 +81,11 @@ public class SendEmailsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    /// <summary>Runs the campaign - ported from SendEmailsPage.OnSendEmailsClicked.</summary>
+    /// <summary>
+    /// Queues the campaign as a background job and redirects to Jobs.
+    /// The send loop (SMTP + per-recipient vision calls) takes minutes, so it
+    /// must never run inside the request.
+    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Send(string? subject, string? body)
@@ -101,12 +109,22 @@ public class SendEmailsController : Controller
         if (!string.IsNullOrWhiteSpace(subject)) WebPreferences.Set("EmailSubject", subject);
         if (!string.IsNullOrWhiteSpace(body)) WebPreferences.Set("EmailBody", body);
 
+        // Single-flight: two campaigns would double-send to the same leads.
+        if (JobTrackerStore.HasActive(JobKind.Campaign))
+        {
+            var busy = await BuildModelAsync();
+            busy.Subject = subject;
+            busy.Body = body;
+            busy.Error = "A campaign is already sending. Track it on the Jobs page.";
+            return View(nameof(Index), busy);
+        }
+
         try
         {
             var allContacts = await _db.GetContactsAsync();
             var senders = await _db.GetSendersAsync();
 
-            // GATEKEEPER: approved BEFORE any email is sent.
+            // GATEKEEPER: approved BEFORE anything is queued.
             var verdict = await _validation.CheckAsync(ValidationService.SendEmails, allContacts.Count);
             var cappedByPlan = verdict.Limit >= 0 && allContacts.Count > verdict.Limit;
             var contacts = cappedByPlan ? allContacts.Take(verdict.Limit).ToList() : allContacts;
@@ -129,90 +147,27 @@ public class SendEmailsController : Controller
                 return View(nameof(Index), noContacts);
             }
 
-            var parameters = await _db.GetMessageParametersAsync();
-            var sent = 0;
-            var failed = 0;
-            var skipped = 0;
-
-            // Message rotation: each variation takes its turn across recipients.
-            var variations = SendSettings.MessageVariations.Where(v =>
-                !string.IsNullOrWhiteSpace(v.Subject) && !string.IsNullOrWhiteSpace(v.Body)).ToList();
-            var rotateMessages = usingRotation && variations.Count > 0;
-
-            // Each lead's latest AI icebreaker so [icebreaker] resolves per recipient.
-            var openers = await _db.GetOpenersAsync();
-            var latestOpenerByContact = openers
-                .Where(o => o.EmailerId > 0 && !string.IsNullOrWhiteSpace(o.Text))
-                .GroupBy(o => o.EmailerId)
-                .ToDictionary(g => g.Key, g => g.OrderByDescending(o => o.CreatedAt).First().Text.Trim());
-
-            for (int i = 0; i < contacts.Count; i++)
+            var request = new CampaignRequest
             {
-                var contact = contacts[i];
+                Subject = subject,
+                Body = body,
+                ContactIds = contacts.Select(c => c.Id).ToList(),
+                AllowAccountRotation = SendSettings.AllowAccountRotation,
+                DefaultSenderId = SendSettings.DefaultSenderId,
+                AllowMessageRotation = SendSettings.AllowMessageRotation,
+                Variations = SendSettings.MessageVariations
+                    .Where(v => !string.IsNullOrWhiteSpace(v.Subject) && !string.IsNullOrWhiteSpace(v.Body))
+                    .ToList()
+            };
 
-                // Leads without an icebreaker are skipped, exactly like the desktop loop.
-                if (!latestOpenerByContact.TryGetValue(contact.Id, out var icebreaker))
-                {
-                    skipped++;
-                    continue;
-                }
-
-                // Rotate accounts when enabled; otherwise the configured default (or first).
-                Sender senderAccount;
-                if (SendSettings.AllowAccountRotation && senders.Count > 1)
-                {
-                    senderAccount = senders[i % senders.Count];
-                }
-                else
-                {
-                    senderAccount = senders[0];
-                    var defaultId = SendSettings.DefaultSenderId;
-                    if (defaultId > 0)
-                        senderAccount = senders.FirstOrDefault(s => s.Id == defaultId) ?? senders[0];
-                }
-
-                string messageSubject = subject;
-                string messageBody = body;
-                if (rotateMessages)
-                {
-                    var variation = variations[i % variations.Count];
-                    messageSubject = variation.Subject;
-                    messageBody = variation.Body;
-                }
-
-                var message = new MessengerDto
-                {
-                    EmailFrom = senderAccount.EmailAddress,
-                    FromName = senderAccount.Name,
-                    EmailTo = contact.Email,
-                    ToName = contact.Name ?? contact.Email,
-                    Subject = EmailService.Personalize(messageSubject, contact, parameters, icebreaker),
-                    // Personalise first, then convert to HTML: the mail is sent with
-                    // IsBodyHtml = true, so a plain-text body would otherwise arrive as one
-                    // unbroken block with no line breaks.
-                    Body = EmailService.ToHtmlBody(
-                        EmailService.Personalize(messageBody, contact, parameters, icebreaker)),
-                    SmtpHost = senderAccount.SmtpHost,
-                    SmtpPort = senderAccount.SmtpPort,
-                    SmtpUser = senderAccount.SmtpUser,
-                    SmtpPassword = senderAccount.SmtpPassword
-                };
-
-                if (await _email.SendEmailAsync(message)) sent++;
-                else failed++;
-
-                // Small delay to avoid hitting rate limits.
-                await Task.Delay(500);
-            }
-
-            TempData["StatusMessage"] = cappedByPlan
-                ? $"All done. Sent: {sent}, Failed: {failed}, Skipped (no icebreaker/blocked): {skipped}. " +
-                  $"Your plan targets the first {verdict.Limit} of {allContacts.Count} leads."
-                : $"All done. Sent: {sent}, Failed: {failed}, Skipped (no icebreaker/blocked): {skipped}";
+            _jobs.EnqueueCampaign(request);
+            TempData["StatusMessage"] =
+                $"Campaign queued for {contacts.Count} leads. You can close the browser - progress is on the Jobs page.";
+            return RedirectToAction("Index", "Jobs");
         }
         catch (Exception ex)
         {
-            TempData["StatusError"] = $"Send failed: {ex.Message}";
+            TempData["StatusError"] = $"Could not queue the campaign: {ex.Message}";
         }
 
         return RedirectToAction(nameof(Index));
@@ -237,7 +192,9 @@ public class SendEmailsController : Controller
             AllowMessageRotation = SendSettings.AllowMessageRotation,
             DefaultSenderId = SendSettings.DefaultSenderId,
             ActiveAccounts = accounts.Where(a => a.IsActive).ToList(),
-            Variations = SendSettings.MessageVariations
+            Variations = SendSettings.MessageVariations.ToList(),
+            ActiveCampaign = JobTrackerStore.LatestActive(JobKind.Campaign),
+            RecentCampaigns = JobTrackerStore.Recent(JobKind.Campaign, take: 5)
         };
 
         model.TemplateStatus = model.Templates.Count == 0

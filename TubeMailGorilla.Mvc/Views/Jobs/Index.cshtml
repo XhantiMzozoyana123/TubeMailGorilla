@@ -1,0 +1,70 @@
+@model List<TubeMailGorilla.Mvc.Services.JobRecord>
+@using TubeMailGorilla.Mvc.Services
+@{
+    ViewData["Title"] = "Background Jobs";
+    string StateClass(JobState s) => s switch
+    {
+        JobState.Running => "pill",
+        JobState.Completed => "pill pill-done",
+        JobState.Failed => "pill pill-failed",
+        JobState.Cancelled => "pill pill-cancelled",
+        _ => "pill pill-queued"
+    };
+}
+
+<div class="page-header">
+    <h1 class="section-title">BACKGROUND JOBS</h1>
+    <p class="description" style="margin-bottom: 0;">
+        Every heavy operation runs here - extractions, campaigns, AI batches.
+        Close the browser; the work continues. Reopen this page to check progress.
+    </p>
+</div>
+
+@if (TempData["StatusMessage"] is string msg && msg.Length > 0)
+{
+    <div class="alert alert-success">@msg</div>
+}
+
+@if (Model.Count == 0)
+{
+    <p class="empty-state">No jobs yet. Start an extraction, a campaign, or an AI batch.</p>
+}
+else
+{
+    <div class="contacts-panel">
+        @foreach (var job in Model)
+        {
+            <div class="contact-row" data-job-panel="@job.JobId" data-active="@job.IsActive.ToString().ToLowerInvariant()">
+                <div class="contact-inner">
+                    <span class="contact-text">
+                        <span class="contact-name">@job.Kind.ToString() - @job.Label</span>
+                        <span class="contact-sub" data-job-field="message">@job.Message</span>
+                        <span class="contact-sub">
+                            <span data-job-field="processed">@job.Processed</span>/<span data-job-field="total">@job.Total</span>
+                            done &middot; <span data-job-field="succeeded">@job.Succeeded</span> ok
+                            &middot; <span data-job-field="failed">@job.Failed</span> failed
+                            @if (job.Skipped > 0)
+                            {
+                                <span>&middot; <span data-job-field="skipped">@job.Skipped</span> skipped</span>
+                            }
+                            &middot; <span data-job-field="elapsed">@job.ElapsedLabel</span>
+                        </span>
+                    </span>
+                    <span class="contact-right">
+                        <span class="@StateClass(job.State)" data-job-field="state">@job.State.ToString()</span>
+                    </span>
+                </div>
+                @if (job.IsActive)
+                {
+                    <form method="post" asp-controller="Jobs" asp-action="Cancel"
+                          class="js-confirm contact-delete"
+                          data-confirm="Cancel this @job.Kind.ToString().ToLowerInvariant() job? Partial progress is kept.">
+                        <input type="hidden" name="id" value="@job.JobId" />
+                        <input type="hidden" name="returnUrl" value="/Jobs" />
+                        <button type="submit" class="btn-toolbar">Cancel</button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+}

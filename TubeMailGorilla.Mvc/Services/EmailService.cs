@@ -206,6 +206,17 @@ public class EmailService
             if (token.Length == 0)
                 continue;
 
+            // snapshot_ai and snapshot_random are built-in tokens backed by the
+            // lead's video rather than a contact field, and are resolved during
+            // send. Shortcodes are freely renameable, so a user can create one
+            // with either name; without this guard that row would replace the
+            // bare token here and the email would ship with no image and no
+            // warning.
+            if (token.Equals(SnapshotAiToken.TrimStart('['), StringComparison.OrdinalIgnoreCase) ||
+                token.Equals(SnapshotRandomToken.TrimStart('['), StringComparison.OrdinalIgnoreCase) ||
+                SnapshotIndexTokenPattern.IsMatch("[" + token + "]"))
+                continue;
+
             var value = fields.TryGetValue(p.Field?.Trim() ?? string.Empty, out var matched)
                 ? matched
                 : string.Empty;
@@ -216,10 +227,172 @@ public class EmailService
         return result;
     }
 
+    // ---- Snapshot token helpers (mirror MAUI Unlocked EmailService) ----
+
     /// <summary>
-    /// Produces a responsive HTML email from plain text. Blank lines become
-    /// paragraphs, while authored HTML is passed through unchanged.
+    /// The email body token that embeds an AI-chosen video snapshot. The optional
+    /// {...} text is the instruction telling the vision model what to look for,
+    /// e.g. [snapshot_ai={Select the frame that most needs editing.}].
     /// </summary>
+    public const string SnapshotAiToken = "[snapshot_ai";
+
+    /// <summary>
+    /// The email body token that embeds one of the lead's snapshots picked at
+    /// random. No AI and no vision model involved - just a frame from their own
+    /// video, so it always works.
+    /// </summary>
+    public const string SnapshotRandomToken = "[snapshot_random";
+
+    // The size VideoSnapshotService captures frames at, so a token shows the
+    // stored image at its true resolution instead of upscaling it. The CSS in
+    // BuildSnapshotImageHtml caps it on narrow screens regardless.
+    private const int DefaultRandomWidth = 320;
+    private const int DefaultRandomHeight = 180;
+
+    /// <summary>
+    /// Matches a [snapshot_random] token. No instruction is involved, so the
+    /// braces form is not accepted - a stray {...} here would be a typo
+    /// rather than an instruction.
+    /// </summary>
+    private static readonly Regex SnapshotRandomTokenPattern = new(
+        @"\[snapshot_random\s*\]",
+        RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Matches a [snapshot_ai] token and captures its instruction. The
+    /// instruction is optional, so both [snapshot_ai] and [snapshot_ai={...}]
+    /// are accepted. The "=" is optional too and any whitespace around it is
+    /// allowed, because a user typing the token by hand writes spaces.
+    /// </summary>
+    private static readonly Regex SnapshotAiTokenPattern = new(
+        @"\[snapshot_ai\s*(?:=\s*\{(?<instruction>[^}]*)\})?\s*\]",
+        RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Matches a [snapshot_N] token, where N is the frame number. 1-based and
+    /// deliberately digits-only: [snapshot_1] is the first frame the capture
+    /// took, which matches the "1 of N" counter in the contact editor.
+    /// </summary>
+    private static readonly Regex SnapshotIndexTokenPattern = new(
+        @"\[snapshot_(?<index>[1-9]\d*)\s*\]",
+        RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Builds the HTML for a snapshot image from its stored base64 payload.
+    ///
+    /// The image is inlined as a base64 data URI rather than attached or hosted,
+    /// because a cold email cannot rely on the recipient's mail client fetching
+    /// remote images - most block them by default, which would leave a broken
+    /// image exactly where the pitch is supposed to be.
+    ///
+    /// The payload is stored as bare base64 but a data: URI prefix is tolerated.
+    /// max-width caps it on narrow phone screens, and display:block stops the
+    /// baseline gap under the image. Returns an empty string when there is no
+    /// image, so an unavailable token collapses to nothing in the email.
+    /// </summary>
+    private static string BuildSnapshotImageHtml(string? base64Image)
+    {
+        if (string.IsNullOrWhiteSpace(base64Image))
+            return string.Empty;
+
+        // Stored as bare base64, but tolerate a data-URI prefix.
+        var payload = base64Image.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+            ? base64Image[(base64Image.IndexOf(',') + 1)..]
+            : base64Image;
+
+        return $"<img src=\"data:image/jpeg;base64,{payload}\" " +
+               $"width=\"{DefaultRandomWidth}\" height=\"{DefaultRandomHeight}\" " +
+               "alt=\"A still from your video\" " +
+               "style=\"display:block;max-width:100%;height:auto;border:0;\" />";
+    }
+
+    /// <summary>True when the text contains a [snapshot_ai] token.</summary>
+    public static bool ContainsSnapshotAiToken(string? text) =>
+        !string.IsNullOrEmpty(text) && SnapshotAiTokenPattern.IsMatch(text);
+
+    /// <summary>True when the text contains a [snapshot_random] token.</summary>
+    public static bool ContainsSnapshotRandomToken(string? text) =>
+        !string.IsNullOrEmpty(text) && SnapshotRandomTokenPattern.IsMatch(text);
+
+    /// <summary>True when the text contains a [snapshot_N] token.</summary>
+    public static bool ContainsSnapshotIndexToken(string? text) =>
+        !string.IsNullOrEmpty(text) && SnapshotIndexTokenPattern.IsMatch(text);
+
+    /// <summary>
+    /// Replaces every [snapshot_random] token with one of the lead's own frames.
+    /// No AI and no vision model involved - just a frame from their video, so it
+    /// always works.
+    /// </summary>
+    public static string PersonalizeSnapshotRandom(string text, IReadOnlyList<string> snapshots)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+        if (!SnapshotRandomTokenPattern.IsMatch(text))
+            return text;
+
+        if (snapshots is null || snapshots.Count == 0)
+            return SnapshotRandomTokenPattern.Replace(text, string.Empty);
+
+        // Random.Shared rather than new Random(): the send loop runs on one
+        // thread in a tight sequence, and a fresh Random() seeded from the clock
+        // can hand out the same value for several calls in a row.
+        var chosen = snapshots[Random.Shared.Next(snapshots.Count)];
+        return SnapshotRandomTokenPattern.Replace(text, BuildSnapshotImageHtml(chosen));
+    }
+
+    /// <summary>
+    /// Replaces every [snapshot_N] token with the Nth frame of the lead's own
+    /// video (1-based). An index past the end of the list (or a lead with no
+    /// frames at all) renders nothing, the same as every other snapshot token,
+    /// rather than failing the send.
+    /// </summary>
+    public static string PersonalizeSnapshotIndexed(string text, IReadOnlyList<string> snapshots)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+        if (!SnapshotIndexTokenPattern.IsMatch(text))
+            return text;
+
+        if (snapshots is null || snapshots.Count == 0)
+            return SnapshotIndexTokenPattern.Replace(text, string.Empty);
+
+        return SnapshotIndexTokenPattern.Replace(text, match =>
+        {
+            if (!int.TryParse(match.Groups["index"].Value, out var index))
+                return string.Empty;
+
+            // 1-based authoring, 0-based storage.
+            var position = index - 1;
+            if (position < 0 || position >= snapshots.Count)
+                return string.Empty;
+
+            return BuildSnapshotImageHtml(snapshots[position]);
+        });
+    }
+
+    /// <summary>
+    /// Replaces every [snapshot_ai] token with the HTML for the image the vision
+    /// model picked for this contact.
+    ///
+    /// The web edition has no ComfyUI/vision image pick wired in (unlike the
+    /// desktop MAUI build), so it falls back to the first frame - the same
+    /// result a lead with no vision model configured would get - rather than
+    /// failing the send. Kept async so the call site and signature match the
+    /// desktop edition.
+    /// </summary>
+    public static Task<string> PersonalizeSnapshotAiAsync(
+        string text, EmailContact contact, AIService ai, IReadOnlyList<string> snapshots)
+    {
+        if (string.IsNullOrEmpty(text) || !SnapshotAiTokenPattern.IsMatch(text))
+            return Task.FromResult(text);
+
+        if (snapshots is null || snapshots.Count == 0)
+            return Task.FromResult(SnapshotAiTokenPattern.Replace(text, string.Empty));
+
+        return Task.FromResult(
+            SnapshotAiTokenPattern.Replace(text, BuildSnapshotImageHtml(snapshots[0])));
+    }
+
     public static string ToHtmlBody(string body)
     {
         if (string.IsNullOrWhiteSpace(body))

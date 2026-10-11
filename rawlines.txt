@@ -1,0 +1,44 @@
+﻿=== lines 20-30 raw ===
+20:     {
+21:         Email = "alice@example.com",
+22:         Name = "Alice \"The Builder\", Jr.",
+23:         Channel = "Alice Builds",
+24:         VideoTitle = "Live-edge table, part 1",
+25:         VideoDescription = "Line one.\nLine two, with a comma.",
+26:         VideoUrl = "https://youtube.com/watch?v=abc",
+27:         ExtractedAt = new DateTime(2026, 9, 1, 10, 30, 0, DateTimeKind.Utc),
+28:         IsBlocked = true,
+29:         LastEmailed = new DateTime(2026, 9, 20, 8, 0, 0, DateTimeKind.Utc),
+30:     },
+=== lines 40-70 raw ===
+40: Check(parsed.Count == 2, "round trip returns both contacts");
+41: Check(parsed[0].Name == "Alice \"The Builder\", Jr.", "quoted name survives round trip");
+42: Check(parsed[0].VideoDescription == "Line one.\nLine two, with a comma.", "multiline field survives round trip");
+43: Check(parsed[0].IsBlocked, "blocked flag survives round trip");
+44: Check(parsed[0].ExtractedAt.ToUniversalTime() == new DateTime(2026, 9, 1, 10, 30, 0, DateTimeKind.Utc), "extracted date survives round trip");
+45: 
+46: 
+47: Check(parsed[1].Email == "bob@example.com" && parsed[1].Name == "Bob", "minimal contact survives round trip");
+48: 
+49: // 2. Header aliases: a spreadsheet-style header maps onto the same fields.
+50: var aliasCsv = "Full Name,Email Address,Channel Name,Title,URL,Blocked\r\n"
+51:     + "Carol,carol@example.com,Carol Crafts,My video,https://example.com/v,yes\r\n";
+52: var (aliasParsed, aliasSkipped) = ContactCsvService.Parse(aliasCsv);
+53: Check(aliasSkipped == 0 && aliasParsed.Count == 1, "alias header parses one contact");
+54: Check(aliasParsed[0].Name == "Carol", "alias: Full Name -> name");
+55: Check(aliasParsed[0].Channel == "Carol Crafts", "alias: Channel Name -> channel");
+56: Check(aliasParsed[0].VideoTitle == "My video", "alias: Title -> video title");
+57: Check(aliasParsed[0].IsBlocked, "alias: Blocked=yes -> true");
+58: 
+59: // 3. Junk rows are skipped, not imported.
+60: var junkCsv = "email,name\r\n"
+61:     + "good@example.com,Good\r\n"
+62:     + "not-an-email,Bad\r\n"
+63:     + ",Empty\r\n"
+64:     + "\r\n"
+65:     + "alsobad@,Bad2\r\n"
+66:     + "second@example.com,Second\r\n";
+67: var (junkParsed, junkSkipped) = ContactCsvService.Parse(junkCsv);
+68: Check(junkParsed.Count == 2, "junk: two valid contacts parsed");
+69: Check(junkSkipped == 3, "junk: three bad rows skipped (blank line ignored)");
+70: Check(junkParsed[0].Email == "good@example.com" && junkParsed[1].Email == "second@example.com", "junk: valid rows keep order");

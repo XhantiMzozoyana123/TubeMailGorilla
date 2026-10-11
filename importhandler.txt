@@ -1,0 +1,102 @@
+﻿=== lines 327-427 ===
+327:     private async void OnImportCsvClicked(object? sender, EventArgs e)
+328:     {
+329:         if (_isImportingCsv) return;
+330: 
+331:         FileResult? picked = null;
+332:         try
+333:         {
+334:             picked = await FilePicker.Default.PickAsync(new PickOptions
+335:             {
+336:                 PickerTitle = "Choose a contacts CSV file",
+337:                 FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+338:                 {
+339:                     [DevicePlatform.WinUI] = new[] { ".csv" },
+340:                     [DevicePlatform.macOS] = new[] { "csv", "public.comma-separated-values-text" },
+341:                     [DevicePlatform.iOS] = new[] { "public.comma-separated-values-text" },
+342:                     [DevicePlatform.Android] = new[] { "text/csv", "text/comma-separated-values" },
+343:                 }),
+344:             });
+345:         }
+346:         catch (Exception ex)
+347:         {
+348:             await DisplayAlert("Could not open file", ex.Message, "OK");
+349:             return;
+350:         }
+351: 
+352:         // User cancelled the dialogue - stay quiet and let them carry on.
+353:         if (picked is null)
+354:             return;
+355: 
+356:         _isImportingCsv = true;
+357:         ImportCsvButton.IsEnabled = false;
+358:         var originalText = ImportCsvButton.Text;
+359:         ImportCsvButton.Text = "Importingâ€¦";
+360: 
+361:         try
+362:         {
+363:             string text;
+364:             try
+365:             {
+366:                 using var stream = await picked.OpenReadAsync();
+367:                 using var reader = new StreamReader(stream, detectEncodingFromByteOrderMarks: true);
+368:                 text = await reader.ReadToEndAsync();
+369:             }
+370:             catch (Exception ex)
+371:             {
+372:                 await DisplayAlert("Could not read file", ex.Message, "OK");
+373:                 return;
+374:             }
+375: 
+376:             List<EmailContact> parsed;
+377:             int skipped;
+378:             try
+379:             {
+380:                 (parsed, skipped) = ContactCsvService.Parse(text);
+381:             }
+382:             catch (FormatException ex)
+383:             {
+384:                 await DisplayAlert("Not a contacts CSV", ex.Message, "OK");
+385:                 return;
+386:             }
+387: 
+388:             if (parsed.Count == 0)
+389:             {
+390:                 var noneMsg = skipped == 0
+391:                     ? "That file has a header row but no contact rows."
+392:                     : $"All {skipped} row{(skipped == 1 ? " was" : "s were")} skipped - none had a usable email address.";
+393:                 await DisplayAlert("Nothing to import", noneMsg, "OK");
+394:                 return;
+395:             }
+396: 
+397:             var imported = 0;
+398:             var duplicates = 0;
+399:             foreach (var contact in parsed)
+400:             {
+401:                 // AddContactAsync dedupes atomically (INSERT OR IGNORE):
+402:                 // zero rows means this email is already stored.
+403:                 if (await _db.AddContactAsync(contact) > 0)
+404:                     imported++;
+405:                 else
+406:                     duplicates++;
+407:             }
+408: 
+409:             var summary = $"Imported {imported} contact{(imported == 1 ? "" : "s")}.";
+410:             if (duplicates > 0) summary += $"\n{duplicates} already existed (skipped).";
+411:             if (skipped > 0) summary += $"\n{skipped} row{(skipped == 1 ? " had" : "s had")} no usable email (skipped).";
+412:             await DisplayAlert("Import complete", summary, "OK");
+413: 
+414:             await LoadContactsAsync();
+415:         }
+416:         catch (Exception ex)
+417:         {
+418:             await DisplayAlert("Could not import", ex.Message, "OK");
+419:         }
+420:         finally
+421:         {
+422:             _isImportingCsv = false;
+423:             ImportCsvButton.IsEnabled = true;
+424:             ImportCsvButton.Text = originalText;
+425:         }
+426:     }
+427: 
